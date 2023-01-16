@@ -3,9 +3,11 @@ import React, { useContext } from 'react';
 // contexts
 import EtherspotUiContext from '../contexts/EtherspotUiContext';
 
-interface EtherspotBatchesProps {
+// types
+import { IBatchGroup } from '../types/EtherspotUi';
+
+interface EtherspotBatchesProps extends IBatchGroup {
   children?: React.ReactNode;
-  skip?: boolean;
 }
 
 const EtherspotBatches = ({ children }: EtherspotBatchesProps) => {

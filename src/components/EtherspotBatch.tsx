@@ -3,10 +3,11 @@ import React, { useContext } from 'react';
 // contexts
 import EtherspotUiContext from '../contexts/EtherspotUiContext';
 
-interface EtherspotBatchProps {
+// types
+import { IBatch } from '../types/EtherspotUi';
+
+interface EtherspotBatchProps extends IBatch {
   children?: React.ReactNode;
-  chainId?: number;
-  gasToken?: string;
 }
 
 const EtherspotBatch = ({ children }: EtherspotBatchProps) => {

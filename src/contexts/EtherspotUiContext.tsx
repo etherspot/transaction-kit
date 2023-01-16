@@ -1,7 +1,7 @@
 import React, { createContext } from 'react';
 
 // types
-import { IBatchGroup } from '../components/EtherspotUi';
+import { IBatchGroup } from '../types/EtherspotUi';
 
 export interface EtherspotUiContext {
   data: {
@@ -11,6 +11,5 @@ export interface EtherspotUiContext {
 }
 
 const EtherspotUiContext = createContext<EtherspotUiContext | null>(null);
-
 
 export default EtherspotUiContext;
