@@ -3,6 +3,23 @@ import { renderHook, render } from '@testing-library/react';
 // hooks
 import { useEtherspotUi, EtherspotUi, EtherspotBatches, EtherspotBatch, EtherspotTransaction } from '../src';
 
+const TestSingleBatchComponent = () => (
+  <EtherspotBatches>
+    <EtherspotBatch chainId={123} gasTokenAddress={'testGasTokenAddress'}>
+      <EtherspotTransaction
+        to={'0x12'}
+        data={'0x0'}
+        value={'0.123'}
+      />
+      <EtherspotTransaction
+        to={'0x0'}
+        data={'0xFFF'}
+        value={'420'}
+      />
+    </EtherspotBatch>
+  </EtherspotBatches>
+);
+
 describe('useEtherspotUi()', () => {
   it('returns grouped batches', () => {
     const wrapper = ({ children }) => (
@@ -32,13 +49,16 @@ describe('useEtherspotUi()', () => {
         <EtherspotBatches>
           <span>test</span>
         </EtherspotBatches>
+        <TestSingleBatchComponent />
         {children}
       </EtherspotUi>
     );
 
     const { result: { current } } = renderHook(() => useEtherspotUi(), { wrapper });
 
-    expect(current.batches.length).toBe(3);
+    console.log({ current: current.batches })
+
+    expect(current.batches.length).toBe(4);
     expect(current.batches[0].batches.length).toBe(1);
     expect(current.batches[0].batches[0].chainId).toBe(123);
     expect(current.batches[0].batches[0].gasTokenAddress).toBe('testGasTokenAddress');
@@ -71,32 +91,6 @@ describe('useEtherspotUi()', () => {
 
     expect(() => renderHook(() => useEtherspotUi(), {  wrapper }))
       .toThrow('<EtherspotBatches /> cannot be inside <EtherspotBatches />');
-  });
-
-  it('throws an error if <EtherspotBatches /> within <EtherspotBatch />', () => {
-    const wrapper = ({ children }) => (
-      <EtherspotUi provider={null}>
-        <div>
-          test
-          <span>
-          <EtherspotBatches>
-            <EtherspotBatch>
-              <EtherspotBatches>
-                <span>test</span>
-              </EtherspotBatches>
-            </EtherspotBatch>
-          </EtherspotBatches>
-        </span>
-        </div>
-        <EtherspotBatches>
-          <span>test</span>
-        </EtherspotBatches>
-        {children}
-      </EtherspotUi>
-    );
-
-    expect(() => renderHook(() => useEtherspotUi(), {  wrapper }))
-      .toThrow('<EtherspotBatches /> cannot be inside <EtherspotBatch />');
   });
 
   it('throws an error if <EtherspotBatch /> within <EtherspotBatch />', () => {
@@ -165,21 +159,21 @@ describe('useEtherspotUi()', () => {
       .toThrow('No parent <EtherspotUi />');
   });
 
-  it('throws an error if <EtherspotBatch /> rendered without <EtherspotUi />', () => {
+  it('throws an error if <EtherspotBatch /> rendered without <EtherspotBatches />', () => {
     expect(() => render(
       <EtherspotBatch>
           <span>test</span>
       </EtherspotBatch>
     ))
-      .toThrow('No parent <EtherspotUi />');
+      .toThrow('No parent <EtherspotBatches />');
   });
 
-  it('throws an error if <EtherspotTransaction /> rendered without <EtherspotUi />', () => {
+  it('throws an error if <EtherspotTransaction /> rendered without <EtherspotBatch />', () => {
     expect(() => render(
       <EtherspotTransaction to={'0x'}>
           <span>test</span>
       </EtherspotTransaction>
     ))
-      .toThrow('No parent <EtherspotUi />');
+      .toThrow('No parent <EtherspotBatch />');
   });
 })

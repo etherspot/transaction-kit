@@ -1,15 +1,18 @@
-import React, { createContext } from 'react';
+import React, { createContext, Dispatch, SetStateAction } from 'react';
 
 // types
-import { IBatchGroup } from '../types/EtherspotUi';
+import { IBatches, IEstimatedBatches } from '../types/EtherspotUi';
+import { TypePerId } from '../types/Helper';
 
-export interface EtherspotUiContext {
+export interface IEtherspotUiContext {
   data: {
     chainId: number;
-    batches: IBatchGroup[];
-  }
+    batches: IBatches[];
+    estimate: (batchesIds?: string[]) => Promise<IEstimatedBatches[]>;
+  },
+  setGroupedBatchesPerId: Dispatch<SetStateAction<TypePerId<IBatches>>>;
 }
 
-const EtherspotUiContext = createContext<EtherspotUiContext | null>(null);
+const EtherspotUiContext = createContext<IEtherspotUiContext | null>(null);
 
 export default EtherspotUiContext;
