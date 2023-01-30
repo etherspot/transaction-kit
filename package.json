@@ -1,5 +1,5 @@
 {
-  "name": "@etherspot/react-etherspot-ui-buidler",
+  "name": "@etherspot/ui",
   "description": "React Etherspot UI buidler",
   "version": "0.0.1",
   "main": "dist/cjs/index.js",
