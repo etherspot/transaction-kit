@@ -10,7 +10,7 @@ interface EtherspotTransactionProps extends ITransaction {
   children?: React.ReactNode;
 }
 
-const EtherspotTransaction = ({ children, to, data, value }: EtherspotTransactionProps) => {
+const EtherspotTransaction = ({ children, to, data, value, id: transactionId }: EtherspotTransactionProps) => {
   const context = useContext(EtherspotBatchContext);
   const componentId = useId();
 
@@ -23,7 +23,7 @@ const EtherspotTransaction = ({ children, to, data, value }: EtherspotTransactio
   }
 
   useEffect(() => {
-    const transaction = { to, data, value };
+    const transaction = { id: transactionId ?? componentId, to, data, value };
 
     context.setTransactionsPerId((current) => ({ ...current, [componentId]: transaction }));
 
@@ -33,7 +33,7 @@ const EtherspotTransaction = ({ children, to, data, value }: EtherspotTransactio
         return current;
       });
     }
-  }, [componentId, to, data, value ]);
+  }, [componentId, to, data, value, transactionId]);
 
   return null;
 };

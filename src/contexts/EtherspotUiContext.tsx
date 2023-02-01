@@ -1,7 +1,7 @@
 import React, { createContext, Dispatch, SetStateAction } from 'react';
 
 // types
-import { IBatches, IEstimatedBatches } from '../types/EtherspotUi';
+import { IBatches, IEstimatedBatches, ISentBatches } from '../types/EtherspotUi';
 import { TypePerId } from '../types/Helper';
 
 export interface IEtherspotUiContext {
@@ -9,6 +9,7 @@ export interface IEtherspotUiContext {
     chainId: number;
     batches: IBatches[];
     estimate: (batchesIds?: string[]) => Promise<IEstimatedBatches[]>;
+    send: (batchesIds?: string[]) => Promise<ISentBatches[]>;
   },
   setGroupedBatchesPerId: Dispatch<SetStateAction<TypePerId<IBatches>>>;
 }
