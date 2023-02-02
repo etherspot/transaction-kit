@@ -8,31 +8,43 @@ import EtherspotUiContext from '../contexts/EtherspotUiContext';
 import { getObjectSortedByKeys } from '../utils/common';
 
 // types
-import { EstimatedBatch, IBatch, IBatches, IEstimatedBatches } from '../types/EtherspotUi';
+import { EstimatedBatch, IBatch, IBatches, IEstimatedBatches, ISentBatches, SentBatch } from '../types/EtherspotUi';
 import { TypePerId } from '../types/Helper';
+import { Sdk } from 'etherspot';
 
 interface EtherspotUiContextProviderProps {
   chainId?: number | undefined;
   children?: React.ReactNode;
 }
 
+let isSdkConnecting: Promise<any> | undefined;
+
 const EtherspotUiContextProvider = ({ children, chainId = 1 }: EtherspotUiContextProviderProps) => {
   const { getSdkForChainId } = useEtherspot();
   const [groupedBatchesPerId, setGroupedBatchesPerId] = useState<TypePerId<IBatches>>({});
 
-  const estimate = async (batchesIds?: string[]): Promise<IEstimatedBatches[]> => {
+  // TODO: move to etherspot sdk context lib
+  const connectToSdkForChainIfNeeded = async (sdkForChainId: Sdk) => {
+    if (sdkForChainId.state.accountAddress) return;
+    isSdkConnecting = sdkForChainId.computeContractAccount({ sync: true });
+    await isSdkConnecting;
+    isSdkConnecting = undefined;
+  }
+
+  const estimate = async (
+    batchesIds?: string[],
+    forSending: boolean = false,
+  ): Promise<IEstimatedBatches[]> => {
     const groupedBatchesToEstimate = Object.values<IBatches>(groupedBatchesPerId)
       .filter((groupedBatch) => (!batchesIds?.length|| batchesIds.some((batchesId) => batchesId === groupedBatch.id)));
 
-    let isSdkConnecting: Promise<any> | undefined;
-
-    return Promise.all(groupedBatchesToEstimate.map(async (groupedBatch) => {
+    return Promise.all(groupedBatchesToEstimate.map(async (groupedBatch): Promise<IEstimatedBatches> => {
       // hold when connecting
       if (isSdkConnecting) await isSdkConnecting;
 
       const batches = (groupedBatch.batches ?? []) as IBatch[];
 
-      const estimatesBatches: EstimatedBatch[] = [];
+      const estimatedBatches: EstimatedBatch[] = [];
 
       // push estimations in same order
       for (const batch of batches) {
@@ -40,24 +52,19 @@ const EtherspotUiContextProvider = ({ children, chainId = 1 }: EtherspotUiContex
         const sdkForChainId = getSdkForChainId(batchChainId);
 
         if (!sdkForChainId) {
-          estimatesBatches.push({ errorMessage: 'Failed to get SDK for chain!' });
+          estimatedBatches.push({ errorMessage: 'Failed to get SDK for chain!' });
           continue;
         }
 
-        // TODO: move to etherspot sdk context lib
-        if (!sdkForChainId.state.accountAddress) {
-          isSdkConnecting = sdkForChainId.computeContractAccount({ sync: true });
-          await isSdkConnecting;
-          isSdkConnecting = undefined;
-        }
+        await connectToSdkForChainIfNeeded(sdkForChainId);
 
         if (!batch.transactions) {
-          estimatesBatches.push({ errorMessage: 'No transactions to estimate!' });
+          estimatedBatches.push({ errorMessage: 'No transactions to estimate!' });
           continue;
         }
 
         try {
-          sdkForChainId.clearGatewayBatch();
+          if (!forSending) sdkForChainId.clearGatewayBatch();
 
           await Promise.all(batch.transactions.map(async ({ to, value, data }) => {
             await sdkForChainId.batchExecuteAccountTransaction(({ to, value, data }));
@@ -69,19 +76,59 @@ const EtherspotUiContextProvider = ({ children, chainId = 1 }: EtherspotUiContex
             ? estimation.feeAmount
             : estimation.estimatedGasPrice.mul(estimation.estimatedGas)
 
-          estimatesBatches.push({ cost });
+          estimatedBatches.push({ ...batch, cost });
         } catch (e) {
-          // @ts-ignore
-          estimatesBatches.push({ errorMessage: e?.message ?? 'Failed to estimate!' });
+          const errorMessage = e instanceof Error && e.message;
+          estimatedBatches.push({ errorMessage: errorMessage || 'Failed to estimate!' });
         }
       }
 
-      return { id: groupedBatch.id, estimatedBatches: estimatesBatches };
+      if (groupedBatch.onEstimated && !forSending) groupedBatch.onEstimated(estimatedBatches);
+
+      return { ...groupedBatch, estimatedBatches };
     }));
   }
 
-  const send = (batchesIds: string[]) => {
+  const send = async (batchesIds?: string[]): Promise<ISentBatches[]> => {
+    const estimated = await estimate(batchesIds, true);
 
+    return Promise.all(estimated.map(async (estimatedBatches): Promise<ISentBatches> => {
+      // hold when connecting
+      if (isSdkConnecting) await isSdkConnecting;
+
+      const sentBatches: SentBatch[] = [];
+
+      // send in same order as estimated
+      for (const estimatedBatch of estimatedBatches.estimatedBatches) {
+        const batchChainId = estimatedBatch.chainId ?? chainId
+        const sdkForChainId = getSdkForChainId(batchChainId);
+
+        // return error message as provided by estimate
+        if (estimatedBatch.errorMessage) {
+          sentBatches.push({ errorMessage: estimatedBatch.errorMessage });
+          continue;
+        }
+
+        if (!sdkForChainId) {
+          sentBatches.push({ errorMessage: 'Failed to get SDK for chain!' });
+          continue;
+        }
+
+        await connectToSdkForChainIfNeeded(sdkForChainId);
+
+        try {
+          const { hash: batchHash } = await sdkForChainId.submitGatewayBatch();
+          sentBatches.push({ ...estimatedBatch, batchHash });
+        } catch (e) {
+          const errorMessage = e instanceof Error && e.message;
+          sentBatches.push({ errorMessage: errorMessage || 'Failed to send!' });
+        }
+      }
+
+      if (estimatedBatches.onSent) estimatedBatches.onSent(sentBatches);
+
+      return { ...estimatedBatches, sentBatches };
+    }));
   }
 
   const contextData = useMemo(() => ({
