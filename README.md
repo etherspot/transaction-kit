@@ -1,8 +1,8 @@
 <a href="https://etherspot.io"> <img src=".github/etherspot-logo.svg" alt="Etherspot Logo" style="width: 50%; height: auto; margin: auto;"></a>
 
-[![License](https://img.shields.io/github/license/etherspot/react-etherspot-kit)](https://github.com/etherspot/react-etherspot-kit/LICENSE) 
-[![npm](https://img.shields.io/npm/v/@etherspot/react-etherspot-kit)](https://www.npmjs.com/package/@etherspot/react-etherspot-kit) 
-[![contributions](https://img.shields.io/github/contributors/etherspot/react-etherspot-kit)](https://github.com/etherspot/react-etherspot-kit/graphs/contributors) 
+[![License](https://img.shields.io/github/license/etherspot/TransactionKit)](https://github.com/etherspot/react-etherspot-ui-buidler/LICENSE) 
+[![npm](https://img.shields.io/npm/v/@etherspot/TransactionKit)](https://www.npmjs.com/package/@etherspot/TransactionKit) 
+[![contributions](https://img.shields.io/github/contributors/etherspot/TransactionKit)](https://github.com/etherspot/react-etherspot-ui-buidler/graphs/contributors) 
 [![discord](https://img.shields.io/discord/996437599453450280)](https://discord.etherspot.io)
 
 # Etherspot for React
@@ -32,7 +32,7 @@ VS Marketplace Link: https://marketplace.visualstudio.com/items?itemName=EditorC
 Install React Etherspot using npm or yarn
 
 ```
-npm i @etherspot/react-etherspot-kit
+npm i @etherspot/TransactionKit
 ```
 Plug in your dApp
 
@@ -47,7 +47,7 @@ You can set up React Etherspot locally and develop new features for it. Please f
 - Then, checkout this repository
 - In this repository directory: run `npm install && npm link`
 - In this repository directory:: run `npm run rollup:watch` - this project is now being watched for code changes
-- In the React project directory: run `npm install && npm link @etherspot/react-etherspot-kit`
+- In the React project directory: run `npm install && npm link @etherspot/TransactionKit`
 - Run your React project
 
 You can now make code changes in this repository and changes will be reflected in the Example dapp.
