@@ -1,8 +1,8 @@
 <a href="https://etherspot.io"> <img src=".github/etherspot-logo.svg" alt="Etherspot Logo" style="width: 50%; height: auto; margin: auto;"></a>
 
-[![License](https://img.shields.io/github/license/etherspot/TransactionKit)](https://github.com/etherspot/TransactionKit/LICENSE) 
+[![License](https://img.shields.io/github/license/etherspot/transaction-kit)](https://github.com/etherspot/transaction-kit/LICENSE) 
 [![npm](https://img.shields.io/npm/v/@etherspot/TransactionKit)](https://www.npmjs.com/package/@etherspot/TransactionKit) 
-[![contributions](https://img.shields.io/github/contributors/etherspot/TransactionKit)](https://github.com/etherspot/TransactionKit/graphs/contributors) 
+[![contributions](https://img.shields.io/github/contributors/etherspot/transaction-kit)](https://github.com/etherspot/transaction-kit/graphs/contributors) 
 [![discord](https://img.shields.io/discord/996437599453450280)](https://discord.etherspot.io)
 
 # Etherspot for React

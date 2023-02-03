@@ -10,15 +10,15 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/etherspot/TransactionKit.git"
+    "url": "git+https://github.com/etherspot/transaction-kit.git"
   },
   "keywords": [],
   "author": "Etherspot",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/etherspot/TransactionKit/issues"
+    "url": "https://github.com/etherspot/transaction-kit/issues"
   },
-  "homepage": "https://github.com/etherspot/TransactionKit#readme",
+  "homepage": "https://github.com/etherspot/transaction-kit#readme",
   "dependencies": {
     "@etherspot/react-etherspot": "^0.0.1"
   },
