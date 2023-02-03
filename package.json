@@ -1,6 +1,6 @@
 {
-  "name": "@etherspot/TransactionKit",
-  "description": "React Etherspot Kit",
+  "name": "@etherspot/transaction-kit",
+  "description": "React Etherspot Transaction Kit",
   "version": "0.0.1",
   "main": "dist/cjs/index.js",
   "scripts": {
@@ -10,15 +10,15 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/etherspot/react-etherspot-ui-buidler.git"
+    "url": "git+https://github.com/etherspot/transaction-kit.git"
   },
   "keywords": [],
   "author": "Etherspot",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/etherspot/react-etherspot-ui-buidler/issues"
+    "url": "https://github.com/etherspot/transaction-kit/issues"
   },
-  "homepage": "https://github.com/etherspot/react-etherspot-ui-buidler#readme",
+  "homepage": "https://github.com/etherspot/transaction-kit#readme",
   "dependencies": {
     "@etherspot/react-etherspot": "^0.0.1"
   },
