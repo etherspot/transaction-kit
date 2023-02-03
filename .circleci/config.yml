@@ -5,7 +5,7 @@ orbs:
 
 jobs:
   install:
-    working_directory: ~/etherspot-ui
+    working_directory: ~/etherspot-transaction-kit
     docker:
       - image: cimg/node:16.19.0
         auth:
@@ -15,7 +15,7 @@ jobs:
       - checkout
       - run:
           name: Authenticate with registry
-          command: echo "//registry.npmjs.org/:_authToken=$ETHERSPOT_NPM_TOKEN" > ~/etherspot-ui/.npmrc
+          command: echo "//registry.npmjs.org/:_authToken=$ETHERSPOT_NPM_TOKEN" > ~/etherspot-transaction-kit/.npmrc
       - restore_cache:
           key: dependency-cache-{{ checksum "package.json" }}
       - run:
@@ -31,7 +31,7 @@ jobs:
           webhook: "${SLACK_WEBHOOK_URL}"
 
   publish:
-    working_directory: ~/etherspot-ui
+    working_directory: ~/etherspot-transaction-kit
     docker:
       - image: circleci/node:16.3.0
         auth:
@@ -43,12 +43,12 @@ jobs:
           key: dependency-cache-{{ checksum "package.json" }}
       - run:
           name: Authenticate with registry
-          command: echo "//registry.npmjs.org/:_authToken=$ETHERSPOT_NPM_TOKEN" > ~/etherspot-ui/.npmrc
+          command: echo "//registry.npmjs.org/:_authToken=$ETHERSPOT_NPM_TOKEN" > ~/etherspot-transaction-kit/.npmrc
       - run:
           name: Set Etherspot project key variable
-          command: echo "ETHERSPOT_PROJECT_KEY=$ETHERSPOT_PROJECT_KEY" > ~/etherspot-ui/.env
+          command: echo "ETHERSPOT_PROJECT_KEY=$ETHERSPOT_PROJECT_KEY" > ~/etherspot-transaction-kit/.env
       - run:
-          name: Build Etherspot UI
+          name: Build Etherspot TransactionKit
           command: |
             NODE_ENV=production npm run rollup:build
       - run:
@@ -58,7 +58,7 @@ jobs:
           name: Announce Publish
           command: |
             chmod +x .circleci/announcePublish.sh
-            .circleci/announcePublish.sh "Etherspot UI" "$(node -e "console.log(require('./package.json').version)")"
+            .circleci/announcePublish.sh "Etherspot TransactionKit" "$(node -e "console.log(require('./package.json').version)")"
       - slack/status:
           fail_only: true
           failure_message: "Triggered by: *${CIRCLE_USERNAME}* \n\n Ooops! The *$CIRCLE_JOB* job has failed! :circleci-fail:"
