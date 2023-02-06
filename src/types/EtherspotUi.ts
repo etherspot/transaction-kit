@@ -1,9 +1,10 @@
 import { BigNumber } from 'ethers';
+import { BigNumberish } from '@ethersproject/bignumber';
 
 export interface ITransaction {
   id?: string;
   to: string;
-  value?: string;
+  value?: BigNumberish;
   data?: string;
 }
 

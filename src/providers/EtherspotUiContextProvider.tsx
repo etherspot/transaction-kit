@@ -5,12 +5,12 @@ import { useEtherspot } from '@etherspot/react-etherspot';
 import EtherspotUiContext from '../contexts/EtherspotUiContext';
 
 // utils
-import { getObjectSortedByKeys } from '../utils/common';
+import { getObjectSortedByKeys, parseEtherspotErrorMessageIfAvailable } from '../utils/common';
 
 // types
 import { EstimatedBatch, IBatch, IBatches, IEstimatedBatches, ISentBatches, SentBatch } from '../types/EtherspotUi';
 import { TypePerId } from '../types/Helper';
-import { Sdk } from 'etherspot';
+import { AccountStates, AccountTypes, Sdk } from 'etherspot';
 
 interface EtherspotUiContextProviderProps {
   chainId?: number | undefined;
@@ -25,7 +25,7 @@ const EtherspotUiContextProvider = ({ children, chainId = 1 }: EtherspotUiContex
 
   // TODO: move to etherspot sdk context lib
   const connectToSdkForChainIfNeeded = async (sdkForChainId: Sdk) => {
-    if (sdkForChainId.state.accountAddress) return;
+    if (sdkForChainId.state.account.type === AccountTypes.Contract) return;
     isSdkConnecting = sdkForChainId.computeContractAccount({ sync: true });
     await isSdkConnecting;
     isSdkConnecting = undefined;
@@ -48,23 +48,27 @@ const EtherspotUiContextProvider = ({ children, chainId = 1 }: EtherspotUiContex
 
       // push estimations in same order
       for (const batch of batches) {
-        const batchChainId = batch.chainId ?? chainId
+        const batchChainId = batch.chainId ?? chainId;
         const sdkForChainId = getSdkForChainId(batchChainId);
 
         if (!sdkForChainId) {
-          estimatedBatches.push({ errorMessage: 'Failed to get SDK for chain!' });
+          estimatedBatches.push({ ...batch, errorMessage: 'Failed to get SDK for chain!' });
           continue;
         }
 
         await connectToSdkForChainIfNeeded(sdkForChainId);
 
         if (!batch.transactions) {
-          estimatedBatches.push({ errorMessage: 'No transactions to estimate!' });
+          estimatedBatches.push({ ...batch, errorMessage: 'No transactions to estimate!' });
           continue;
         }
 
         try {
           if (!forSending) sdkForChainId.clearGatewayBatch();
+
+          if (sdkForChainId.state.account.state === AccountStates.UnDeployed) {
+            await sdkForChainId.batchDeployAccount();
+          }
 
           await Promise.all(batch.transactions.map(async ({ to, value, data }) => {
             await sdkForChainId.batchExecuteAccountTransaction(({ to, value, data }));
@@ -78,8 +82,9 @@ const EtherspotUiContextProvider = ({ children, chainId = 1 }: EtherspotUiContex
 
           estimatedBatches.push({ ...batch, cost });
         } catch (e) {
-          const errorMessage = e instanceof Error && e.message;
-          estimatedBatches.push({ errorMessage: errorMessage || 'Failed to estimate!' });
+          const rawErrorMessage = e instanceof Error && e.message;
+          const errorMessage = parseEtherspotErrorMessageIfAvailable(rawErrorMessage || 'Failed to estimate!');
+          estimatedBatches.push({ ...batch, errorMessage });
         }
       }
 
@@ -105,12 +110,12 @@ const EtherspotUiContextProvider = ({ children, chainId = 1 }: EtherspotUiContex
 
         // return error message as provided by estimate
         if (estimatedBatch.errorMessage) {
-          sentBatches.push({ errorMessage: estimatedBatch.errorMessage });
+          sentBatches.push({ ...estimatedBatch, errorMessage: estimatedBatch.errorMessage });
           continue;
         }
 
         if (!sdkForChainId) {
-          sentBatches.push({ errorMessage: 'Failed to get SDK for chain!' });
+          sentBatches.push({ ...estimatedBatch, errorMessage: 'Failed to get SDK for chain!' });
           continue;
         }
 
@@ -120,8 +125,9 @@ const EtherspotUiContextProvider = ({ children, chainId = 1 }: EtherspotUiContex
           const { hash: batchHash } = await sdkForChainId.submitGatewayBatch();
           sentBatches.push({ ...estimatedBatch, batchHash });
         } catch (e) {
-          const errorMessage = e instanceof Error && e.message;
-          sentBatches.push({ errorMessage: errorMessage || 'Failed to send!' });
+          const rawErrorMessage = e instanceof Error && e.message;
+          const errorMessage = parseEtherspotErrorMessageIfAvailable(rawErrorMessage || 'Failed to send!');
+          sentBatches.push({ ...estimatedBatch, errorMessage });
         }
       }
 

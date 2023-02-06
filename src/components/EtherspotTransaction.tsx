@@ -1,4 +1,5 @@
 import React, { Children, useContext, useEffect, useId } from 'react';
+import { ethers } from 'ethers';
 
 // contexts
 import EtherspotBatchContext from '../contexts/EtherspotBatchContext';
@@ -23,7 +24,14 @@ const EtherspotTransaction = ({ children, to, data, value, id: transactionId }: 
   }
 
   useEffect(() => {
-    const transaction = { id: transactionId ?? componentId, to, data, value };
+    let valueBN;
+    if (value) {
+      valueBN = typeof value === 'string' && !ethers.BigNumber.isBigNumber(value)
+        ? ethers.utils.parseEther(value)
+        : value;
+    }
+
+    const transaction = { id: transactionId ?? componentId, to, data, value: valueBN };
 
     context.setTransactionsPerId((current) => ({ ...current, [componentId]: transaction }));
 
