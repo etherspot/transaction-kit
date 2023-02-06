@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { EtherspotUi } from '@etherspot/TransactionKit';
+import { EtherspotUi } from '@etherspot/transacion-kit';
 import { ethers } from 'ethers';
 
 // components

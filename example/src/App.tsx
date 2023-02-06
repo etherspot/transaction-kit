@@ -7,7 +7,7 @@ import {
   useEtherspotUi,
   IEstimatedBatches,
   EstimatedBatch, ISentBatches, SentBatch,
-} from '@etherspot/TransactionKit';
+} from '@etherspot/transacion-kit';
 import { ethers } from 'ethers';
 import { Box, Button, Chip, Container, Paper, Tab, Tabs, Typography } from '@mui/material';
 import TreeView from '@mui/lab/TreeView';
