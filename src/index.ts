@@ -1,3 +1,5 @@
+window.Buffer = window.Buffer || require('buffer').Buffer;
+
 import { useEtherspot } from '@etherspot/react-etherspot';
 
 export { default as EtherspotUi } from './components/EtherspotUi';

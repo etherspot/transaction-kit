@@ -5,7 +5,7 @@ import { useEtherspot } from '@etherspot/react-etherspot';
 import EtherspotUiContext from '../contexts/EtherspotUiContext';
 
 // utils
-import { getObjectSortedByKeys, parseEtherspotErrorMessageIfAvailable } from '../utils/common';
+import { getObjectSortedByKeys, isTestnetChainId, parseEtherspotErrorMessageIfAvailable } from '../utils/common';
 
 // types
 import { EstimatedBatch, IBatch, IBatches, IEstimatedBatches, ISentBatches, SentBatch } from '../types/EtherspotUi';
@@ -122,7 +122,9 @@ const EtherspotUiContextProvider = ({ children, chainId = 1 }: EtherspotUiContex
         await connectToSdkForChainIfNeeded(sdkForChainId);
 
         try {
-          const { hash: batchHash } = await sdkForChainId.submitGatewayBatch();
+          // testnets does not have guards
+          const guarded = isTestnetChainId(batchChainId);
+          const { hash: batchHash } = await sdkForChainId.submitGatewayBatch({ guarded });
           sentBatches.push({ ...estimatedBatch, batchHash });
         } catch (e) {
           const rawErrorMessage = e instanceof Error && e.message;

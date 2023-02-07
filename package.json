@@ -20,7 +20,8 @@
   },
   "homepage": "https://github.com/etherspot/transaction-kit#readme",
   "dependencies": {
-    "@etherspot/react-etherspot": "^0.0.1"
+    "@etherspot/react-etherspot": "^0.0.1",
+    "buffer": "^6.0.3"
   },
   "module": "dist/esm/index.js",
   "types": "dist/index.d.ts",

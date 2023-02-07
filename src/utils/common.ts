@@ -18,3 +18,21 @@ export const parseEtherspotErrorMessageIfAvailable = (errorMessage: string): str
 
   return etherspotErrorMessage ?? errorMessage;
 };
+
+export const isTestnetChainId = (chainId: number): boolean => {
+  const testnetChainIds: number[] = [
+    5, // Goerli
+    97, // BscTest
+    4002, // FantomTest
+    80001, // Mumbai
+    1313161555, // AuroraTest
+    43113, // Fuji
+    421613, // ArbitrumGoerli
+    123, // FuseSparknet
+    42170, // ArbitrumNova
+    245022926, // NeonDevnet
+    420, // OptimismGoerli
+  ];
+
+  return testnetChainIds.some((testnetChainId) => testnetChainId === chainId);
+}
