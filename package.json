@@ -4,7 +4,7 @@
   "version": "0.0.3",
   "main": "dist/cjs/index.js",
   "scripts": {
-    "prepare": "npm run rollup:build",
+    "postinstall": "npm run rollup:build",
     "rollup:build": "NODE_OPTIONS=--max-old-space-size=8192 rollup -c",
     "rollup:watch": "rollup -c -w",
     "test": "jest --silent"
