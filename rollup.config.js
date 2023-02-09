@@ -15,21 +15,12 @@ export default [
         file: packageJson.main,
         format: 'cjs',
         sourcemap: true,
-        exports: 'named',
       },
       {
         file: packageJson.module,
         format: 'esm',
         sourcemap: true,
-        exports: 'named',
-      },
-      {
-        file: `dist/${packageJson.name}.js`,
-        format: 'umd',
-        name: packageJson.name,
-        exports: 'named',
-        globals: { react: 'React', 'react-dom': 'ReactDOM' },
-      },
+      }
     ],
     plugins: [
       typescript({
