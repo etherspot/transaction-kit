@@ -5,7 +5,7 @@
   "dependencies": {
     "@emotion/react": "^11.10.5",
     "@emotion/styled": "^11.10.5",
-    "@etherspot/transacion-kit": "^0.0.4",
+    "@etherspot/transaction-kit": "^0.0.4",
     "@mui/lab": "^5.0.0-alpha.118",
     "@mui/material": "^5.11.7",
     "@types/node": "^16.18.11",
