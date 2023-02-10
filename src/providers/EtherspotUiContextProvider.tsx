@@ -123,7 +123,7 @@ const EtherspotUiContextProvider = ({ children, chainId = 1 }: EtherspotUiContex
 
         try {
           // testnets does not have guards
-          const guarded = isTestnetChainId(batchChainId);
+          const guarded = !isTestnetChainId(batchChainId);
           const { hash: batchHash } = await sdkForChainId.submitGatewayBatch({ guarded });
           sentBatches.push({ ...estimatedBatch, batchHash });
         } catch (e) {
