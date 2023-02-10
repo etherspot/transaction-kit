@@ -35,6 +35,8 @@ export default [
     external: [
       ...Object.keys(packageJson.dependencies || {}),
       ...Object.keys(packageJson.peerDependencies || {}),
+      'etherspot',
+      'ethers',
     ],
     watch: {
       clearScreen: false,
@@ -48,6 +50,8 @@ export default [
     external: [
       ...Object.keys(packageJson.dependencies || {}),
       ...Object.keys(packageJson.peerDependencies || {}),
+      'etherspot',
+      'ethers',
     ],
     watch: {
       clearScreen: false,
