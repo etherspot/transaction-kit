@@ -6,7 +6,8 @@
   "scripts": {
     "rollup:build": "NODE_OPTIONS=--max-old-space-size=8192 rollup -c",
     "rollup:watch": "rollup -c -w",
-    "test": "jest --silent"
+    "test": "jest --silent",
+    "test:watch": "jest --watch"
   },
   "repository": {
     "type": "git",

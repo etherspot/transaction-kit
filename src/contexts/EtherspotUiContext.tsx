@@ -10,6 +10,7 @@ export interface IEtherspotUiContext {
     batches: IBatches[];
     estimate: (batchesIds?: string[]) => Promise<IEstimatedBatches[]>;
     send: (batchesIds?: string[]) => Promise<ISentBatches[]>;
+    smartWalletAddresses: any,
   },
   setGroupedBatchesPerId: Dispatch<SetStateAction<TypePerId<IBatches>>>;
 }

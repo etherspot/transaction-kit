@@ -139,10 +139,54 @@ const EtherspotUiContextProvider = ({ children, chainId = 1 }: EtherspotUiContex
     }));
   }
 
+  /**
+   * @name smartWalletAddresses
+   * @description Accesses the underlying Etherspot SDK
+   * and returns the smart wallet address for each chain.
+   *
+   * @returns Array
+   */
+  const smartWalletAddresses = (): (String | null)[] => {
+    // Lets set our definitions
+    let chainIds: (number | undefined)[] = [];
+    let addresses: (String | null)[] = [];
+
+    // Next, let's get our grouped batches
+    const groupedBatches = Object.values<IBatches>(groupedBatchesPerId);
+
+    // Next, loop through the grouped batches, if any...
+    for (let index = 0; index < groupedBatches.length; index++) {
+      // And collect all the data we need about our batches.
+      const groupedBatch = groupedBatches[index];
+      const batches = (groupedBatch.batches ?? []) as IBatch[];
+
+      // Collect the chain IDs used here...
+      chainIds = batches.map((batch) => batch.chainId);
+      console.log('Mapped ChainIDs:', chainIds);
+
+      // ... and here we are going to extract the accountAddress
+      // for each Etherspot SDK instance of that chain ID.
+      addresses = chainIds
+        .map((chainId) => {
+          if (chainId !== undefined) {
+            const sdk = getSdkForChainId(chainId);
+            console.log(`SDK for chain ID ${chainId} was:`, sdk);
+            return sdk ? sdk.state.accountAddress : null;
+          } else {
+            return null;
+          }
+        });      
+    }
+
+    // FInally, return this to the caller.
+    return addresses;
+  }
+
   const contextData = useMemo(() => ({
     batches: getObjectSortedByKeys(groupedBatchesPerId),
     estimate,
     send,
+    smartWalletAddresses,
     chainId,
   }), [
     chainId,
