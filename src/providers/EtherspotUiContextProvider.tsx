@@ -117,7 +117,7 @@ const EtherspotUiContextProvider = ({ children, chainId = 1 }: EtherspotUiContex
           continue;
         }
 
-        await connectToSdkForChainIfNeeded(sdkForChainId);
+        await connectToSdkForChainIfNeeded(batchChainId);
 
         try {
           // testnets does not have guards
