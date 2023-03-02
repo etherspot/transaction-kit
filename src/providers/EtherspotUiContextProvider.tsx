@@ -24,7 +24,7 @@ const EtherspotUiContextProvider = ({ children, chainId = 1 }: EtherspotUiContex
   const [groupedBatchesPerId, setGroupedBatchesPerId] = useState<TypePerId<IBatches>>({});
 
   const connectToSdkForChainIfNeeded = async (chainId: number) => {
-    isSdkConnecting = await connect(chainId);
+    isSdkConnecting = connect(chainId);
     await isSdkConnecting;
     isSdkConnecting = undefined;
   }
