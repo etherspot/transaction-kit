@@ -40,3 +40,8 @@ export interface IEstimatedBatches extends IBatches {
 export interface ISentBatches extends IEstimatedBatches {
   sentBatches: SentBatch[];
 }
+
+export interface ISmartWalletAddress {
+  chainId: number;
+  address: string;
+}

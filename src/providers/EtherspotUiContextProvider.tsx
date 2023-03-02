@@ -6,9 +6,10 @@ import EtherspotUiContext from '../contexts/EtherspotUiContext';
 
 // utils
 import { getObjectSortedByKeys, isTestnetChainId, parseEtherspotErrorMessageIfAvailable } from '../utils/common';
+import uniq from 'lodash.uniq';
 
 // types
-import { EstimatedBatch, IBatch, IBatches, IEstimatedBatches, ISentBatches, SentBatch } from '../types/EtherspotUi';
+import { EstimatedBatch, IBatch, IBatches, IEstimatedBatches, ISentBatches, ISmartWalletAddress, SentBatch } from '../types/EtherspotUi';
 import { TypePerId } from '../types/Helper';
 import { AccountStates } from 'etherspot';
 
@@ -142,12 +143,12 @@ const EtherspotUiContextProvider = ({ children, chainId = 1 }: EtherspotUiContex
    * @description Accesses the underlying Etherspot SDK
    * and returns the smart wallet address for each chain.
    *
-   * @returns Array
+   * @returns Array[ISmartWalletAddress]
    */
-  const smartWalletAddresses = (): (String | null)[] => {
+  const smartWalletAddresses = async (): Promise<(ISmartWalletAddress[])> => {
     // Lets set our definitions
     let chainIds: (number | undefined)[] = [];
-    let addresses: (String | null)[] = [];
+    const computedContractResponses: ISmartWalletAddress[] = [];
 
     // Next, let's get our grouped batches
     const groupedBatches = Object.values<IBatches>(groupedBatchesPerId);
@@ -159,25 +160,34 @@ const EtherspotUiContextProvider = ({ children, chainId = 1 }: EtherspotUiContex
       const batches = (groupedBatch.batches ?? []) as IBatch[];
 
       // Collect the chain IDs used here...
-      chainIds = batches.map((batch) => batch.chainId);
-      console.log('Mapped ChainIDs:', chainIds);
+      chainIds = batches.map((batch) => batch.chainId || chainId);
+    }
 
-      // ... and here we are going to extract the accountAddress
-      // for each Etherspot SDK instance of that chain ID.
-      addresses = chainIds
-        .map((chainId) => {
-          if (chainId !== undefined) {
-            const sdk = getSdkForChainId(chainId);
-            console.log(`SDK for chain ID ${chainId} was:`, sdk);
-            return sdk ? sdk.state.accountAddress : null;
-          } else {
-            return null;
-          }
-        });      
+    // A little housekeeping - clean up any duplicates
+    chainIds = uniq(chainIds);
+
+    // Our next step is to cycle through all our chain IDs found
+    // in each batch and call the corresponding Etherspot SDK
+    // and computeContractAccount method which will return the
+    // smart wallet address that users can use.
+    for (let index = 0; index < chainIds.length; index++) {
+      const batchChainId = chainIds[index];
+
+      if (batchChainId) {
+        const sdk = getSdkForChainId(batchChainId);
+
+        if (sdk) {
+          const response = await sdk.computeContractAccount();
+          computedContractResponses.push({
+            chainId: batchChainId,
+            address: response.address,
+          });
+        }
+      }
     }
 
     // FInally, return this to the caller.
-    return addresses;
+    return computedContractResponses;
   }
 
   const contextData = useMemo(() => ({
