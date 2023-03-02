@@ -1,7 +1,7 @@
 {
   "name": "@etherspot/transaction-kit",
   "description": "React Etherspot Transaction Kit",
-  "version": "0.0.10",
+  "version": "0.0.11",
   "main": "dist/cjs/index.js",
   "scripts": {
     "rollup:build": "NODE_OPTIONS=--max-old-space-size=8192 rollup -c",
@@ -20,7 +20,7 @@
   },
   "homepage": "https://github.com/etherspot/transaction-kit#readme",
   "dependencies": {
-    "@etherspot/react-etherspot": "^0.0.1",
+    "@etherspot/react-etherspot": "^1.0.0",
     "buffer": "^6.0.3",
     "etherspot": "^1.41.2",
     "ethers": "^5.6.9",

@@ -10,7 +10,7 @@ import { getObjectSortedByKeys, isTestnetChainId, parseEtherspotErrorMessageIfAv
 // types
 import { EstimatedBatch, IBatch, IBatches, IEstimatedBatches, ISentBatches, SentBatch } from '../types/EtherspotUi';
 import { TypePerId } from '../types/Helper';
-import { AccountStates, AccountTypes, Sdk } from 'etherspot';
+import { AccountStates } from 'etherspot';
 
 interface EtherspotUiContextProviderProps {
   chainId?: number | undefined;
@@ -20,13 +20,11 @@ interface EtherspotUiContextProviderProps {
 let isSdkConnecting: Promise<any> | undefined;
 
 const EtherspotUiContextProvider = ({ children, chainId = 1 }: EtherspotUiContextProviderProps) => {
-  const { getSdkForChainId } = useEtherspot();
+  const { getSdkForChainId, connect } = useEtherspot();
   const [groupedBatchesPerId, setGroupedBatchesPerId] = useState<TypePerId<IBatches>>({});
 
-  // TODO: move to etherspot sdk context lib
-  const connectToSdkForChainIfNeeded = async (sdkForChainId: Sdk) => {
-    if (sdkForChainId.state.account.type === AccountTypes.Contract) return;
-    isSdkConnecting = sdkForChainId.computeContractAccount({ sync: true });
+  const connectToSdkForChainIfNeeded = async (chainId: number) => {
+    isSdkConnecting = await connect(chainId);
     await isSdkConnecting;
     isSdkConnecting = undefined;
   }
@@ -56,7 +54,7 @@ const EtherspotUiContextProvider = ({ children, chainId = 1 }: EtherspotUiContex
           continue;
         }
 
-        await connectToSdkForChainIfNeeded(sdkForChainId);
+        await connectToSdkForChainIfNeeded(batchChainId);
 
         if (!batch.transactions) {
           estimatedBatches.push({ ...batch, errorMessage: 'No transactions to estimate!' });
