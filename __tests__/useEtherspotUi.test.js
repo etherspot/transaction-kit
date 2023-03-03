@@ -21,7 +21,7 @@ const TestSingleBatchComponent = () => (
 );
 
 describe('useEtherspotUi()', () => {
-  it.only('returns grouped batches', () => {
+  it('returns grouped batches', () => {
     const wrapper = ({ children }) => (
       <EtherspotUi provider={null}>
         <div>
@@ -56,8 +56,6 @@ describe('useEtherspotUi()', () => {
 
     const { result: { current } } = renderHook(() => useEtherspotUi(), { wrapper });
 
-    console.log({ current: current.batches })
-
     expect(current.batches.length).toBe(4);
     expect(current.batches[0].batches.length).toBe(1);
     expect(current.batches[0].batches[0].chainId).toBe(1);
@@ -67,8 +65,6 @@ describe('useEtherspotUi()', () => {
     expect(current.batches[0].batches[0].transactions[1].data).toBe('0xFFF');
     expect(current.batches[0].batches[0].transactions[1].value.toJSON()).toStrictEqual({"hex": "0x16c4abbebea0100000", "type": "BigNumber"});
     expect(current.batches[1].skip).toBe(true);
-
-    console.log(current.smartWalletAddresses());
   });
 
   it('throws an error if <EtherspotBatches /> within <EtherspotBatches />', () => {
