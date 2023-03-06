@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import uniq from 'lodash.uniq';
 import { useEtherspot } from '@etherspot/react-etherspot';
 
 // contexts
@@ -6,7 +7,6 @@ import EtherspotUiContext from '../contexts/EtherspotUiContext';
 
 // utils
 import { getObjectSortedByKeys, isTestnetChainId, parseEtherspotErrorMessageIfAvailable } from '../utils/common';
-import uniq from 'lodash.uniq';
 
 // types
 import { EstimatedBatch, IBatch, IBatches, IEstimatedBatches, ISentBatches, ISmartWalletAddress, SentBatch } from '../types/EtherspotUi';
@@ -139,16 +139,16 @@ const EtherspotUiContextProvider = ({ children, chainId = 1 }: EtherspotUiContex
   }
 
   /**
-   * @name smartWalletAddresses
+   * @name getSmartWalletAddresses
    * @description Accesses the underlying Etherspot SDK
    * and returns the smart wallet address for each chain.
    *
    * @returns Array[ISmartWalletAddress]
    */
-  const smartWalletAddresses = async (): Promise<(ISmartWalletAddress[])> => {
+  const getSmartWalletAddresses = async (): Promise<(ISmartWalletAddress)[]> => {
     // Lets set our definitions
     let chainIds: (number | undefined)[] = [];
-    const computedContractResponses: ISmartWalletAddress[] = [];
+    let computedContractResponses: Promise<(ISmartWalletAddress)[]>;
 
     // Next, let's get our grouped batches
     const groupedBatches = Object.values<IBatches>(groupedBatchesPerId);
@@ -170,31 +170,37 @@ const EtherspotUiContextProvider = ({ children, chainId = 1 }: EtherspotUiContex
     // in each batch and call the corresponding Etherspot SDK
     // and computeContractAccount method which will return the
     // smart wallet address that users can use.
-    for (let index = 0; index < chainIds.length; index++) {
-      const batchChainId = chainIds[index];
+    const accountResponses = await Promise.all(chainIds.map(async (chainId) => {
+      const sdk = getSdkForChainId(chainId ?? 1);
 
-      if (batchChainId) {
-        const sdk = getSdkForChainId(batchChainId);
+      if (sdk) {
+        const response = await sdk.computeContractAccount();
+        const accountData: ISmartWalletAddress =  {
+          chainId: chainId ?? 1,
+          address: response.address,
+        };
 
-        if (sdk) {
-          const response = await sdk.computeContractAccount();
-          computedContractResponses.push({
-            chainId: batchChainId,
-            address: response.address,
-          });
-        }
+        return accountData;
+      } else {
+        console.warn(`TransactionKit could not find an SDK for Chain ID ${chainId}. Please check and try again.`);
+        const accountData: ISmartWalletAddress =  {
+          chainId: 0,
+          address: '',
+        };
+
+        return accountData;
       }
-    }
+    }));
 
-    // FInally, return this to the caller.
-    return computedContractResponses;
+    // Finally, return this to the caller.
+    return accountResponses;
   }
 
   const contextData = useMemo(() => ({
     batches: getObjectSortedByKeys(groupedBatchesPerId),
     estimate,
     send,
-    smartWalletAddresses,
+    getSmartWalletAddresses,
     chainId,
   }), [
     chainId,
