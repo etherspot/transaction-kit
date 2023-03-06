@@ -1,7 +1,8 @@
 import { renderHook, render } from '@testing-library/react';
+import { ethers } from 'ethers';
 
 // hooks
-import { useEtherspotUi, EtherspotUi, EtherspotBatches, EtherspotBatch, EtherspotTransaction } from '../src';
+import { useEtherspotUi, EtherspotUi, EtherspotBatches, EtherspotBatch, ContractTransaction, EtherspotTransaction } from '../src';
 
 const TestSingleBatchComponent = () => (
   <EtherspotBatches>
@@ -39,6 +40,12 @@ describe('useEtherspotUi()', () => {
                 data={'0xFFF'}
                 value={'420'}
               />
+            <ContractTransaction
+              abi={['function transfer(address, uint)']}
+              contractAddress={'0xe3818504c1b32bf1557b16c238b2e01fd3149c17'}
+              methodName={'transfer'}
+              params={['0x7F30B1960D5556929B03a0339814fE903c55a347', ethers.utils.parseEther('123')]}
+            />
             </EtherspotBatch>
           </EtherspotBatches>
         </span>
@@ -62,10 +69,13 @@ describe('useEtherspotUi()', () => {
     expect(current.batches[0].batches.length).toBe(1);
     expect(current.batches[0].batches[0].chainId).toBe(123);
     expect(current.batches[0].batches[0].gasTokenAddress).toBe('testGasTokenAddress');
-    expect(current.batches[0].batches[0].transactions.length).toBe(2);
+    expect(current.batches[0].batches[0].transactions.length).toBe(3);
     expect(current.batches[0].batches[0].transactions[1].to).toBe('0x0');
     expect(current.batches[0].batches[0].transactions[1].data).toBe('0xFFF');
     expect(current.batches[0].batches[0].transactions[1].value).toBe('420');
+    expect(current.batches[0].batches[0].transactions[2].to).toBe('0xe3818504c1b32bf1557b16c238b2e01fd3149c17');
+    expect(current.batches[0].batches[0].transactions[2].data).toBe('0xa9059cbb0000000000000000000000007f30b1960d5556929b03a0339814fe903c55a347000000000000000000000000000000000000000000000006aaf7c8516d0c0000');
+    expect(current.batches[0].batches[0].transactions[2].value).toBe(undefined);
     expect(current.batches[1].skip).toBe(true);
   });
 
