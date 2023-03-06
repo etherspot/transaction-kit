@@ -1,5 +1,5 @@
-import { BigNumber } from 'ethers';
-import { BigNumberish } from '@ethersproject/bignumber';
+import { BigNumber, BigNumberish } from 'ethers';
+import { Fragment, JsonFragment } from '@ethersproject/abi/src.ts/fragments';
 
 export interface ITransaction {
   id?: string;
@@ -39,4 +39,13 @@ export interface IEstimatedBatches extends IBatches {
 
 export interface ISentBatches extends IEstimatedBatches {
   sentBatches: SentBatch[];
+}
+
+export interface IContractTransaction {
+  id?: string;
+  value?: BigNumberish;
+  params?: ReadonlyArray<BigNumberish>;
+  contractAddress: string;
+  methodName: string;
+  abi: string | ReadonlyArray<Fragment | JsonFragment | string>;
 }
