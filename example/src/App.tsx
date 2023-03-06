@@ -75,7 +75,7 @@ const exampleCode = {
 
 const App = () => {
   const [activeTab, setActiveTab] = useState(tabs.SINGLE_TRANSACTION);
-  const { batches, estimate, send, smartWalletAddresses } = useEtherspotUi();
+  const { batches, estimate, send, getSmartWalletAddresses } = useEtherspotUi();
   const { getSdkForChainId } = useEtherspot();
   const [balancePerAddress, setBalancePerAddress] = useState({
     [walletAddressByName.Alice]: '',
@@ -172,8 +172,16 @@ const App = () => {
   };
 
   const refreshSmartWalletAddresses = async () => {
-    const fetchedSmartWalletAddresses = await smartWalletAddresses().catch(() => []);
-    setCurrentSmartWalletAddresses(fetchedSmartWalletAddresses);
+    try {
+      const fetchedSmartWalletAddresses = await getSmartWalletAddresses();
+      setCurrentSmartWalletAddresses(fetchedSmartWalletAddresses);
+    } catch (e) {
+      // https://eslint.org/docs/latest/rules/no-multi-str
+      const errorMessage = 'Sorry, we could not fetch the smart wallet addresses ' +
+        'from Etherspot. Please try again.';
+
+      console.error(errorMessage);
+    }
   }
 
   useEffect(() => {
@@ -208,7 +216,15 @@ const App = () => {
         <Typography>
           Etherspot Smart Wallet Addresses:
         </Typography>
-        {currentSmartWalletAddresses.map((smartWalletAddress) => <Paper key={`swa-${smartWalletAddress.chainId}`} sx={{p: 1}} variant="outlined"><Typography>Chain ID: {smartWalletAddress.chainId}<br />Address: {smartWalletAddress.address}</Typography></Paper>)}
+        {currentSmartWalletAddresses
+          .map((smartWalletAddress) =>
+            <Paper key={`swa-${smartWalletAddress.chainId}`} sx={{p: 1}} variant="outlined">
+              <Typography>
+                Chain ID: {smartWalletAddress.chainId}<br />Address: {smartWalletAddress.address}
+              </Typography>
+            </Paper>
+          )
+        }
       </Box>
       <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
         <Tabs value={activeTab} onChange={(event, id) => setActiveTab(id)}>
