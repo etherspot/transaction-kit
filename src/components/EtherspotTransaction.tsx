@@ -1,4 +1,4 @@
-import React, { Children, useContext, useEffect, useId } from 'react';
+import React, { useContext, useEffect, useId } from 'react';
 import { ethers } from 'ethers';
 
 // contexts
