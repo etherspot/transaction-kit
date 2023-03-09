@@ -1,56 +1,36 @@
-<a href="https://etherspot.io"> <img src=".github/etherspot-logo.svg" alt="Etherspot Logo" style="width: 50%; height: auto; margin: auto;"></a>
+# ✨ TransactionKit
 
 [![License](https://img.shields.io/github/license/etherspot/transaction-kit)](https://github.com/etherspot/transaction-kit/LICENSE) 
-[![npm](https://img.shields.io/npm/v/@etherspot/TransactionKit)](https://www.npmjs.com/package/@etherspot/TransactionKit) 
+[![npm](https://img.shields.io/npm/v/@etherspot/transaction-kit)](https://www.npmjs.com/package/@etherspot/transaction-kit) 
 [![contributions](https://img.shields.io/github/contributors/etherspot/transaction-kit)](https://github.com/etherspot/transaction-kit/graphs/contributors) 
 [![discord](https://img.shields.io/discord/996437599453450280)](https://discord.etherspot.io)
 
-# Etherspot for React
+#### TransactionKit is a collection of headless React Components that take the pain out of Web3 development. Here are just some of the features of TransactionKit:
 
-- Website: [https://etherspot.io](https://etherspot.io)
-- Documentation: [https://docs.etherspot.dev](https://docs.etherspot.dev)
-- SDK Docs: [https://sdk.etherspot.dev](https://sdk.etherspot.dev)
-- SDK Playground [https://try.etherspot.dev](https://try.etherspot.dev)
+#### 👉 Supports 13 chains and their testnets
+You read that right. TransactionKit is built on top of Etherspot and helps make your app truly multichain. TransactionKit supports Etheruem, Polygon, Gnosis, Binance, Fantom, Aurora, Avalanhe, Optimism, Arbitrum, Moonbean, Celo, Fuse and Arbitrum Nova.
 
-React Etherspot allows plug-and-play integration with the Etherspot SDK, allowing React dApps and developers to easily leverage the SDK in a highly customisable fashion.
+#### 👉 Transaction Batching out the box
+Organise your transactions into batches to have them execute together. Each batch can be performed on a different blockchain.
 
-## Prerequisites
+#### 👉 Zero configuration
+You bring the code and we'll handle the infrastructure. Built with your productivity and speed in mind. No need to configure infrastructure providers, no signups needed. Just install the code and start sending transactions.
 
-Please ensure that you have the Editor Config plugin installed for VS Code:
+#### 👉 Total design freedom
+TransactionKit is a headless collection of React Components and does not impose any existing user interfaces on you. You design and build how you envision your app, and we'll handle all the technical complexity.
 
+## Sounds good? I thought so. Lets install
 ```
-Name: EditorConfig for VS Code
-Id: EditorConfig.EditorConfig
-Description: EditorConfig Support for Visual Studio Code
-Version: 0.16.4
-Publisher: EditorConfig
-VS Marketplace Link: https://marketplace.visualstudio.com/items?itemName=EditorConfig.EditorConfig
+npm i @etherspot/transaction-kit
 ```
 
-## Getting Started
+## Documentation
+Please head over to our [documentation](https://docs.etherspot.dev/transaction-kit/introduction) to [get started quickly](https://docs.etherspot.dev/transaction-kit/quick-start).
 
-Install React Etherspot using npm or yarn
-
-```
-npm i @etherspot/TransactionKit
-```
-Plug in your dApp
-
-```
-// TBA
-```
-
-## Developing locally
-You can set up React Etherspot locally and develop new features for it. Please follow the instructions below:
-
-- First start with React project
-- Then, checkout this repository
-- In this repository directory: run `npm install && npm link`
-- In this repository directory:: run `npm run rollup:watch` - this project is now being watched for code changes
-- In the React project directory: run `npm install && npm link @etherspot/TransactionKit`
-- Run your React project
-
-You can now make code changes in this repository and changes will be reflected in the Example dapp.
+Here's a list of quick jumps to the documentation:
+- [Quick Start](https://docs.etherspot.dev/transaction-kit/quick-start)
+- [React Hooks](https://docs.etherspot.dev/transaction-kit/react-hooks)
+- [React Components](https://docs.etherspot.dev/transaction-kit/react-components)
 
 ## Contributions
 

@@ -41,11 +41,16 @@ export interface ISentBatches extends IEstimatedBatches {
   sentBatches: SentBatch[];
 }
 
-export interface IContractTransaction {
+export interface IEtherspotContractTransaction {
   id?: string;
   value?: BigNumberish;
   params?: ReadonlyArray<BigNumberish>;
   contractAddress: string;
   methodName: string;
   abi: string | ReadonlyArray<Fragment | JsonFragment | string>;
+}
+
+export interface ISmartWalletAddress {
+  chainId: number;
+  address: string;
 }

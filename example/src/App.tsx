@@ -6,6 +6,7 @@ import {
   useEtherspot,
   useEtherspotUi,
   IEstimatedBatches,
+  ISmartWalletAddress,
   EstimatedBatch, ISentBatches, SentBatch,
 } from '@etherspot/transaction-kit';
 import { ethers } from 'ethers';
@@ -74,7 +75,7 @@ const exampleCode = {
 
 const App = () => {
   const [activeTab, setActiveTab] = useState(tabs.SINGLE_TRANSACTION);
-  const { batches, estimate, send } = useEtherspotUi();
+  const { batches, estimate, send, getSmartWalletAddresses } = useEtherspotUi();
   const { getSdkForChainId } = useEtherspot();
   const [balancePerAddress, setBalancePerAddress] = useState({
     [walletAddressByName.Alice]: '',
@@ -85,6 +86,7 @@ const App = () => {
   const [sent, setSent] = useState<ISentBatches[] | null>(null);
   const [isEstimating, setIsEstimating] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [currentSmartWalletAddresses, setCurrentSmartWalletAddresses] = useState<never[] | ISmartWalletAddress[]>([]);
 
   const batchesTreeView = batches.map((batchGroup, id1) => ({
     ...batchGroup,
@@ -128,6 +130,8 @@ const App = () => {
   }, [activeTab]);
 
   const onEstimateClick = async () => {
+    refreshSmartWalletAddresses();
+
     setSent(null);
     setIsSending(false);
     setEstimated(null);
@@ -167,6 +171,19 @@ const App = () => {
     setBalancePerAddress(updatedBalances);
   };
 
+  const refreshSmartWalletAddresses = async () => {
+    try {
+      const fetchedSmartWalletAddresses = await getSmartWalletAddresses();
+      setCurrentSmartWalletAddresses(fetchedSmartWalletAddresses);
+    } catch (e) {
+      // https://eslint.org/docs/latest/rules/no-multi-str
+      const errorMessage = 'Sorry, we could not fetch the smart wallet addresses ' +
+        'from Etherspot. Please try again.';
+
+      console.error(errorMessage);
+    }
+  }
+
   useEffect(() => {
     refreshBalances();
   }, [getSdkForChainId]);
@@ -179,7 +196,7 @@ const App = () => {
     <Container maxWidth={'sm'}>
       <Box sx={{ pt: 3, pb: 4 }}>
         <Typography mb={2}>
-          <a href={'https://faucet.polygon.technology/'} target={'_blank'}>Mumbai MATIC Faucet</a>
+          <a href={'https://faucet.polygon.technology/'} target={'_blank'} rel="noreferrer">Mumbai MATIC Faucet</a>
         </Typography>
         {Object.keys(walletAddressByName).map((addressName: string) => {
           const address = walletAddressByName[addressName as keyof typeof walletAddressByName];
@@ -194,6 +211,20 @@ const App = () => {
             />
           );
         })}
+      </Box>
+      <Box>
+        <Typography>
+          Etherspot Smart Wallet Addresses:
+        </Typography>
+        {currentSmartWalletAddresses
+          .map((smartWalletAddress) =>
+            <Paper key={`swa-${smartWalletAddress.chainId}`} sx={{p: 1}} variant="outlined">
+              <Typography>
+                Chain ID: {smartWalletAddress.chainId}<br />Address: {smartWalletAddress.address}
+              </Typography>
+            </Paper>
+          )
+        }
       </Box>
       <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
         <Tabs value={activeTab} onChange={(event, id) => setActiveTab(id)}>

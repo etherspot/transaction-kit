@@ -5,13 +5,13 @@ import { ethers } from 'ethers';
 import EtherspotBatchContext from '../contexts/EtherspotBatchContext';
 
 // types
-import { IContractTransaction } from '../types/EtherspotUi';
+import { IEtherspotContractTransaction } from '../types/EtherspotUi';
 
-interface ContractTransactionProps extends IContractTransaction {
+interface EtherspotContractTransactionProps extends IEtherspotContractTransaction {
   children?: React.ReactNode;
 }
 
-const ContractTransaction = ({
+const EtherspotContractTransaction = ({
   children,
   value,
   contractAddress,
@@ -19,7 +19,7 @@ const ContractTransaction = ({
   methodName,
   abi,
   id: transactionId
-}: ContractTransactionProps) => {
+}: EtherspotContractTransactionProps) => {
   const context = useContext(EtherspotBatchContext);
   const componentId = useId();
 
@@ -28,7 +28,7 @@ const ContractTransaction = ({
   }
 
   if (children && Children.toArray(children)?.length) {
-    throw new Error(`No children components allowed within <ContractTransaction />`)
+    throw new Error(`No children components allowed within <EtherspotContractTransaction />`)
   }
 
   let contractInterface;
@@ -85,4 +85,4 @@ const ContractTransaction = ({
   return null;
 };
 
-export default ContractTransaction;
+export default EtherspotContractTransaction;

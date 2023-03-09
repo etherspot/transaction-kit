@@ -43,7 +43,7 @@ const EtherspotTransaction = ({ children, to, data, value, id: transactionId }: 
     }
   }, [componentId, to, data, value, transactionId]);
 
-  return null;
+  return children;
 };
 
 export default EtherspotTransaction;

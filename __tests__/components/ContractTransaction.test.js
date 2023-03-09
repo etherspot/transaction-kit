@@ -1,10 +1,10 @@
 import { renderHook, render } from '@testing-library/react';
 import { ethers } from 'ethers';
 
-import { useEtherspotUi, EtherspotUi, EtherspotBatches, EtherspotBatch, ContractTransaction } from '../../src';
+import { useEtherspotUi, EtherspotUi, EtherspotBatches, EtherspotBatch, EtherspotContractTransaction } from '../../src';
 
-describe('ContractTransaction', () => {
-  it('throws an error if any children within <ContractTransaction />', () => {
+describe('EtherspotContractTransaction', () => {
+  it('throws an error if any children within <EtherspotContractTransaction />', () => {
     const wrapper = ({ children }) => (
       <EtherspotUi provider={null}>
         <div>
@@ -12,14 +12,14 @@ describe('ContractTransaction', () => {
           <span>
           <EtherspotBatches>
             <EtherspotBatch>
-              <ContractTransaction
+              <EtherspotContractTransaction
                 contractAddress={'0x'}
                 params={[]}
                 abi={'function test()'}
                 methodName={'test'}
               >
                 <span>test</span>
-              </ContractTransaction>
+              </EtherspotContractTransaction>
             </EtherspotBatch>
           </EtherspotBatches>
         </span>
@@ -32,19 +32,19 @@ describe('ContractTransaction', () => {
     );
 
     expect(() => renderHook(() => useEtherspotUi(), {  wrapper }))
-      .toThrow('No children components allowed within <ContractTransaction />');
+      .toThrow('No children components allowed within <EtherspotContractTransaction />');
   });
 
-  it('throws an error if <ContractTransaction /> rendered without <EtherspotBatch />', () => {
+  it('throws an error if <EtherspotContractTransaction /> rendered without <EtherspotBatch />', () => {
     expect(() => render(
-      <ContractTransaction
+      <EtherspotContractTransaction
         contractAddress={'0x'}
         params={[]}
         abi={'function test()'}
         methodName={'test'}
       >
         <span>test</span>
-      </ContractTransaction>
+      </EtherspotContractTransaction>
     ))
       .toThrow('No parent <EtherspotBatch />');
   });
@@ -54,7 +54,7 @@ describe('ContractTransaction', () => {
       <EtherspotUi provider={null}>
         <EtherspotBatches>
           <EtherspotBatch>
-            <ContractTransaction
+            <EtherspotContractTransaction
               abi={['wrong']}
               contractAddress={'0x'}
               methodName={'test'}
@@ -75,7 +75,7 @@ describe('ContractTransaction', () => {
       <EtherspotUi provider={null}>
         <EtherspotBatches>
           <EtherspotBatch>
-            <ContractTransaction
+            <EtherspotContractTransaction
               abi={['function transfer(address, uint)']}
               contractAddress={'0x'}
               methodName={'transferFrom'}
@@ -96,7 +96,7 @@ describe('ContractTransaction', () => {
       <EtherspotUi provider={null}>
         <EtherspotBatches>
           <EtherspotBatch>
-            <ContractTransaction
+            <EtherspotContractTransaction
               abi={['function transfer(uint)']}
               contractAddress={'0x'}
               methodName={'transfer'}
@@ -117,7 +117,7 @@ describe('ContractTransaction', () => {
       <EtherspotUi provider={null}>
         <EtherspotBatches>
           <EtherspotBatch>
-            <ContractTransaction
+            <EtherspotContractTransaction
               abi={['function transfer(address, uint)']}
               contractAddress={'0xe3818504c1b32bf1557b16c238b2e01fd3149c17'}
               methodName={'transfer'}
