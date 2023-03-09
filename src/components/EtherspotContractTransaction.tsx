@@ -27,10 +27,6 @@ const EtherspotContractTransaction = ({
     throw new Error('No parent <EtherspotBatch />');
   }
 
-  if (children && Children.toArray(children)?.length) {
-    throw new Error(`No children components allowed within <EtherspotContractTransaction />`)
-  }
-
   let contractInterface;
   try {
     contractInterface = new ethers.utils.Interface(abi);
@@ -82,7 +78,7 @@ const EtherspotContractTransaction = ({
     }
   }, [componentId, value, transactionId]);
 
-  return null;
+  return children;
 };
 
 export default EtherspotContractTransaction;
