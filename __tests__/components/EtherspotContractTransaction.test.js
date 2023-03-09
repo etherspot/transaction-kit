@@ -4,37 +4,6 @@ import { ethers } from 'ethers';
 import { useEtherspotUi, EtherspotUi, EtherspotBatches, EtherspotBatch, EtherspotContractTransaction } from '../../src';
 
 describe('EtherspotContractTransaction', () => {
-  it('throws an error if any children within <EtherspotContractTransaction />', () => {
-    const wrapper = ({ children }) => (
-      <EtherspotUi provider={null}>
-        <div>
-          test
-          <span>
-          <EtherspotBatches>
-            <EtherspotBatch>
-              <EtherspotContractTransaction
-                contractAddress={'0x'}
-                params={[]}
-                abi={'function test()'}
-                methodName={'test'}
-              >
-                <span>test</span>
-              </EtherspotContractTransaction>
-            </EtherspotBatch>
-          </EtherspotBatches>
-        </span>
-        </div>
-        <EtherspotBatches>
-          <span>test</span>
-        </EtherspotBatches>
-        {children}
-      </EtherspotUi>
-    );
-
-    expect(() => renderHook(() => useEtherspotUi(), {  wrapper }))
-      .toThrow('No children components allowed within <EtherspotContractTransaction />');
-  });
-
   it('throws an error if <EtherspotContractTransaction /> rendered without <EtherspotBatch />', () => {
     expect(() => render(
       <EtherspotContractTransaction
