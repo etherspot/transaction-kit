@@ -19,10 +19,6 @@ const EtherspotTransaction = ({ children, to, data, value, id: transactionId }: 
     throw new Error('No parent <EtherspotBatch />');
   }
 
-  if (children && Children.toArray(children)?.length) {
-    throw new Error(`No children components allowed within <EtherspotTransaction />`)
-  }
-
   useEffect(() => {
     let valueBN;
     if (value) {
