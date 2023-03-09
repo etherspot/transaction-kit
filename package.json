@@ -1,12 +1,13 @@
 {
   "name": "@etherspot/transaction-kit",
   "description": "React Etherspot Transaction Kit",
-  "version": "0.0.13",
+  "version": "0.0.14",
   "main": "dist/cjs/index.js",
   "scripts": {
     "rollup:build": "NODE_OPTIONS=--max-old-space-size=8192 rollup -c",
     "rollup:watch": "rollup -c -w",
-    "test": "jest --silent"
+    "test": "jest --silent",
+    "test:watch": "jest --watch"
   },
   "repository": {
     "type": "git",
@@ -21,13 +22,15 @@
   "homepage": "https://github.com/etherspot/transaction-kit#readme",
   "dependencies": {
     "@etherspot/react-etherspot": "^1.0.0",
+    "@types/lodash.uniq": "^4.5.7",
     "buffer": "^6.0.3",
-    "etherspot": "^1.41.2",
     "ethers": "^5.6.9",
-    "react": "^18.2.0",
-    "rxjs": "^6.6.7",
+    "etherspot": "^1.41.2",
+    "lodash.uniq": "^4.5.0",
+    "react": ">=16.0.0",
     "react-dom": "^18.2.0",
-    "reflect-metadata": "^0.1.13"
+    "reflect-metadata": "^0.1.13",
+    "rxjs": "^6.6.7"
   },
   "module": "dist/esm/index.js",
   "types": "dist/index.d.ts",

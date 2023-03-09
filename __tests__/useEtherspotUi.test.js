@@ -5,7 +5,7 @@ import { useEtherspotUi, EtherspotUi, EtherspotBatches, EtherspotBatch, Etherspo
 
 const TestSingleBatchComponent = () => (
   <EtherspotBatches>
-    <EtherspotBatch chainId={123} gasTokenAddress={'testGasTokenAddress'}>
+    <EtherspotBatch chainId={1} gasTokenAddress={'testGasTokenAddress'}>
       <EtherspotTransaction
         to={'0x12'}
         data={'0x0'}
@@ -56,8 +56,6 @@ describe('useEtherspotUi()', () => {
 
     const { result: { current } } = renderHook(() => useEtherspotUi(), { wrapper });
 
-    console.log({ current: current.batches })
-
     expect(current.batches.length).toBe(4);
     expect(current.batches[0].batches.length).toBe(1);
     expect(current.batches[0].batches[0].chainId).toBe(123);
@@ -65,7 +63,7 @@ describe('useEtherspotUi()', () => {
     expect(current.batches[0].batches[0].transactions.length).toBe(2);
     expect(current.batches[0].batches[0].transactions[1].to).toBe('0x0');
     expect(current.batches[0].batches[0].transactions[1].data).toBe('0xFFF');
-    expect(current.batches[0].batches[0].transactions[1].value).toBe('420');
+    expect(current.batches[0].batches[0].transactions[1].value.toJSON()).toStrictEqual({"hex": "0x16c4abbebea0100000", "type": "BigNumber"});
     expect(current.batches[1].skip).toBe(true);
   });
 
