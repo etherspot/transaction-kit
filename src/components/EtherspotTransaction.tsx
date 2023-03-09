@@ -1,4 +1,4 @@
-import React, { Children, useContext, useEffect, useId } from 'react';
+import React, { useContext, useEffect, useId } from 'react';
 import { ethers } from 'ethers';
 
 // contexts
@@ -17,10 +17,6 @@ const EtherspotTransaction = ({ children, to, data, value, id: transactionId }: 
 
   if (context === null) {
     throw new Error('No parent <EtherspotBatch />');
-  }
-
-  if (children && Children.toArray(children)?.length) {
-    throw new Error(`No children components allowed within <EtherspotTransaction />`)
   }
 
   useEffect(() => {

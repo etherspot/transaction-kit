@@ -127,35 +127,6 @@ describe('useEtherspotUi()', () => {
       .toThrow('<EtherspotBatch /> cannot be inside <EtherspotBatch />');
   });
 
-  it('throws an error if any children within <EtherspotTransaction />', () => {
-    const wrapper = ({ children }) => (
-      <EtherspotUi provider={null}>
-        <div>
-          test
-          <span>
-          <EtherspotBatches>
-            <EtherspotBatch>
-              <EtherspotTransaction to={'0x'}>
-                <span>test</span>
-              </EtherspotTransaction>
-              <EtherspotTransaction to={'0x'}>
-                <span>test</span>
-              </EtherspotTransaction>
-            </EtherspotBatch>
-          </EtherspotBatches>
-        </span>
-        </div>
-        <EtherspotBatches>
-          <span>test</span>
-        </EtherspotBatches>
-        {children}
-      </EtherspotUi>
-    );
-
-    expect(() => renderHook(() => useEtherspotUi(), {  wrapper }))
-      .toThrow('No children components allowed within <EtherspotTransaction />');
-  });
-
   it('throws an error if <EtherspotBatches /> rendered without <EtherspotUi />', () => {
     expect(() => render(
       <EtherspotBatches>
