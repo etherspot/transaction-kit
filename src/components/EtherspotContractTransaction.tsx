@@ -11,6 +11,12 @@ interface EtherspotContractTransactionProps extends IEtherspotContractTransactio
   children?: React.ReactNode;
 }
 
+/**
+ * @name EtherspotContractTransaction
+ * @description Component allowing to build ABI based data transactions.
+ * @param {EtherspotContractTransactionProps} props
+ * @returns {React.ReactNode}
+ */
 const EtherspotContractTransaction = ({
   children,
   value,
