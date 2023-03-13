@@ -51,12 +51,12 @@ const EtherspotContractTransaction = ({
     data = contractInterface.encodeFunctionData(methodName, params);
   } catch (e) {
     if (e instanceof Error && e?.message) {
-      throw new Error(`Failed to build transaction data, please check ABI/method formatting: ${e.message}`);
+      throw new Error(`Failed to build transaction data, please check data/method formatting: ${e.message}`);
     }
   }
 
   if (!data) {
-    throw new Error(`Failed to build transaction data, please check ABI/method formatting.`);
+    throw new Error(`Failed to build transaction data, please check data/method formatting.`);
   }
 
   useEffect(() => {
