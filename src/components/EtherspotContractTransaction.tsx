@@ -38,12 +38,12 @@ const EtherspotContractTransaction = ({
     contractInterface = new ethers.utils.Interface(abi);
   } catch (e) {
     if (e instanceof Error && e?.message) {
-      throw new Error(`Failed to build contract interface from provided ABI: ${e.message}`);
+      throw new Error(`Failed to build contract interface from provided ABI, please check ABI formatting: ${e.message}`);
     }
   }
 
   if (!contractInterface) {
-    throw new Error(`Failed to build contract interface from provided ABI.`);
+    throw new Error(`Failed to build contract interface from provided ABI, please check ABI formatting.`);
   }
 
   let data: string | undefined;
@@ -51,12 +51,12 @@ const EtherspotContractTransaction = ({
     data = contractInterface.encodeFunctionData(methodName, params);
   } catch (e) {
     if (e instanceof Error && e?.message) {
-      throw new Error(`Failed to build transaction data: ${e.message}`);
+      throw new Error(`Failed to build transaction data, please check ABI/method formatting: ${e.message}`);
     }
   }
 
   if (!data) {
-    throw new Error(`Failed to build transaction data.`);
+    throw new Error(`Failed to build transaction data, please check ABI/method formatting.`);
   }
 
   useEffect(() => {
