@@ -34,7 +34,7 @@ describe('EtherspotContractTransaction', () => {
       </EtherspotUi>
     ))
       .toThrow(
-        'Failed to build contract interface from provided ABI: unsupported fragment'
+        'Failed to build contract interface from provided ABI, please check ABI formatting: unsupported fragment'
         + ' (argument="value", value="wrong", code=INVALID_ARGUMENT, version=abi/5.7.0)'
       );
   });
@@ -55,7 +55,7 @@ describe('EtherspotContractTransaction', () => {
       </EtherspotUi>
     ))
       .toThrow(
-        'Failed to build transaction data: no matching function'
+        'Failed to build transaction data, please check data/method formatting: no matching function'
         + ' (argument="name", value="transferFrom", code=INVALID_ARGUMENT, version=abi/5.7.0)'
       );
   });
@@ -76,7 +76,7 @@ describe('EtherspotContractTransaction', () => {
       </EtherspotUi>
     ))
       .toThrow(
-        'Failed to build transaction data: invalid BigNumber string'
+        'Failed to build transaction data, please check data/method formatting: invalid BigNumber string'
         + ' (argument="value", value="test", code=INVALID_ARGUMENT, version=bignumber/5.7.0)'
       );
   });
