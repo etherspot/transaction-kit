@@ -1,8 +1,8 @@
 import { useMemo } from 'react';
-import { uniqueId } from 'lodash';
+import * as _ from 'lodash';
 
 const useId = () => {
-  return useMemo(() => uniqueId(), []);
+  return useMemo(() => _.uniqueId(), []);
 };
 
 export default useId;

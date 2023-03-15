@@ -1,7 +1,7 @@
 {
   "name": "@etherspot/transaction-kit",
   "description": "React Etherspot Transaction Kit",
-  "version": "0.0.20",
+  "version": "0.0.21",
   "main": "dist/cjs/index.js",
   "scripts": {
     "rollup:build": "NODE_OPTIONS=--max-old-space-size=8192 rollup -c",
@@ -22,12 +22,11 @@
   "homepage": "https://github.com/etherspot/transaction-kit#readme",
   "dependencies": {
     "@etherspot/react-etherspot": "^1.0.1",
-    "@types/lodash.uniq": "^4.5.7",
     "buffer": "^6.0.3",
     "ethers": "^5.6.9",
     "etherspot": "^1.41.2",
     "lodash.uniq": "^4.5.0",
-    "react": "^18.2.0",
+    "react": ">=18.2.0",
     "react-dom": "^18.2.0",
     "reflect-metadata": "^0.1.13",
     "rxjs": "^6.6.7"
@@ -44,10 +43,12 @@
     "@babel/preset-react": "^7.18.6",
     "@babel/preset-typescript": "^7.18.6",
     "@jest/globals": "^29.3.1",
+    "@rollup/plugin-node-resolve": "^15.0.1",
     "@rollup/plugin-replace": "^5.0.2",
     "@rollup/plugin-typescript": "^8.3.3",
     "@testing-library/react": "^13.4.0",
     "@types/jest": "^29.2.5",
+    "@types/lodash.uniq": "^4.5.7",
     "@types/react": "^18.0.15",
     "babel-jest": "^29.3.1",
     "babel-loader": "^8.2.5",
