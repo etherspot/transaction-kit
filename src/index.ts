@@ -1,4 +1,5 @@
-window.Buffer = window.Buffer || require('buffer').Buffer;
+import { Buffer as ImportedBuffer } from 'buffer';
+window.Buffer = window.Buffer ?? ImportedBuffer;
 
 import { useEtherspot } from '@etherspot/react-etherspot';
 
