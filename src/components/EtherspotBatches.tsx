@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useId, useState } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 
 // contexts
 import EtherspotUiContext from '../contexts/EtherspotUiContext';
@@ -11,6 +11,9 @@ import { TypePerId } from '../types/Helper';
 
 // utils
 import { getObjectSortedByKeys } from '../utils/common';
+
+// hooks
+import useId from '../hooks/useId';
 
 interface EtherspotBatchesProps extends IBatches {
   children?: React.ReactNode;

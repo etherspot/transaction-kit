@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useId } from 'react';
+import React, { useContext, useEffect } from 'react';
 import { ethers } from 'ethers';
 
 // contexts
@@ -6,6 +6,9 @@ import EtherspotBatchContext from '../contexts/EtherspotBatchContext';
 
 // types
 import { ITransaction } from '../types/EtherspotUi';
+
+// hooks
+import useId from '../hooks/useId';
 
 interface EtherspotTransactionProps extends ITransaction {
   children?: React.ReactNode;
