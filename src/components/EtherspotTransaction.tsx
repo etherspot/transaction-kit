@@ -14,7 +14,13 @@ interface EtherspotTransactionProps extends ITransaction {
   children?: React.ReactNode;
 }
 
-const EtherspotTransaction = ({ children, to, data, value, id: transactionId }: EtherspotTransactionProps) => {
+const EtherspotTransaction = ({
+  children,
+  to,
+  data,
+  value,
+  id: transactionId,
+}: EtherspotTransactionProps): JSX.Element => {
   const context = useContext(EtherspotBatchContext);
   const componentId = useId();
 
@@ -42,7 +48,7 @@ const EtherspotTransaction = ({ children, to, data, value, id: transactionId }: 
     }
   }, [componentId, to, data, value, transactionId]);
 
-  return children;
+  return <>{children}</>;
 };
 
 export default EtherspotTransaction;

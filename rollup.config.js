@@ -2,7 +2,6 @@ import typescript from '@rollup/plugin-typescript';
 import dts from 'rollup-plugin-dts';
 import dotenv from 'dotenv';
 import replace from '@rollup/plugin-replace';
-import resolve from '@rollup/plugin-node-resolve';
 
 dotenv.config();
 
@@ -27,9 +26,6 @@ export default [
       typescript({
         tsconfig: './tsconfig.json',
         exclude: ['./example/**', './src/test/**']
-      }),
-      resolve({
-        browser: true,
       }),
       replace({
         __ETHERSPOT_PROJECT_KEY__: process.env.ETHERSPOT_PROJECT_KEY ?? '',

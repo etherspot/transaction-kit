@@ -7,7 +7,9 @@ import {
   useEtherspotUi,
   IEstimatedBatches,
   ISmartWalletAddress,
-  EstimatedBatch, ISentBatches, SentBatch,
+  EstimatedBatch,
+  ISentBatches,
+  SentBatch,
 } from '@etherspot/transaction-kit';
 import { ethers } from 'ethers';
 import { Box, Button, Chip, Container, Paper, Tab, Tabs, Typography } from '@mui/material';
