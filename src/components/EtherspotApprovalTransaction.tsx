@@ -9,6 +9,8 @@ import { IEtherspotApprovalTransaction } from '../types/EtherspotUi';
 
 // hooks
 import useId from '../hooks/useId';
+
+// components
 import EtherspotContractTransaction from './EtherspotContractTransaction';
 
 interface EtherspotApprovalTransactionProps extends IEtherspotApprovalTransaction {
