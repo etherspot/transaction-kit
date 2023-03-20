@@ -50,6 +50,13 @@ export interface IEtherspotContractTransaction {
   abi: string | ReadonlyArray<Fragment | JsonFragment | string>;
 }
 
+export interface IEtherspotTokenTransferTransaction {
+  id?: string;
+  value: BigNumberish;
+  contractAddress: string;
+  receiverAddress: string;
+}
+
 export interface ISmartWalletAddress {
   chainId: number;
   address: string;
