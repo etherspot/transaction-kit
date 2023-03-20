@@ -28,7 +28,7 @@ const EtherspotContractTransaction = ({
   methodName,
   abi,
   id: transactionId
-}: EtherspotContractTransactionProps) => {
+}: EtherspotContractTransactionProps): JSX.Element => {
   const context = useContext(EtherspotBatchContext);
   const componentId = useId();
 
@@ -87,7 +87,7 @@ const EtherspotContractTransaction = ({
     }
   }, [componentId, value, transactionId]);
 
-  return children;
+  return <>{children}</>;
 };
 
 export default EtherspotContractTransaction;
