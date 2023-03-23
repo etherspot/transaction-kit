@@ -40,16 +40,16 @@ const EtherspotTokenTransferTransaction = ({
   }
 
   const { getSdkForChainId, connect } = useEtherspot();
-  const [senderAddress, setSenderAddress] = useState<string | undefined>(undefined);
+
+  const sdkForChainId = getSdkForChainId(context?.chainId ?? 1);
+
+  const [senderAddress, setSenderAddress] = useState<string | undefined>(sdkForChainId?.state?.account?.address);
 
   useEffect(() => {
     setSenderAddress(undefined);
     let shouldUpdate = true;
 
     const update = async () => {
-      const sdkForChainId = getSdkForChainId(context?.chainId ?? 1);
-      if (!sdkForChainId) return;
-
       const address = sdkForChainId?.state?.account?.type === AccountTypes.Contract
         ? sdkForChainId?.state?.account?.address
         : await connect(context.chainId);
@@ -62,7 +62,7 @@ const EtherspotTokenTransferTransaction = ({
     update();
 
     return () => { shouldUpdate = false };
-  }, [getSdkForChainId, context]);
+  }, []);
 
   let valueBN;
   try {
