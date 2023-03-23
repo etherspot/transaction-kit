@@ -28,7 +28,7 @@ interface EtherspotTokenTransferTransactionProps extends IEtherspotTokenTransfer
 const EtherspotTokenTransferTransaction = ({
   children,
   value,
-  contractAddress,
+  tokenAddress,
   receiverAddress,
   id: transactionId
 }: EtherspotTokenTransferTransactionProps): JSX.Element => {
@@ -82,7 +82,7 @@ const EtherspotTokenTransferTransaction = ({
   return (
     <EtherspotContractTransaction
       id={transactionId ?? componentId}
-      contractAddress={contractAddress}
+      contractAddress={tokenAddress}
       methodName={'transferFrom'}
       abi={['function transferFrom(address from, address to, uint256 value)']}
       params={[senderAddress ?? '', receiverAddress, valueBN]}

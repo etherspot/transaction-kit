@@ -7,7 +7,7 @@ describe('EtherspotApprovalTransaction', () => {
   it('throws an error if <EtherspotApprovalTransaction /> rendered without <EtherspotBatch />', () => {
     expect(() => render(
       <EtherspotApprovalTransaction
-        contractAddress={'0x'}
+        tokenAddress={'0x'}
         receiverAddress={'0x'}
         value={'0'}
       >
@@ -23,7 +23,7 @@ describe('EtherspotApprovalTransaction', () => {
         <EtherspotBatches>
           <EtherspotBatch>
             <EtherspotApprovalTransaction
-              contractAddress={'0x'}
+              tokenAddress={'0x'}
               receiverAddress={'0xtransfer'}
               value={ethers.utils.parseEther('123')}
             />
@@ -44,7 +44,7 @@ describe('EtherspotApprovalTransaction', () => {
         <EtherspotBatches>
           <EtherspotBatch>
             <EtherspotApprovalTransaction
-              contractAddress={'0x'}
+              tokenAddress={'0x'}
               receiverAddress={'0x7F30B1960D5556929B03a0339814fE903c55a347'}
               value={'test'}
             />
@@ -64,7 +64,7 @@ describe('EtherspotApprovalTransaction', () => {
         <EtherspotBatches>
           <EtherspotBatch>
             <EtherspotApprovalTransaction
-              contractAddress={'0xe3818504c1b32bf1557b16c238b2e01fd3149c17'}
+              tokenAddress={'0xe3818504c1b32bf1557b16c238b2e01fd3149c17'}
               receiverAddress={'0x7F30B1960D5556929B03a0339814fE903c55a347'}
               value={ethers.utils.parseEther('123')}
             />

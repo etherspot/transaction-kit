@@ -53,7 +53,7 @@ export interface IEtherspotContractTransaction {
 export interface IEtherspotTokenTransferTransaction {
   id?: string;
   value: BigNumberish;
-  contractAddress: string;
+  tokenAddress: string;
   receiverAddress: string;
 }
 
@@ -65,6 +65,6 @@ export interface ISmartWalletAddress {
 export interface IEtherspotApprovalTransaction {
   id?: string;
   value: BigNumberish;
-  contractAddress: string;
+  tokenAddress: string;
   receiverAddress: string;
 }
