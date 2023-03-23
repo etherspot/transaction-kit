@@ -61,3 +61,10 @@ export interface ISmartWalletAddress {
   chainId: number;
   address: string;
 }
+
+export interface IEtherspotApprovalTransaction {
+  id?: string;
+  value: BigNumberish;
+  contractAddress: string;
+  receiverAddress: string;
+}

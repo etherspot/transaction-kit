@@ -94,6 +94,17 @@ const EtherspotUiContextProvider = ({ children, chainId = 1 }: EtherspotUiContex
   }
 
   const send = async (batchesIds?: string[]): Promise<ISentBatches[]> => {
+    const groupedBatchesToClean = Object.values<IBatches>(groupedBatchesPerId)
+      .filter((groupedBatch) => (!batchesIds?.length|| batchesIds.some((batchesId) => batchesId === groupedBatch.id)));
+
+    // clear any existing batches before new estimate & send
+    groupedBatchesToClean.forEach(({ batches = [] }) => batches.forEach((batch) => {
+      const batchChainId = batch.chainId ?? chainId;
+      const sdkForChainId = getSdkForChainId(batchChainId);
+      if (!sdkForChainId) return;
+      sdkForChainId.clearGatewayBatch();
+    }));
+
     const estimated = await estimate(batchesIds, true);
 
     return Promise.all(estimated.map(async (estimatedBatches): Promise<ISentBatches> => {
