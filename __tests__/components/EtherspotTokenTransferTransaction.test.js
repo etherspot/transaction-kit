@@ -1,18 +1,20 @@
 import { renderHook, render } from '@testing-library/react';
 import { ethers } from 'ethers';
 
-import { useEtherspotUi, EtherspotUi, EtherspotBatches, EtherspotBatch, EtherspotApprovalTransaction } from '../../src';
+import { useEtherspotUi, EtherspotUi, EtherspotBatches, EtherspotBatch, EtherspotTokenTransferTransaction } from '../../src';
 
-describe('EtherspotApprovalTransaction', () => {
-  it('throws an error if <EtherspotApprovalTransaction /> rendered without <EtherspotBatch />', () => {
+describe('EtherspotTokenTransferTransaction', () => {
+  it('throws an error if <EtherspotTokenTransferTransaction /> rendered without <EtherspotBatch />', () => {
     expect(() => render(
-      <EtherspotApprovalTransaction
-        tokenAddress={'0x'}
-        receiverAddress={'0x'}
-        value={'0'}
-      >
-        <span>test</span>
-      </EtherspotApprovalTransaction>
+      <EtherspotUi provider={null}>
+        <EtherspotTokenTransferTransaction
+          tokenAddress={'0x'}
+          receiverAddress={'0x'}
+          value={'0'}
+        >
+          <span>test</span>
+        </EtherspotTokenTransferTransaction>
+      </EtherspotUi>
     ))
       .toThrow('No parent <EtherspotBatch />');
   });
@@ -22,7 +24,7 @@ describe('EtherspotApprovalTransaction', () => {
       <EtherspotUi provider={null}>
         <EtherspotBatches>
           <EtherspotBatch>
-            <EtherspotApprovalTransaction
+            <EtherspotTokenTransferTransaction
               tokenAddress={'0x'}
               receiverAddress={'0xtransfer'}
               value={ethers.utils.parseEther('123')}
@@ -30,11 +32,11 @@ describe('EtherspotApprovalTransaction', () => {
           </EtherspotBatch>
         </EtherspotBatches>
       </EtherspotUi>
-    ))
+   ))
       .toThrow(
         'Failed to build transaction data, please check data/method formatting: invalid address'
         + ' (argument="address", value="0xtransfer", code=INVALID_ARGUMENT, version=address/5.7.0)'
-        + ' (argument=null, value="0xtransfer", code=INVALID_ARGUMENT, version=abi/5.7.0)'
+        + ' (argument=\"to\", value="0xtransfer", code=INVALID_ARGUMENT, version=abi/5.7.0)'
       );
   });
 
@@ -43,7 +45,7 @@ describe('EtherspotApprovalTransaction', () => {
       <EtherspotUi provider={null}>
         <EtherspotBatches>
           <EtherspotBatch>
-            <EtherspotApprovalTransaction
+            <EtherspotTokenTransferTransaction
               tokenAddress={'0x'}
               receiverAddress={'0x7F30B1960D5556929B03a0339814fE903c55a347'}
               value={'test'}
@@ -63,7 +65,7 @@ describe('EtherspotApprovalTransaction', () => {
       <EtherspotUi provider={null}>
         <EtherspotBatches>
           <EtherspotBatch>
-            <EtherspotApprovalTransaction
+            <EtherspotTokenTransferTransaction
               tokenAddress={'0xe3818504c1b32bf1557b16c238b2e01fd3149c17'}
               receiverAddress={'0x7F30B1960D5556929B03a0339814fE903c55a347'}
               value={ethers.utils.parseEther('123')}
@@ -77,7 +79,7 @@ describe('EtherspotApprovalTransaction', () => {
     const { result: { current } } = renderHook(() => useEtherspotUi(), { wrapper });
 
     expect(current.batches[0].batches[0].transactions[0].to).toBe('0xe3818504c1b32bf1557b16c238b2e01fd3149c17');
-    expect(current.batches[0].batches[0].transactions[0].data).toBe('0x095ea7b30000000000000000000000007f30b1960d5556929b03a0339814fe903c55a347000000000000000000000000000000000000000000000006aaf7c8516d0c0000');
+    expect(current.batches[0].batches[0].transactions[0].data).toBe('0x23b872dd0000000000000000000000007f30b1960d5556929b03a0339814fe903c55a3470000000000000000000000007f30b1960d5556929b03a0339814fe903c55a347000000000000000000000000000000000000000000000006aaf7c8516d0c0000');
     expect(current.batches[0].batches[0].transactions[0].value).toBe(undefined);
   });
 

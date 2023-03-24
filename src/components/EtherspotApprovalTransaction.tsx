@@ -26,7 +26,7 @@ interface EtherspotApprovalTransactionProps extends IEtherspotApprovalTransactio
 const EtherspotApprovalTransaction = ({
   children,
   value,
-  contractAddress,
+  tokenAddress,
   receiverAddress,
   id: transactionId
 }: EtherspotApprovalTransactionProps) => {
@@ -55,7 +55,7 @@ const EtherspotApprovalTransaction = ({
   return (
     <EtherspotContractTransaction
       id={transactionId ?? componentId}
-      contractAddress={contractAddress}
+      contractAddress={tokenAddress}
       methodName={'approve'}
       abi={['function approve(address, uint256)']}
       params={[receiverAddress, valueBN]}

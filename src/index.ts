@@ -9,6 +9,7 @@ export { default as EtherspotBatch } from './components/EtherspotBatch';
 export { default as EtherspotTransaction } from './components/EtherspotTransaction';
 export { default as EtherspotContractTransaction } from './components/EtherspotContractTransaction';
 export { default as EtherspotApprovalTransaction } from './components/EtherspotApprovalTransaction';
+export { default as EtherspotTokenTransferTransaction } from './components/EtherspotTokenTransferTransaction';
 export { default as useEtherspotUi } from './hooks/useEtherspotUi';
 export * from './types/EtherspotUi';
 
