@@ -51,7 +51,7 @@ const EtherspotBatch = ({ children, chainId, gasTokenAddress, id: batchId }: Eth
   }, [componentId, transactionsPerId, chainId, batchId, gasTokenAddress]);
 
   return (
-    <EtherspotBatchContext.Provider value={{ setTransactionsPerId }}>
+    <EtherspotBatchContext.Provider value={{ setTransactionsPerId, chainId }}>
       {children}
     </EtherspotBatchContext.Provider>
   );
