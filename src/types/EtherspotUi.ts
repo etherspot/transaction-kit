@@ -1,5 +1,5 @@
-import { BigNumber, BigNumberish } from 'ethers';
 import { Fragment, JsonFragment } from '@ethersproject/abi/src.ts/fragments';
+import { BigNumber, BigNumberish } from 'ethers';
 
 export interface ITransaction {
   id?: string;
@@ -60,6 +60,7 @@ export interface IEtherspotTokenTransferTransaction {
 export interface ISmartWalletAddress {
   chainId: number;
   address: string;
+  name: string,
 }
 
 export interface IEtherspotApprovalTransaction {

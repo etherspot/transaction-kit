@@ -1,6 +1,5 @@
-import React, { useMemo, useState } from 'react';
-import uniq from 'lodash.uniq';
 import { useEtherspot } from '@etherspot/react-etherspot';
+import React, { useMemo, useState } from 'react';
 
 // contexts
 import EtherspotUiContext from '../contexts/EtherspotUiContext';
@@ -9,9 +8,9 @@ import EtherspotUiContext from '../contexts/EtherspotUiContext';
 import { getObjectSortedByKeys, isTestnetChainId, parseEtherspotErrorMessageIfAvailable } from '../utils/common';
 
 // types
+import { AccountStates } from 'etherspot';
 import { EstimatedBatch, IBatch, IBatches, IEstimatedBatches, ISentBatches, ISmartWalletAddress, SentBatch } from '../types/EtherspotUi';
 import { TypePerId } from '../types/Helper';
-import { AccountStates } from 'etherspot';
 
 interface EtherspotUiContextProviderProps {
   chainId?: number | undefined;
@@ -21,7 +20,7 @@ interface EtherspotUiContextProviderProps {
 let isSdkConnecting: Promise<any> | undefined;
 
 const EtherspotUiContextProvider = ({ children, chainId = 1 }: EtherspotUiContextProviderProps) => {
-  const { getSdkForChainId, connect } = useEtherspot();
+  const { getSdkForChainId, connect, sdk } = useEtherspot();
   const [groupedBatchesPerId, setGroupedBatchesPerId] = useState<TypePerId<IBatches>>({});
 
   const connectToSdkForChainIfNeeded = async (chainId: number) => {
@@ -157,51 +156,41 @@ const EtherspotUiContextProvider = ({ children, chainId = 1 }: EtherspotUiContex
    * @returns Array[ISmartWalletAddress]
    */
   const getSmartWalletAddresses = async (): Promise<(ISmartWalletAddress)[]> => {
-    // Lets set our definitions
-    let chainIds: (number | undefined)[] = [];
-    let computedContractResponses: Promise<(ISmartWalletAddress)[]>;
-
-    // Next, let's get our grouped batches
-    const groupedBatches = Object.values<IBatches>(groupedBatchesPerId);
-
-    // Next, loop through the grouped batches, if any...
-    for (let index = 0; index < groupedBatches.length; index++) {
-      // And collect all the data we need about our batches.
-      const groupedBatch = groupedBatches[index];
-      const batches = (groupedBatch.batches ?? []) as IBatch[];
-
-      // Collect the chain IDs used here...
-      chainIds = batches.map((batch) => batch.chainId || chainId);
+    // Our first step is to cycle through all our chain IDs supported
+    // by the Etherspot SDK and computeContractAccount method which
+    // will return the smart wallet address that users can use.
+    if (!sdk) {
+      console.warn('Sorry, the SDK is not ready yet. Please try again in a moment.');
+      return [];
     }
 
-    // A little housekeeping - clean up any duplicates
-    chainIds = uniq(chainIds);
+    const accountResponses = await Promise.all(
+      sdk.supportedNetworks
+      .filter((supportedNetwork) => supportedNetwork.name !== 'arbitrumNova')
+      .map(async (supportedNetwork) => {
+        const sdk = getSdkForChainId(supportedNetwork.chainId);
 
-    // Our next step is to cycle through all our chain IDs found
-    // in each batch and call the corresponding Etherspot SDK
-    // and computeContractAccount method which will return the
-    // smart wallet address that users can use.
-    const accountResponses = await Promise.all(chainIds.map(async (chainId) => {
-      const sdk = getSdkForChainId(chainId ?? 1);
+        if (sdk) {
+          const response = await sdk.computeContractAccount();
+          const accountData: ISmartWalletAddress =  {
+            chainId: supportedNetwork.chainId,
+            address: response.address,
+            name: supportedNetwork.name,
+          };
 
-      if (sdk) {
-        const response = await sdk.computeContractAccount();
-        const accountData: ISmartWalletAddress =  {
-          chainId: chainId ?? 1,
-          address: response.address,
-        };
+          return accountData;
+        } else {
+          console.warn(`TransactionKit could not find an SDK for Chain ID ${supportedNetwork.chainId}. Please check and try again.`);
+          const accountData: ISmartWalletAddress =  {
+            chainId: 0,
+            address: '',
+            name: '',
+          };
 
-        return accountData;
-      } else {
-        console.warn(`TransactionKit could not find an SDK for Chain ID ${chainId}. Please check and try again.`);
-        const accountData: ISmartWalletAddress =  {
-          chainId: 0,
-          address: '',
-        };
-
-        return accountData;
-      }
-    }));
+          return accountData;
+        }
+      })
+    );
 
     // Finally, return this to the caller.
     return accountResponses;
