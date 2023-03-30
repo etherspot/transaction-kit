@@ -21,7 +21,7 @@
   },
   "homepage": "https://github.com/etherspot/transaction-kit#readme",
   "dependencies": {
-    "@etherspot/react-etherspot": "^1.0.5",
+    "@etherspot/react-etherspot": "^1.0.6",
     "buffer": "^6.0.3",
     "ethers": "^5.6.9",
     "etherspot": "^1.41.2",
