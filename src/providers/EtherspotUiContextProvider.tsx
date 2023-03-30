@@ -155,7 +155,7 @@ const EtherspotUiContextProvider = ({ children, chainId = 1 }: EtherspotUiContex
    *
    * @returns Array[ISmartWalletAddress]
    */
-  const getSmartWalletAddresses = async (): Promise<(ISmartWalletAddress)[]> => {
+  const getSmartWalletAddresses = async (): Promise<(ISmartWalletAddress | null)[]> => {
     // Our first step is to cycle through all our chain IDs supported
     // by the Etherspot SDK and computeContractAccount method which
     // will return the smart wallet address that users can use.
@@ -164,7 +164,7 @@ const EtherspotUiContextProvider = ({ children, chainId = 1 }: EtherspotUiContex
       return [];
     }
 
-    const accountResponses = await Promise.all(
+    const accountResponses: (ISmartWalletAddress | null)[] = await Promise.all(
       sdk.supportedNetworks
       .filter((supportedNetwork) => supportedNetwork.name !== 'arbitrumNova')
       .map(async (supportedNetwork) => {
@@ -175,19 +175,13 @@ const EtherspotUiContextProvider = ({ children, chainId = 1 }: EtherspotUiContex
           const accountData: ISmartWalletAddress =  {
             chainId: supportedNetwork.chainId,
             address: response.address,
-            name: supportedNetwork.name,
+            chainName: supportedNetwork.name,
           };
 
           return accountData;
         } else {
-          console.warn(`TransactionKit could not find an SDK for Chain ID ${supportedNetwork.chainId}. Please check and try again.`);
-          const accountData: ISmartWalletAddress =  {
-            chainId: 0,
-            address: '',
-            name: '',
-          };
-
-          return accountData;
+          console.warn(`Sorry, the SDK is not ready yet for chain ${supportedNetwork.name} - please try again.`);
+          return null;
         }
       })
     );

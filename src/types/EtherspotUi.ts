@@ -60,7 +60,7 @@ export interface IEtherspotTokenTransferTransaction {
 export interface ISmartWalletAddress {
   chainId: number;
   address: string;
-  name: string,
+  chainName: string,
 }
 
 export interface IEtherspotApprovalTransaction {
