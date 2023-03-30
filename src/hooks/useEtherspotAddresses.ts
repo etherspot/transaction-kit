@@ -31,7 +31,9 @@ const useEtherspotAddresses = (): (ISmartWalletAddress | null)[] => {
               await isConnecting;
             }
 
-            const response = await sdkForChainId.computeContractAccount();
+            const response = await sdkForChainId.computeContractAccount({
+              sync: false
+            });
             const accountData: ISmartWalletAddress =  {
               chainId: supportedNetwork.chainId,
               address: response.address,
