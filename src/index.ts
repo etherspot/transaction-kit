@@ -11,6 +11,7 @@ export { default as EtherspotContractTransaction } from './components/EtherspotC
 export { default as EtherspotApprovalTransaction } from './components/EtherspotApprovalTransaction';
 export { default as EtherspotTokenTransferTransaction } from './components/EtherspotTokenTransferTransaction';
 export { default as useEtherspotUi } from './hooks/useEtherspotUi';
+export { default as useEtherspotBalances } from './hooks/useEtherspotBalances';
 export * from './types/EtherspotUi';
 
 export { useEtherspot };
