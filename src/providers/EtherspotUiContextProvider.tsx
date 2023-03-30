@@ -9,7 +9,7 @@ import { getObjectSortedByKeys, isTestnetChainId, parseEtherspotErrorMessageIfAv
 
 // types
 import { AccountStates } from 'etherspot';
-import { EstimatedBatch, IBatch, IBatches, IEstimatedBatches, ISentBatches, ISmartWalletAddress, SentBatch } from '../types/EtherspotUi';
+import { EstimatedBatch, IBatch, IBatches, IEstimatedBatches, ISentBatches, SentBatch } from '../types/EtherspotUi';
 import { TypePerId } from '../types/Helper';
 
 interface EtherspotUiContextProviderProps {
@@ -148,53 +148,10 @@ const EtherspotUiContextProvider = ({ children, chainId = 1 }: EtherspotUiContex
     }));
   }
 
-  /**
-   * @name getSmartWalletAddresses
-   * @description Accesses the underlying Etherspot SDK
-   * and returns the smart wallet address for each chain.
-   *
-   * @returns Array[ISmartWalletAddress]
-   */
-  const getSmartWalletAddresses = async (): Promise<(ISmartWalletAddress | null)[]> => {
-    // Our first step is to cycle through all our chain IDs supported
-    // by the Etherspot SDK and computeContractAccount method which
-    // will return the smart wallet address that users can use.
-    if (!sdk) {
-      console.warn('Sorry, the SDK is not ready yet. Please try again in a moment.');
-      return [];
-    }
-
-    const accountResponses: (ISmartWalletAddress | null)[] = await Promise.all(
-      sdk.supportedNetworks
-      .filter((supportedNetwork) => supportedNetwork.name !== 'arbitrumNova')
-      .map(async (supportedNetwork) => {
-        const sdk = getSdkForChainId(supportedNetwork.chainId);
-
-        if (sdk) {
-          const response = await sdk.computeContractAccount();
-          const accountData: ISmartWalletAddress =  {
-            chainId: supportedNetwork.chainId,
-            address: response.address,
-            chainName: supportedNetwork.name,
-          };
-
-          return accountData;
-        } else {
-          console.warn(`Sorry, the SDK is not ready yet for chain ${supportedNetwork.name} - please try again.`);
-          return null;
-        }
-      })
-    );
-
-    // Finally, return this to the caller.
-    return accountResponses;
-  }
-
   const contextData = useMemo(() => ({
     batches: getObjectSortedByKeys(groupedBatchesPerId),
     estimate,
     send,
-    getSmartWalletAddresses,
     chainId,
   }), [
     chainId,
