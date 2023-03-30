@@ -1,5 +1,5 @@
 import { useEtherspot } from '@etherspot/react-etherspot';
-import { AccountTypes } from 'etherspot';
+import { AccountTypes, sleep } from 'etherspot';
 import { useEffect, useState } from 'react';
 import { ISmartWalletAddress } from '../types/EtherspotUi';
 
@@ -30,6 +30,11 @@ const useEtherspotAddresses = (): (ISmartWalletAddress | null)[] => {
         
               await isConnecting;
             }
+
+            /**
+             * SLEEP!
+             */
+            await sleep(2);
 
             const response = await sdkForChainId.computeContractAccount({
               sync: false
