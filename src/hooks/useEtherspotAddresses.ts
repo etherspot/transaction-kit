@@ -1,7 +1,8 @@
 import { useEtherspot } from '@etherspot/react-etherspot';
-import { AccountTypes, sleep } from 'etherspot';
+import { AccountTypes, Network } from 'etherspot';
 import { useEffect, useState } from 'react';
 import { ISmartWalletAddress } from '../types/EtherspotUi';
+import { isTestnetChainId } from '../utils/common';
 
 /**
  * Hook to fetch Etherspot Smart Wallet addresses
@@ -15,14 +16,48 @@ const useEtherspotAddresses = (): (ISmartWalletAddress | null)[] => {
     let shouldUpdate = true;
 
     const updateEtherspotAddresses = async () => {
-      const computedContractAddress: (ISmartWalletAddress | null)[] = [];
+      let computedContractAddress: (ISmartWalletAddress | null)[] = [];
+      const chainsToInstantiate: (Network[]) = [];
       if (!sdk) {
         return null;
       }
 
-      for (let index = 0; index < sdk.supportedNetworks.length; index++) {
-        const supportedNetwork = sdk.supportedNetworks[index];
+      /**
+       * Until we need to calculate all chains individually, we will
+       * just calculate the first chain and then either Avax or Fuji
+       */
+      
+      // Are we in testnet mode?
+      const isTestnetMode = isTestnetChainId(sdk.supportedNetworks[0].chainId);
 
+      if (isTestnetMode) {
+        // Find goerli
+        const goerli = sdk.supportedNetworks.find((network) => network.chainId === 5);
+        if (goerli) {
+          chainsToInstantiate.push(goerli);
+        }
+
+        // Find Fuji
+        const fuji = sdk.supportedNetworks.find((network) => network.chainId === 43113);
+        if (fuji) {
+          chainsToInstantiate.push(fuji);
+        }
+      } else {
+        // Find Ethereum
+        const ethereum = sdk.supportedNetworks.find((network) => network.chainId === 1);
+        if (ethereum) {
+          chainsToInstantiate.push(ethereum);
+        }
+
+        // Find Avalanche
+        const avalanche = sdk.supportedNetworks.find((network) => network.chainId === 43114);
+        if (avalanche) {
+          chainsToInstantiate.push(avalanche);
+        }
+      }
+
+      for (let index = 0; index < chainsToInstantiate.length; index++) {
+        const supportedNetwork = chainsToInstantiate[index];
         const sdkForChainId = getSdkForChainId(supportedNetwork.chainId);
   
         if (sdkForChainId) {
@@ -31,11 +66,6 @@ const useEtherspotAddresses = (): (ISmartWalletAddress | null)[] => {
       
             await isConnecting;
           }
-
-          /**
-           * SLEEP!
-           */
-          await sleep(2);
 
           const response = await sdkForChainId.computeContractAccount({
             sync: false
@@ -55,47 +85,41 @@ const useEtherspotAddresses = (): (ISmartWalletAddress | null)[] => {
           console.warn(`Sorry, the SDK is not ready yet for chain ${supportedNetwork.name} - please try again.`);
           computedContractAddress.push(null);
         }
-        
       }
 
-      // const computedContractAddress = await Promise.all(
-      //   sdk.supportedNetworks
-      //   .map(async (supportedNetwork) => {
-      //     const sdkForChainId = getSdkForChainId(supportedNetwork.chainId);
-  
-      //     if (sdkForChainId) {
-      //       if (sdkForChainId?.state?.account?.type !== AccountTypes.Contract) {
-      //         const isConnecting = connect(supportedNetwork.chainId);
-        
-      //         await isConnecting;
-      //       }
+      // Next, we need to fill in the gaps for mainnets and testnets
+      if (isTestnetMode) {
+        const missingNetworks = sdk
+          .supportedNetworks
+          .filter((network) => network.chainId !== 5 && network.chainId !== 43113)
+          .map((network) => {
+            const accountData: ISmartWalletAddress =  {
+              chainId: network.chainId,
+              address: computedContractAddress[0]?.address || '', 
+              chainName: network.name,
+            };
 
-      //       /**
-      //        * SLEEP!
-      //        */
-      //       await sleep(2);
+            return accountData;
+          });
 
-      //       const response = await sdkForChainId.computeContractAccount({
-      //         sync: false
-      //       }).catch((e) => {
-      //         console.warn('An error occured whilst trying to compute contract account:', e);
-      //         return e;
-      //       });
+        computedContractAddress = [...computedContractAddress, ...missingNetworks];
+      } else {
+        const missingNetworks = sdk
+          .supportedNetworks
+          .filter((network) => network.chainId !== 1 && network.chainId !== 43114)
+          .map((network) => {
+            const accountData: ISmartWalletAddress =  {
+              chainId: network.chainId,
+              address: computedContractAddress[0]?.address || '', 
+              chainName: network.name,
+            };
 
-      //       const accountData: ISmartWalletAddress =  {
-      //         chainId: supportedNetwork.chainId,
-      //         address: response.address, 
-      //         chainName: supportedNetwork.name,
-      //       };
+            return accountData;
+          });
 
-      //       return accountData;
-      //     } else {
-      //       console.warn(`Sorry, the SDK is not ready yet for chain ${supportedNetwork.name} - please try again.`);
-      //       return null;
-      //     }
-      //   })
-      // );
-  
+        computedContractAddress = [...computedContractAddress, ...missingNetworks];
+      }
+
       // Finally, set the Etherspot addresses.
       if (shouldUpdate) {
         const filteredComputedContractAddresses = computedContractAddress
