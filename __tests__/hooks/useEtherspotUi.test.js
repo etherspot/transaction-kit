@@ -2,7 +2,7 @@ import { renderHook, render } from '@testing-library/react';
 import { ethers } from 'ethers';
 
 // hooks
-import { useEtherspotUi, EtherspotUi, EtherspotBatches, EtherspotBatch, EtherspotContractTransaction, EtherspotTransaction } from '../src';
+import { useEtherspotUi, EtherspotUi, EtherspotBatches, EtherspotBatch, EtherspotContractTransaction, EtherspotTransaction } from '../../src';
 
 const TestSingleBatchComponent = () => (
   <EtherspotBatches>
