@@ -33,10 +33,14 @@ const useEtherspotAddresses = (): (ISmartWalletAddress | null)[] => {
 
             const response = await sdkForChainId.computeContractAccount({
               sync: false
+            }).catch((e) => {
+              console.warn('An error occured whilst trying to compute contract account:', e);
+              return e;
             });
+
             const accountData: ISmartWalletAddress =  {
               chainId: supportedNetwork.chainId,
-              address: response.address,
+              address: response.address, 
               chainName: supportedNetwork.name,
             };
 
