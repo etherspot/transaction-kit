@@ -20,7 +20,7 @@ interface EtherspotUiContextProviderProps {
 let isSdkConnecting: Promise<any> | undefined;
 
 const EtherspotUiContextProvider = ({ children, chainId = 1 }: EtherspotUiContextProviderProps) => {
-  const { getSdkForChainId, connect, sdk } = useEtherspot();
+  const { getSdkForChainId, connect } = useEtherspot();
   const [groupedBatchesPerId, setGroupedBatchesPerId] = useState<TypePerId<IBatches>>({});
 
   const connectToSdkForChainIfNeeded = async (chainId: number) => {

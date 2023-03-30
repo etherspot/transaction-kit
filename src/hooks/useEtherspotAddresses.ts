@@ -29,9 +29,6 @@ const useEtherspotAddresses = (): (ISmartWalletAddress | null)[] => {
               const isConnecting = connect(supportedNetwork.chainId);
         
               await isConnecting;
-              // isConnecting = undefined;
-            } else {
-        
             }
 
             const response = await sdkForChainId.computeContractAccount();
@@ -50,7 +47,12 @@ const useEtherspotAddresses = (): (ISmartWalletAddress | null)[] => {
       );
   
       // Finally, set the Etherspot addresses.
-      if (shouldUpdate) setEtherspotAddresses(computedContractAddress);
+      if (shouldUpdate) {
+        const filteredComputedContractAddresses = computedContractAddress
+          .filter((addressObject) => addressObject !== null);
+
+        setEtherspotAddresses(filteredComputedContractAddresses);
+      }
     }
 
     updateEtherspotAddresses();
