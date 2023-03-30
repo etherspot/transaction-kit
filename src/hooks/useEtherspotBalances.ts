@@ -36,7 +36,7 @@ const useEtherspotBalances = (chainId: number = 1): AccountBalance[] | null => {
         });
         if (shouldUpdate) setBalances(items);
       } catch (e) {
-        //
+        console.warn(e);
       }
     }
 
