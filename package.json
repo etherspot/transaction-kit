@@ -1,11 +1,11 @@
 {
   "name": "@etherspot/transaction-kit",
   "description": "React Etherspot Transaction Kit",
-  "version": "0.0.26",
+  "version": "0.0.27",
   "main": "dist/cjs/index.js",
   "scripts": {
     "rollup:build": "NODE_OPTIONS=--max-old-space-size=8192 rollup -c",
-    "rollup:watch": "rollup -c -w",
+    "rollup:watch": "rm -rf ./node_modules/react ./node_modules/react-dom && rollup -c -w",
     "test": "jest --silent",
     "test:watch": "jest --watch"
   },
