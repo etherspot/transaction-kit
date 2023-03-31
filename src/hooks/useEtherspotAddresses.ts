@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { ISmartWalletAddress } from '../types/EtherspotUi';
 import { isTestnetChainId } from '../utils/common';
 
+let isConnecting: Promise<any> | undefined;
+
 /**
  * Hook to fetch Etherspot Smart Wallet addresses
  * @returns {ISmartWalletAddress[] | null} - An array of Etherspot addresses
@@ -16,6 +18,8 @@ const useEtherspotAddresses = (): (ISmartWalletAddress | null)[] => {
     let shouldUpdate = true;
 
     const updateEtherspotAddresses = async () => {
+      if (!!isConnecting) return;
+
       let computedContractAddress: (ISmartWalletAddress | null)[] = [];
       const chainsToInstantiate: (Network[]) = [];
       if (!sdk) {
@@ -62,9 +66,9 @@ const useEtherspotAddresses = (): (ISmartWalletAddress | null)[] => {
   
         if (sdkForChainId) {
           if (sdkForChainId?.state?.account?.type !== AccountTypes.Contract) {
-            const isConnecting = connect(supportedNetwork.chainId);
-      
+            isConnecting = connect(supportedNetwork.chainId);
             await isConnecting;
+            isConnecting = undefined;
           }
 
           const response = await sdkForChainId.computeContractAccount({
