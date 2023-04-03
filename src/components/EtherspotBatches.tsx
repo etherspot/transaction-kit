@@ -19,7 +19,7 @@ interface EtherspotBatchesProps extends IBatches {
   children?: React.ReactNode;
 }
 
-const EtherspotBatches = ({ children, skip, onEstimated, id: batchesId }: EtherspotBatchesProps) => {
+const EtherspotBatches = ({ children, skip, onEstimated, onSent, id: batchesId }: EtherspotBatchesProps) => {
   const context = useContext(EtherspotUiContext);
   const existingBatchesContext = useContext(EtherspotBatchesContext);
   const existingBatchContext = useContext(EtherspotBatchContext);
@@ -45,6 +45,7 @@ const EtherspotBatches = ({ children, skip, onEstimated, id: batchesId }: Ethers
       skip,
       batches: getObjectSortedByKeys(batchesPerId),
       onEstimated,
+      onSent,
     };
 
     context.setGroupedBatchesPerId((current) => ({ ...current, [componentId]: groupedBatch }));
@@ -55,7 +56,7 @@ const EtherspotBatches = ({ children, skip, onEstimated, id: batchesId }: Ethers
         return current;
       });
     }
-  }, [componentId, batchesPerId, skip, batchesId, onEstimated]);
+  }, [componentId, batchesPerId, skip, batchesId]);
 
   return (
     <EtherspotBatchesContext.Provider value={{ setBatchesPerId }}>
