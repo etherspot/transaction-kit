@@ -12,6 +12,7 @@ export { default as EtherspotTransaction } from './components/EtherspotTransacti
 export { default as EtherspotUi } from './components/EtherspotUi';
 export { default as useEtherspotAddresses } from './hooks/useEtherspotAddresses';
 export { default as useEtherspotBalances } from './hooks/useEtherspotBalances';
+export { default as useEtherspotAssets } from './hooks/useEtherspotAssets';
 export { default as useEtherspotUi } from './hooks/useEtherspotUi';
 export * from './types/EtherspotUi';
 export { useEtherspot };
