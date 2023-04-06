@@ -4,7 +4,7 @@ import { ethers } from 'ethers';
 
 export const useEtherspot = () => ({
   ...useEtherspotActual(),
-  getSdkForChainId: () => ({
+  getSdkForChainId: (sdkChainId) => ({
     state: {
       account: {
         type: AccountTypes.Contract,
@@ -23,6 +23,15 @@ export const useEtherspot = () => ({
         : [nativeAsset];
 
       return { items };
+    },
+    getTokenListTokens: () => {
+      const token1 = { address: '0x1', chainId: sdkChainId, name: 'tk1', symbol: 'TK1', decimals: 18, logoURI: '' };
+      const token2 = { address: '0x2', chainId: sdkChainId, name: 'tk2', symbol: 'TK2', decimals: 18, logoURI: '' };
+      const token3 = { address: '0x3', chainId: sdkChainId, name: 'tk3', symbol: 'TK3', decimals: 18, logoURI: '' };
+
+      return sdkChainId === 1
+        ? [token1, token2, token3]
+        : [token1];
     },
   }),
 });
