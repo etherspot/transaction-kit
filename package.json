@@ -1,7 +1,7 @@
 {
   "name": "@etherspot/transaction-kit",
   "description": "React Etherspot Transaction Kit",
-  "version": "0.0.36",
+  "version": "0.0.37",
   "main": "dist/cjs/index.js",
   "scripts": {
     "rollup:build": "NODE_OPTIONS=--max-old-space-size=8192 rollup -c",
