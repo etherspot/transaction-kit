@@ -1,6 +1,6 @@
 import {
   EstimatedBatch, EtherspotBatch, EtherspotBatches, EtherspotTransaction, IEstimatedBatches, ISentBatches,
-  SentBatch, useEtherspot, useEtherspotAddresses, useEtherspotUi
+  SentBatch, useEtherspot, useEtherspotAddresses, useEtherspotTransactions
 } from '@etherspot/transaction-kit';
 import TreeItem from '@mui/lab/TreeItem';
 import TreeView from '@mui/lab/TreeView';
@@ -69,7 +69,7 @@ const exampleCode = {
 
 const App = () => {
   const [activeTab, setActiveTab] = useState(tabs.SINGLE_TRANSACTION);
-  const { batches, estimate, send } = useEtherspotUi();
+  const { batches, estimate, send } = useEtherspotTransactions();
   const { getSdkForChainId } = useEtherspot();
   const [balancePerAddress, setBalancePerAddress] = useState({
     [walletAddressByName.Alice]: '',

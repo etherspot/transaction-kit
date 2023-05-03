@@ -7,7 +7,7 @@ import { useEtherspot } from '@etherspot/react-etherspot';
 import EtherspotBatchContext from '../contexts/EtherspotBatchContext';
 
 // types
-import { IEtherspotTokenTransferTransaction } from '../types/EtherspotUi';
+import { IEtherspotTokenTransferTransaction } from '../types/EtherspotTransactionKit';
 
 // hooks
 import useId from '../hooks/useId';

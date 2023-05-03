@@ -5,7 +5,7 @@ import EtherspotBatchesContext from '../contexts/EtherspotBatchesContext';
 import EtherspotBatchContext from '../contexts/EtherspotBatchContext';
 
 // types
-import { IBatch, ITransaction } from '../types/EtherspotUi';
+import { IBatch, ITransaction } from '../types/EtherspotTransactionKit';
 import { TypePerId } from '../types/Helper';
 
 // utils

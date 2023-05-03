@@ -1,7 +1,7 @@
 import React, { createContext, Dispatch, SetStateAction } from 'react';
 
 // types
-import { ITransaction } from '../types/EtherspotUi';
+import { ITransaction } from '../types/EtherspotTransactionKit';
 import { TypePerId } from '../types/Helper';
 
 interface IEtherspotBatchContext {

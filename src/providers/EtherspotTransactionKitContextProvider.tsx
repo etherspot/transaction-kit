@@ -2,24 +2,24 @@ import { useEtherspot } from '@etherspot/react-etherspot';
 import React, { useMemo, useState } from 'react';
 
 // contexts
-import EtherspotUiContext from '../contexts/EtherspotUiContext';
+import EtherspotTransactionKitContext from '../contexts/EtherspotTransactionKitContext';
 
 // utils
 import { getObjectSortedByKeys, isTestnetChainId, parseEtherspotErrorMessageIfAvailable } from '../utils/common';
 
 // types
 import { AccountStates } from 'etherspot';
-import { EstimatedBatch, IBatch, IBatches, IEstimatedBatches, ISentBatches, SentBatch } from '../types/EtherspotUi';
+import { EstimatedBatch, IBatch, IBatches, IEstimatedBatches, ISentBatches, SentBatch } from '../types/EtherspotTransactionKit';
 import { TypePerId } from '../types/Helper';
 
-interface EtherspotUiContextProviderProps {
+interface EtherspotTransactionKitContextProviderProps {
   chainId?: number | undefined;
   children?: React.ReactNode;
 }
 
 let isSdkConnecting: Promise<any> | undefined;
 
-const EtherspotUiContextProvider = ({ children, chainId = 1 }: EtherspotUiContextProviderProps) => {
+const EtherspotTransactionKitContextProvider = ({ children, chainId = 1 }: EtherspotTransactionKitContextProviderProps) => {
   const { getSdkForChainId, connect } = useEtherspot();
   const [groupedBatchesPerId, setGroupedBatchesPerId] = useState<TypePerId<IBatches>>({});
 
@@ -159,10 +159,10 @@ const EtherspotUiContextProvider = ({ children, chainId = 1 }: EtherspotUiContex
   ]);
 
   return (
-    <EtherspotUiContext.Provider value={{ data: contextData, setGroupedBatchesPerId }}>
+    <EtherspotTransactionKitContext.Provider value={{ data: contextData, setGroupedBatchesPerId }}>
       {children}
-    </EtherspotUiContext.Provider>
+    </EtherspotTransactionKitContext.Provider>
   );
 }
 
-export default EtherspotUiContextProvider;
+export default EtherspotTransactionKitContextProvider;

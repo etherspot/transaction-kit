@@ -1,7 +1,7 @@
 import { renderHook, render } from '@testing-library/react';
 import { ethers } from 'ethers';
 
-import { useEtherspotUi, EtherspotUi, EtherspotBatches, EtherspotBatch, EtherspotContractTransaction } from '../../src';
+import { useEtherspotTransactions, EtherspotTransactionKit, EtherspotBatches, EtherspotBatch, EtherspotContractTransaction } from '../../src';
 
 describe('EtherspotContractTransaction', () => {
   it('throws an error if <EtherspotContractTransaction /> rendered without <EtherspotBatch />', () => {
@@ -20,7 +20,7 @@ describe('EtherspotContractTransaction', () => {
 
   it('throws error if wrong ABI provided', () => {
     expect(() => render(
-      <EtherspotUi provider={null}>
+      <EtherspotTransactionKit provider={null}>
         <EtherspotBatches>
           <EtherspotBatch>
             <EtherspotContractTransaction
@@ -31,7 +31,7 @@ describe('EtherspotContractTransaction', () => {
             />
           </EtherspotBatch>
         </EtherspotBatches>
-      </EtherspotUi>
+      </EtherspotTransactionKit>
     ))
       .toThrow(
         'Failed to build contract interface from provided ABI, please check ABI formatting: unsupported fragment'
@@ -41,7 +41,7 @@ describe('EtherspotContractTransaction', () => {
 
   it('throws error if wrong method name provided', () => {
     expect(() => render(
-      <EtherspotUi provider={null}>
+      <EtherspotTransactionKit provider={null}>
         <EtherspotBatches>
           <EtherspotBatch>
             <EtherspotContractTransaction
@@ -52,7 +52,7 @@ describe('EtherspotContractTransaction', () => {
             />
           </EtherspotBatch>
         </EtherspotBatches>
-      </EtherspotUi>
+      </EtherspotTransactionKit>
     ))
       .toThrow(
         'Failed to build transaction data, please check data/method formatting: no matching function'
@@ -62,7 +62,7 @@ describe('EtherspotContractTransaction', () => {
 
   it('throws error if wrong params provided', () => {
     expect(() => render(
-      <EtherspotUi provider={null}>
+      <EtherspotTransactionKit provider={null}>
         <EtherspotBatches>
           <EtherspotBatch>
             <EtherspotContractTransaction
@@ -73,7 +73,7 @@ describe('EtherspotContractTransaction', () => {
             />
           </EtherspotBatch>
         </EtherspotBatches>
-      </EtherspotUi>
+      </EtherspotTransactionKit>
     ))
       .toThrow(
         'Failed to build transaction data, please check data/method formatting: invalid BigNumber string'
@@ -83,7 +83,7 @@ describe('EtherspotContractTransaction', () => {
 
   it('builds transaction data successfully', () => {
     const wrapper = ({ children }) => (
-      <EtherspotUi provider={null}>
+      <EtherspotTransactionKit provider={null}>
         <EtherspotBatches>
           <EtherspotBatch>
             <EtherspotContractTransaction
@@ -95,10 +95,10 @@ describe('EtherspotContractTransaction', () => {
           </EtherspotBatch>
         </EtherspotBatches>
         {children}
-      </EtherspotUi>
+      </EtherspotTransactionKit>
     );
 
-    const { result: { current } } = renderHook(() => useEtherspotUi(), { wrapper });
+    const { result: { current } } = renderHook(() => useEtherspotTransactions(), { wrapper });
 
     expect(current.batches[0].batches[0].transactions[0].to).toBe('0xe3818504c1b32bf1557b16c238b2e01fd3149c17');
     expect(current.batches[0].batches[0].transactions[0].data).toBe('0xa9059cbb0000000000000000000000007f30b1960d5556929b03a0339814fe903c55a347000000000000000000000000000000000000000000000006aaf7c8516d0c0000');
