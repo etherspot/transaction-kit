@@ -1,10 +1,10 @@
 import { createContext, Dispatch, SetStateAction } from 'react';
 
 // types
-import { IBatches, IEstimatedBatches, ISentBatches } from '../types/EtherspotUi';
+import { IBatches, IEstimatedBatches, ISentBatches } from '../types/EtherspotTransactionKit';
 import { TypePerId } from '../types/Helper';
 
-export interface IEtherspotUiContext {
+export interface IEtherspotTransactionKitContext {
   data: {
     chainId: number;
     batches: IBatches[];
@@ -14,6 +14,6 @@ export interface IEtherspotUiContext {
   setGroupedBatchesPerId: Dispatch<SetStateAction<TypePerId<IBatches>>>;
 }
 
-const EtherspotUiContext = createContext<IEtherspotUiContext | null>(null);
+const EtherspotTransactionKitContext = createContext<IEtherspotTransactionKitContext | null>(null);
 
-export default EtherspotUiContext;
+export default EtherspotTransactionKitContext;

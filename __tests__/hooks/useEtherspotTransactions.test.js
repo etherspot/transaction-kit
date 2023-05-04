@@ -2,7 +2,7 @@ import { renderHook, render } from '@testing-library/react';
 import { ethers } from 'ethers';
 
 // hooks
-import { useEtherspotUi, EtherspotUi, EtherspotBatches, EtherspotBatch, EtherspotContractTransaction, EtherspotTransaction } from '../../src';
+import { useEtherspotTransactions, EtherspotTransactionKit, EtherspotBatches, EtherspotBatch, EtherspotContractTransaction, EtherspotTransaction } from '../../src';
 
 const TestSingleBatchComponent = () => (
   <EtherspotBatches>
@@ -21,10 +21,10 @@ const TestSingleBatchComponent = () => (
   </EtherspotBatches>
 );
 
-describe('useEtherspotUi()', () => {
+describe('useEtherspotTransactions()', () => {
   it('returns grouped batches', () => {
     const wrapper = ({ children }) => (
-      <EtherspotUi provider={null}>
+      <EtherspotTransactionKit provider={null}>
         <div>
           test
           <span>
@@ -58,10 +58,10 @@ describe('useEtherspotUi()', () => {
         </EtherspotBatches>
         <TestSingleBatchComponent />
         {children}
-      </EtherspotUi>
+      </EtherspotTransactionKit>
     );
 
-    const { result: { current } } = renderHook(() => useEtherspotUi(), { wrapper });
+    const { result: { current } } = renderHook(() => useEtherspotTransactions(), { wrapper });
 
     expect(current.batches.length).toBe(4);
     expect(current.batches[0].batches.length).toBe(1);
@@ -79,7 +79,7 @@ describe('useEtherspotUi()', () => {
 
   it('throws an error if <EtherspotBatches /> within <EtherspotBatches />', () => {
     const wrapper = ({ children }) => (
-      <EtherspotUi provider={null}>
+      <EtherspotTransactionKit provider={null}>
         <div>
           test
           <span>
@@ -94,16 +94,16 @@ describe('useEtherspotUi()', () => {
           <span>test</span>
         </EtherspotBatches>
         {children}
-      </EtherspotUi>
+      </EtherspotTransactionKit>
     );
 
-    expect(() => renderHook(() => useEtherspotUi(), {  wrapper }))
+    expect(() => renderHook(() => useEtherspotTransactions(), {  wrapper }))
       .toThrow('<EtherspotBatches /> cannot be inside <EtherspotBatches />');
   });
 
   it('throws an error if <EtherspotBatch /> within <EtherspotBatch />', () => {
     const wrapper = ({ children }) => (
-      <EtherspotUi provider={null}>
+      <EtherspotTransactionKit provider={null}>
         <div>
           test
           <span>
@@ -120,14 +120,14 @@ describe('useEtherspotUi()', () => {
           <span>test</span>
         </EtherspotBatches>
         {children}
-      </EtherspotUi>
+      </EtherspotTransactionKit>
     );
 
-    expect(() => renderHook(() => useEtherspotUi(), {  wrapper }))
+    expect(() => renderHook(() => useEtherspotTransactions(), {  wrapper }))
       .toThrow('<EtherspotBatch /> cannot be inside <EtherspotBatch />');
   });
 
-  it('throws an error if <EtherspotBatches /> rendered without <EtherspotUi />', () => {
+  it('throws an error if <EtherspotBatches /> rendered without <EtherspotTransactionKit />', () => {
     expect(() => render(
       <EtherspotBatches>
         <EtherspotBatches>
@@ -135,7 +135,7 @@ describe('useEtherspotUi()', () => {
         </EtherspotBatches>
       </EtherspotBatches>
     ))
-      .toThrow('No parent <EtherspotUi />');
+      .toThrow('No parent <EtherspotTransactionKit />');
   });
 
   it('throws an error if <EtherspotBatch /> rendered without <EtherspotBatches />', () => {

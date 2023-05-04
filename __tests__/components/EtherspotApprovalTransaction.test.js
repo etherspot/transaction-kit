@@ -1,7 +1,7 @@
 import { renderHook, render } from '@testing-library/react';
 import { ethers } from 'ethers';
 
-import { useEtherspotUi, EtherspotUi, EtherspotBatches, EtherspotBatch, EtherspotApprovalTransaction } from '../../src';
+import { useEtherspotTransactions, EtherspotTransactionKit, EtherspotBatches, EtherspotBatch, EtherspotApprovalTransaction } from '../../src';
 
 describe('EtherspotApprovalTransaction', () => {
   it('throws an error if <EtherspotApprovalTransaction /> rendered without <EtherspotBatch />', () => {
@@ -19,7 +19,7 @@ describe('EtherspotApprovalTransaction', () => {
 
   it('throws error if wrong receiver address provided', () => {
     expect(() => render(
-      <EtherspotUi provider={null}>
+      <EtherspotTransactionKit provider={null}>
         <EtherspotBatches>
           <EtherspotBatch>
             <EtherspotApprovalTransaction
@@ -29,7 +29,7 @@ describe('EtherspotApprovalTransaction', () => {
             />
           </EtherspotBatch>
         </EtherspotBatches>
-      </EtherspotUi>
+      </EtherspotTransactionKit>
     ))
       .toThrow(
         'Failed to build transaction data, please check data/method formatting: invalid address'
@@ -40,7 +40,7 @@ describe('EtherspotApprovalTransaction', () => {
 
   it('throws error if wrong value provided', () => {
     expect(() => render(
-      <EtherspotUi provider={null}>
+      <EtherspotTransactionKit provider={null}>
         <EtherspotBatches>
           <EtherspotBatch>
             <EtherspotApprovalTransaction
@@ -50,7 +50,7 @@ describe('EtherspotApprovalTransaction', () => {
             />
           </EtherspotBatch>
         </EtherspotBatches>
-      </EtherspotUi>
+      </EtherspotTransactionKit>
     ))
       .toThrow(
         'Failed to parse provided value, please make sure value is wei: invalid decimal value'
@@ -60,7 +60,7 @@ describe('EtherspotApprovalTransaction', () => {
 
   it('builds transaction data successfully', () => {
     const wrapper = ({ children }) => (
-      <EtherspotUi provider={null}>
+      <EtherspotTransactionKit provider={null}>
         <EtherspotBatches>
           <EtherspotBatch>
             <EtherspotApprovalTransaction
@@ -71,10 +71,10 @@ describe('EtherspotApprovalTransaction', () => {
           </EtherspotBatch>
         </EtherspotBatches>
         {children}
-      </EtherspotUi>
+      </EtherspotTransactionKit>
     );
 
-    const { result: { current } } = renderHook(() => useEtherspotUi(), { wrapper });
+    const { result: { current } } = renderHook(() => useEtherspotTransactions(), { wrapper });
 
     expect(current.batches[0].batches[0].transactions[0].to).toBe('0xe3818504c1b32bf1557b16c238b2e01fd3149c17');
     expect(current.batches[0].batches[0].transactions[0].data).toBe('0x095ea7b30000000000000000000000007f30b1960d5556929b03a0339814fe903c55a347000000000000000000000000000000000000000000000006aaf7c8516d0c0000');
