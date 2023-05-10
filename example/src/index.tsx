@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { EtherspotUi } from '@etherspot/transaction-kit';
+import { EtherspotTransactionKit } from '@etherspot/transaction-kit';
 import { ethers } from 'ethers';
 
 // components
@@ -14,8 +14,8 @@ const providerWallet = new ethers.Wallet(process.env.REACT_APP_DEMO_WALLET_PK as
 
 root.render(
   <React.StrictMode>
-    <EtherspotUi provider={providerWallet} chainId={+(process.env.REACT_APP_CHAIN_ID as string)}>
+    <EtherspotTransactionKit provider={providerWallet} chainId={+(process.env.REACT_APP_CHAIN_ID as string)}>
       <App />
-    </EtherspotUi>
+    </EtherspotTransactionKit>
   </React.StrictMode>
 );

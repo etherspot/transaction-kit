@@ -1,14 +1,14 @@
 import { renderHook, waitFor } from '@testing-library/react';
 
 // hooks
-import { EtherspotUi, useEtherspotAssets } from '../../src';
+import { EtherspotTransactionKit, useEtherspotAssets } from '../../src';
 
 describe('useEtherspotAssets()', () => {
   it('returns assets', async () => {
     const wrapper = ({ children }) => (
-      <EtherspotUi provider={null}>
+      <EtherspotTransactionKit provider={null}>
         {children}
-      </EtherspotUi>
+      </EtherspotTransactionKit>
     );
 
     const { result, rerender } = renderHook(({ chainId }) => useEtherspotAssets(chainId), {

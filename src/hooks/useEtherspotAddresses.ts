@@ -1,7 +1,7 @@
 import { useEtherspot } from '@etherspot/react-etherspot';
 import { AccountTypes, Network } from 'etherspot';
 import { useEffect, useState } from 'react';
-import { ISmartWalletAddress } from '../types/EtherspotUi';
+import { ISmartWalletAddress } from '../types/EtherspotTransactionKit';
 import { isTestnetChainId } from '../utils/common';
 
 let isConnecting: Promise<any> | undefined;

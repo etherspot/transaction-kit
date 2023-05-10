@@ -2,14 +2,14 @@ import { renderHook, waitFor } from '@testing-library/react';
 import { ethers } from 'ethers';
 
 // hooks
-import { useEtherspotBalances, EtherspotUi } from '../../src';
+import { useEtherspotBalances, EtherspotTransactionKit } from '../../src';
 
 describe('useEtherspotBalances()', () => {
   it('returns balances', async () => {
     const wrapper = ({ children }) => (
-      <EtherspotUi provider={null}>
+      <EtherspotTransactionKit provider={null}>
         {children}
-      </EtherspotUi>
+      </EtherspotTransactionKit>
     );
 
     const { result, rerender } = renderHook(({ chainId }) => useEtherspotBalances(chainId), {
