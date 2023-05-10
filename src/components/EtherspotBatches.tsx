@@ -1,12 +1,12 @@
 import React, { useContext, useEffect, useState } from 'react';
 
 // contexts
-import EtherspotUiContext from '../contexts/EtherspotUiContext';
+import EtherspotTransactionKitContext from '../contexts/EtherspotTransactionKitContext';
 import EtherspotBatchesContext from '../contexts/EtherspotBatchesContext';
 import EtherspotBatchContext from '../contexts/EtherspotBatchContext';
 
 // types
-import { IBatch, IBatches } from '../types/EtherspotUi';
+import { IBatch, IBatches } from '../types/EtherspotTransactionKit';
 import { TypePerId } from '../types/Helper';
 
 // utils
@@ -20,7 +20,7 @@ interface EtherspotBatchesProps extends IBatches {
 }
 
 const EtherspotBatches = ({ children, skip, onEstimated, onSent, id: batchesId }: EtherspotBatchesProps) => {
-  const context = useContext(EtherspotUiContext);
+  const context = useContext(EtherspotTransactionKitContext);
   const existingBatchesContext = useContext(EtherspotBatchesContext);
   const existingBatchContext = useContext(EtherspotBatchContext);
 
@@ -36,7 +36,7 @@ const EtherspotBatches = ({ children, skip, onEstimated, onSent, id: batchesId }
   }
 
   if (context === null) {
-    throw new Error('No parent <EtherspotUi />');
+    throw new Error('No parent <EtherspotTransactionKit />');
   }
 
   useEffect(() => {

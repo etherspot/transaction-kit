@@ -5,7 +5,7 @@ import { ethers } from 'ethers';
 import EtherspotBatchContext from '../contexts/EtherspotBatchContext';
 
 // types
-import { IEtherspotApprovalTransaction } from '../types/EtherspotUi';
+import { IEtherspotApprovalTransaction } from '../types/EtherspotTransactionKit';
 
 // hooks
 import useId from '../hooks/useId';
