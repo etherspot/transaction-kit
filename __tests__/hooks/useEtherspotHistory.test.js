@@ -1,14 +1,14 @@
 import { renderHook, waitFor } from '@testing-library/react';
 
 // hooks
-import { useEtherspotHistory, EtherspotUi } from '../../src';
+import { useEtherspotHistory, EtherspotTransactionKit } from '../../src';
 
 describe('useEtherspotHistory()', () => {
   it('getAccountTransactions() returns account history', async () => {
     const wrapper = ({ children }) => (
-      <EtherspotUi provider={null}>
+      <EtherspotTransactionKit provider={null}>
         {children}
-      </EtherspotUi>
+      </EtherspotTransactionKit>
     );
 
     const { result, rerender } = renderHook(({ chainId }) => useEtherspotHistory(chainId), {
@@ -33,9 +33,9 @@ describe('useEtherspotHistory()', () => {
   });
   it('getAccountTransaction() returns transaction by existing hash', async () => {
     const wrapper = ({ children }) => (
-      <EtherspotUi provider={null}>
+      <EtherspotTransactionKit provider={null}>
         {children}
-      </EtherspotUi>
+      </EtherspotTransactionKit>
     );
 
     const { result, rerender } = renderHook(({ chainId }) => useEtherspotHistory(chainId), {

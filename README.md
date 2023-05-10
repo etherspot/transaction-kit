@@ -8,7 +8,7 @@
 #### TransactionKit is a collection of headless React Components that take the pain out of Web3 development. Here are just some of the features of TransactionKit:
 
 #### 👉 Supports 13 chains and their testnets
-You read that right. TransactionKit is built on top of Etherspot and helps make your app truly multichain. TransactionKit supports Etheruem, Polygon, Gnosis, Binance, Fantom, Aurora, Avalanhe, Optimism, Arbitrum, Moonbean, Celo, Fuse and Arbitrum Nova.
+You read that right. TransactionKit is built on top of Etherspot and helps make your app truly multichain. TransactionKit supports Ethereum, Polygon, Gnosis, Binance, Fantom, Aurora, Avalanche, Optimism, Arbitrum, Moonbeam, Celo, Fuse and Arbitrum Nova.
 
 #### 👉 Transaction Batching out the box
 Organise your transactions into batches to have them execute together. Each batch can be performed on a different blockchain.

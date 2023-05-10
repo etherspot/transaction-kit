@@ -9,13 +9,13 @@ export { default as EtherspotBatches } from './components/EtherspotBatches';
 export { default as EtherspotContractTransaction } from './components/EtherspotContractTransaction';
 export { default as EtherspotTokenTransferTransaction } from './components/EtherspotTokenTransferTransaction';
 export { default as EtherspotTransaction } from './components/EtherspotTransaction';
-export { default as EtherspotUi } from './components/EtherspotUi';
+export { default as EtherspotTransactionKit } from './components/EtherspotTransactionKit';
 export { default as useEtherspotAddresses } from './hooks/useEtherspotAddresses';
 export { default as useEtherspotBalances } from './hooks/useEtherspotBalances';
 export { default as useEtherspotAssets } from './hooks/useEtherspotAssets';
-export { default as useEtherspotUi } from './hooks/useEtherspotUi';
 export { default as useEtherspotHistory } from './hooks/useEtherspotHistory';
-export * from './types/EtherspotUi';
+export { default as useEtherspotTransactions } from './hooks/useEtherspotTransactions';
+export * from './types/EtherspotTransactionKit';
 export { useEtherspot };
 
 
