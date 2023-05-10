@@ -46,7 +46,7 @@ const useEtherspotHistory = (chainId: number = 1): IEtherspotHistoryHook => {
     try {
       return sdkForChainId.getTransaction({ hash });
     } catch (e) {
-      console.warn(e);
+console.warn(`Sorry, an error occurred whilst trying to fetch the transaction for ${sdkForChainId.state.account.address}. Please try again. Error:`, e);
     }
   }
 
