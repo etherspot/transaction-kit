@@ -13,6 +13,7 @@ export { default as EtherspotTransactionKit } from './components/EtherspotTransa
 export { default as useEtherspotAddresses } from './hooks/useEtherspotAddresses';
 export { default as useEtherspotBalances } from './hooks/useEtherspotBalances';
 export { default as useEtherspotAssets } from './hooks/useEtherspotAssets';
+export { default as useEtherspotHistory } from './hooks/useEtherspotHistory';
 export { default as useEtherspotTransactions } from './hooks/useEtherspotTransactions';
 export * from './types/EtherspotTransactionKit';
 export { useEtherspot };
