@@ -42,6 +42,18 @@ export const useEtherspot = () => ({
       if (hash !== '0x42' || sdkChainId !== 1) return;
       return { hash: '0x42', value: '690000000000000' };
     },
+    getNftList: ({ account }) => {
+      const accountNfts = [
+        { contractName: 'Collection Alpha', contractAddress: '0x2', items: [{ tokenId: 420 }] },
+        { contractName: 'Collection Beta', contractAddress: '0x1', items: [{ tokenId: 6 }, { tokenId: 9 }] },
+      ];
+
+      const items = accountAddress === account && sdkChainId === 1
+        ? accountNfts
+        : [];
+
+      return { items };
+    },
     getTokenListTokens: () => {
       const token1 = { address: '0x1', chainId: sdkChainId, name: 'tk1', symbol: 'TK1', decimals: 18, logoURI: '' };
       const token2 = { address: '0x2', chainId: sdkChainId, name: 'tk2', symbol: 'TK2', decimals: 18, logoURI: '' };
