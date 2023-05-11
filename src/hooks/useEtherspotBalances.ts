@@ -1,52 +1,48 @@
 import { useEtherspot } from '@etherspot/react-etherspot';
-import { useEffect, useState } from 'react';
-import { AccountBalance, AccountTypes } from 'etherspot';
+import { AccountTypes, AccountBalance } from 'etherspot';
 
-let isConnecting: Promise<any> | undefined;
+interface IEtherspotBalancesHook {
+  getAccountBalances: () => Promise<AccountBalance[]>;
+}
 
 /**
  * Hook to fetch account balances
  * @param chainId {number} - Chain ID
- * @returns {AccountBalance[] | null} - Account balances
+ * @returns {IEtherspotBalancesHook} - hook method to fetch Etherspot account balances
  */
-const useEtherspotBalances = (chainId: number = 1): AccountBalance[] | null => {
-  const [balances, setBalances] = useState<AccountBalance[] | null>(null);
+const useEtherspotBalances = (chainId: number = 1): IEtherspotBalancesHook => {
   const { connect, getSdkForChainId } = useEtherspot();
 
-
-  useEffect(() => {
-    let shouldUpdate = true;
-
-    const updateBalance = async () => {
-      if (!!isConnecting) return;
-
-      const sdkForChainId = getSdkForChainId(chainId);
-      if (!sdkForChainId) return;
-
-      if (sdkForChainId?.state?.account?.type !== AccountTypes.Contract) {
-        isConnecting = connect(chainId);
-        await isConnecting;
-        isConnecting = undefined;
-      }
-
-      try {
-        const { items } = await sdkForChainId.getAccountBalances({
-          account: sdkForChainId.state.account.address,
-          chainId,
-        });
-        if (shouldUpdate) setBalances(items);
-      } catch (e) {
-        console.warn(e);
-      }
+  const getAccountBalances = async () => {
+    const sdkForChainId = getSdkForChainId(chainId);
+    if (!sdkForChainId) {
+      console.warn(`Unable to get SDK for chain ID ${chainId}`);
+      return [];
     }
 
-    updateBalance();
+    if (sdkForChainId?.state?.account?.type !== AccountTypes.Contract) {
+      await connect(chainId);
+    }
 
-    return () => { shouldUpdate = false; }
-  }, [chainId, getSdkForChainId, connect]);
+    try {
+      const { items } = await sdkForChainId.getAccountBalances({
+        account: sdkForChainId.state.account.address,
+        chainId,
+      });
 
+      return items;
+    } catch (e) {
+      console.warn(
+        `Sorry, an error occurred whilst trying to fetch the balances`
+        + ` for ${sdkForChainId.state.account.address}. Please try again. Error:`,
+        e,
+      );
+    }
 
-  return balances;
+    return [];
+  }
+
+  return { getAccountBalances };
 };
 
 export default useEtherspotBalances;
