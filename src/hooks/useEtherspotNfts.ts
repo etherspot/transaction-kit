@@ -1,19 +1,19 @@
+import { AccountTypes, NftCollection } from 'etherspot';
 import { useEtherspot } from '@etherspot/react-etherspot';
-import { AccountTypes, AccountBalance } from 'etherspot';
 
-interface IEtherspotBalancesHook {
-  getAccountBalances: () => Promise<AccountBalance[]>;
+interface IEtherspotNftsHook {
+  getAccountNfts: () => Promise<NftCollection[]>;
 }
 
 /**
- * Hook to fetch account balances
+ * Hook to fetch Etherspot account owned NFTs
  * @param chainId {number} - Chain ID
- * @returns {IEtherspotBalancesHook} - hook method to fetch Etherspot account balances
+ * @returns {IEtherspotNftsHook} - hook methods to fetch Etherspot account NFTs
  */
-const useEtherspotBalances = (chainId: number = 1): IEtherspotBalancesHook => {
+const useEtherspotNfts = (chainId: number = 1): IEtherspotNftsHook => {
   const { connect, getSdkForChainId } = useEtherspot();
 
-  const getAccountBalances = async () => {
+  const getAccountNfts = async () => {
     const sdkForChainId = getSdkForChainId(chainId);
     if (!sdkForChainId) {
       console.warn(`Unable to get SDK for chain ID ${chainId}`);
@@ -25,15 +25,14 @@ const useEtherspotBalances = (chainId: number = 1): IEtherspotBalancesHook => {
     }
 
     try {
-      const { items } = await sdkForChainId.getAccountBalances({
+      const { items } = await sdkForChainId.getNftList({
         account: sdkForChainId.state.account.address,
-        chainId,
       });
 
       return items;
     } catch (e) {
       console.warn(
-        `Sorry, an error occurred whilst trying to fetch the balances`
+        `Sorry, an error occurred whilst trying to fetch account NFTs`
         + ` for ${sdkForChainId.state.account.address}. Please try again. Error:`,
         e,
       );
@@ -42,7 +41,7 @@ const useEtherspotBalances = (chainId: number = 1): IEtherspotBalancesHook => {
     return [];
   }
 
-  return { getAccountBalances };
+  return { getAccountNfts };
 };
 
-export default useEtherspotBalances;
+export default useEtherspotNfts;

@@ -16,7 +16,10 @@ const useEtherspotAssets = (chainId: number = 1): IEtherspotAssetsHook => {
 
   const getAssets = async (): Promise<TokenListToken[]> => {
     const sdkForChainId = getSdkForChainId(chainId);
-    if (!sdkForChainId) return [];
+    if (!sdkForChainId) {
+      console.warn(`Unable to get SDK for chain ID ${chainId}`);
+      return [];
+    }
 
     if (sdkForChainId?.state?.account?.type !== AccountTypes.Contract) {
       await connect(chainId);
