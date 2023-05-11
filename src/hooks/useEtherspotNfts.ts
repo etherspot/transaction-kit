@@ -15,7 +15,10 @@ const useEtherspotNfts = (chainId: number = 1): IEtherspotNftsHook => {
 
   const getAccountNfts = async () => {
     const sdkForChainId = getSdkForChainId(chainId);
-    if (!sdkForChainId) return [];
+    if (!sdkForChainId) {
+      console.warn(`Unable to get SDK for chain ID ${chainId}`);
+      return [];
+    }
 
     if (sdkForChainId?.state?.account?.type !== AccountTypes.Contract) {
       await connect(chainId);
