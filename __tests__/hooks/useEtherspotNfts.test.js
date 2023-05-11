@@ -18,21 +18,21 @@ describe('useEtherspotNfts()', () => {
 
     // wait for nfts to be fetched for chain ID 1
     await waitFor(() => expect(result.current).not.toBeNull());
-    expect(result.current.length).toEqual(2);
-    expect(result.current[0].contractName).toEqual('Collection Alpha');
-    expect(result.current[0].items.length).toEqual(1);
-    expect(result.current[0].items[0].tokenId).toEqual(420);
+    const accountNftsMainnet = await result.current.getAccountNfts();
+    expect(accountNftsMainnet.length).toEqual(2);
+    expect(accountNftsMainnet[0].contractName).toEqual('Collection Alpha');
+    expect(accountNftsMainnet[0].items.length).toEqual(1);
+    expect(accountNftsMainnet[0].items[0].tokenId).toEqual(420);
 
-    expect(result.current[1].contractName).toEqual('Collection Beta');
-    expect(result.current[1].items.length).toEqual(2);
-    expect(result.current[1].items[0].tokenId).toEqual(6);
-    expect(result.current[1].items[1].tokenId).toEqual(9);
+    expect(accountNftsMainnet[1].contractName).toEqual('Collection Beta');
+    expect(accountNftsMainnet[1].items.length).toEqual(2);
+    expect(accountNftsMainnet[1].items[0].tokenId).toEqual(6);
+    expect(accountNftsMainnet[1].items[1].tokenId).toEqual(9);
 
     // rerender with different chain ID 137
     rerender({ chainId: 137 });
 
-    // wait for nfts to be fetched for chain ID 137
-    await waitFor(() => expect(result.current.length).not.toEqual(2));
-    expect(result.current.length).toEqual(0);
+    const accountNftsPolygon = await result.current.getAccountNfts();
+    expect(accountNftsPolygon.length).toEqual(0);
   });
 })

@@ -1,48 +1,44 @@
-import { useEffect, useState } from 'react';
 import { AccountTypes, NftCollection } from 'etherspot';
 import { useEtherspot } from '@etherspot/react-etherspot';
+
+interface IEtherspotNftsHook {
+  getAccountNfts: () => Promise<NftCollection[]>;
+}
 
 /**
  * Hook to fetch Etherspot account owned NFTs
  * @param chainId {number} - Chain ID
- * @returns {NftCollection[] | null} - Account NFTs
+ * @returns {IEtherspotNftsHook} - hook methods to fetch Etherspot account NFTs
  */
-const useEtherspotNfts = (chainId: number = 1): NftCollection[] | null => {
-  const [nfts, setNfts] = useState<NftCollection[] | null>(null);
+const useEtherspotNfts = (chainId: number = 1): IEtherspotNftsHook => {
   const { connect, getSdkForChainId } = useEtherspot();
 
-  useEffect(() => {
-    let shouldUpdate = true;
+  const getAccountNfts = async () => {
+    const sdkForChainId = getSdkForChainId(chainId);
+    if (!sdkForChainId) return [];
 
-    const updateNfts = async () => {
-      const sdkForChainId = getSdkForChainId(chainId);
-      if (!sdkForChainId) return;
-
-      if (sdkForChainId?.state?.account?.type !== AccountTypes.Contract) {
-        await connect(chainId);
-      }
-
-      try {
-        const { items } = await sdkForChainId.getNftList({
-          account: sdkForChainId.state.account.address,
-        });
-        if (shouldUpdate) setNfts(items);
-      } catch (e) {
-        console.warn(
-          `Sorry, an error occurred whilst trying to fetch account NFTs`
-          + ` for ${sdkForChainId.state.account.address}. Please try again. Error:`,
-          e,
-        );
-      }
+    if (sdkForChainId?.state?.account?.type !== AccountTypes.Contract) {
+      await connect(chainId);
     }
 
-    updateNfts();
+    try {
+      const { items } = await sdkForChainId.getNftList({
+        account: sdkForChainId.state.account.address,
+      });
 
-    return () => { shouldUpdate = false; }
-  }, [chainId, getSdkForChainId, connect]);
+      return items;
+    } catch (e) {
+      console.warn(
+        `Sorry, an error occurred whilst trying to fetch account NFTs`
+        + ` for ${sdkForChainId.state.account.address}. Please try again. Error:`,
+        e,
+      );
+    }
 
+    return [];
+  }
 
-  return nfts;
+  return { getAccountNfts };
 };
 
 export default useEtherspotNfts;
