@@ -18,13 +18,13 @@ describe('useEtherspotAssets()', () => {
 
     // wait for assets to be fetched for chain ID 1
     await waitFor(() => expect(result.current).not.toBeNull());
-    expect(result.current.length).toEqual(3);
+    const assetsMainnet = await result.current.getAssets();
+    expect(assetsMainnet.length).toEqual(3);
 
     // rerender with different chain ID 137
     rerender({ chainId: 137 });
 
-    // wait for assets to be fetched for chain ID 137
-    await waitFor(() => expect(result.current.length).not.toEqual(3));
-    expect(result.current.length).toEqual(1);
+    const assetsPolygon = await result.current.getAssets();
+    expect(assetsPolygon.length).toEqual(1);
   });
 })

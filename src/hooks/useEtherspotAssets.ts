@@ -1,51 +1,47 @@
+import { AccountTypes, Transaction } from 'etherspot';
 import { useEtherspot } from '@etherspot/react-etherspot';
-import { useEffect, useState } from 'react';
-import { AccountTypes, TokenListToken } from 'etherspot';
+import { TokenListToken } from 'etherspot/dist/sdk/assets/classes/token-list-token';
 
-let isConnecting: Promise<any> | undefined;
+interface IEtherspotAssetsHook {
+  getAssets: () => Promise<TokenListToken[]>;
+}
 
 /**
- * Hook to fetch supported assets
+ * Hook to fetch Etherspot supported assets
  * @param chainId {number} - Chain ID
- * @returns {TokenListToken[] | null} - Supported assets list
+ * @returns {IEtherspotAssetsHook} - hook method to fetch Etherspot supported assets
  */
-const useEtherspotAssets = (chainId: number = 1): TokenListToken[] | null => {
-  const [assets, setAssets] = useState<TokenListToken[] | null>(null);
+const useEtherspotAssets = (chainId: number = 1): IEtherspotAssetsHook => {
   const { connect, getSdkForChainId } = useEtherspot();
 
+  const getAssets = async (): Promise<TokenListToken[]> => {
+    const sdkForChainId = getSdkForChainId(chainId);
+    if (!sdkForChainId) return [];
 
-  useEffect(() => {
-    let shouldUpdate = true;
-
-    const updateAssets = async () => {
-      if (!!isConnecting) return;
-
-      const sdkForChainId = getSdkForChainId(chainId);
-      if (!sdkForChainId) return;
-
-      if (sdkForChainId?.state?.account?.type !== AccountTypes.Contract) {
-        isConnecting = connect(chainId);
-        await isConnecting;
-        isConnecting = undefined;
-      }
-
-      try {
-        const items = await sdkForChainId.getTokenListTokens({
-          name: 'EtherspotPopularTokens',
-        });
-        if (shouldUpdate) setAssets(items);
-      } catch (e) {
-        console.warn(e);
-      }
+    if (sdkForChainId?.state?.account?.type !== AccountTypes.Contract) {
+      await connect(chainId);
     }
 
-    updateAssets();
+    let assets: TokenListToken[] = [];
 
-    return () => { shouldUpdate = false; }
-  }, [chainId, getSdkForChainId, connect]);
+    try {
+      assets = await sdkForChainId.getTokenListTokens({
+        name: 'EtherspotPopularTokens',
+      });
+    } catch (e) {
+      console.warn(
+        `Sorry, an error occurred whilst trying to fetch Etherspot assets.`
+        + ` Please try again. Error:`,
+        e,
+      );
+    }
 
+    return assets;
+  };
 
-  return assets;
+  return ({
+    getAssets,
+  });
 };
 
 export default useEtherspotAssets;
