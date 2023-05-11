@@ -13,7 +13,6 @@ const useEtherspotBalances = (chainId: number = 1): AccountBalance[] | null => {
   const [balances, setBalances] = useState<AccountBalance[] | null>(null);
   const { connect, getSdkForChainId } = useEtherspot();
 
-
   useEffect(() => {
     let shouldUpdate = true;
 
