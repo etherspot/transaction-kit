@@ -19,18 +19,19 @@ describe('useEtherspotBalances()', () => {
 
     // wait for balances to be fetched for chain ID 1
     await waitFor(() => expect(result.current).not.toBeNull());
-    expect(result.current.length).toEqual(2);
-    expect(result.current[0].token).toBeNull();
-    expect(result.current[0].balance.toString()).toEqual(ethers.utils.parseEther('0').toString());
-    expect(result.current[1].token).not.toBeNull();
-    expect(result.current[1].balance.toString()).toEqual(ethers.utils.parseEther('420').toString());
+
+    const accountBalancesMainnet = await result.current.getAccountBalances();
+    expect(accountBalancesMainnet.length).toEqual(2);
+    expect(accountBalancesMainnet[0].token).toBeNull();
+    expect(accountBalancesMainnet[0].balance.toString()).toEqual(ethers.utils.parseEther('0').toString());
+    expect(accountBalancesMainnet[1].token).not.toBeNull();
+    expect(accountBalancesMainnet[1].balance.toString()).toEqual(ethers.utils.parseEther('420').toString());
 
     // rerender with different chain ID 137
     rerender({ chainId: 137 });
 
-    // wait for balances to be fetched for chain ID 137
-    await waitFor(() => expect(result.current.length).not.toEqual(2));
-    expect(result.current.length).toEqual(1);
-    expect(result.current[0].balance.toString()).toEqual(ethers.utils.parseEther('0').toString());
+    const accountBalancesPolygon = await result.current.getAccountBalances();
+    expect(accountBalancesPolygon.length).toEqual(1);
+    expect(accountBalancesPolygon[0].balance.toString()).toEqual(ethers.utils.parseEther('0').toString());
   });
 })
