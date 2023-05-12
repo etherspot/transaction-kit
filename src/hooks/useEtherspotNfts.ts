@@ -2,7 +2,7 @@ import { AccountTypes, NftCollection } from 'etherspot';
 import { useEtherspot } from '@etherspot/react-etherspot';
 
 interface IEtherspotNftsHook {
-  getAccountNfts: () => Promise<NftCollection[]>;
+  getAccountNfts: (accountAddress?: string) => Promise<NftCollection[]>;
 }
 
 /**
@@ -13,7 +13,7 @@ interface IEtherspotNftsHook {
 const useEtherspotNfts = (chainId: number = 1): IEtherspotNftsHook => {
   const { connect, getSdkForChainId } = useEtherspot();
 
-  const getAccountNfts = async () => {
+  const getAccountNfts = async (accountAddress?: string) => {
     const sdkForChainId = getSdkForChainId(chainId);
     if (!sdkForChainId) {
       console.warn(`Unable to get SDK for chain ID ${chainId}`);
@@ -26,7 +26,7 @@ const useEtherspotNfts = (chainId: number = 1): IEtherspotNftsHook => {
 
     try {
       const { items } = await sdkForChainId.getNftList({
-        account: sdkForChainId.state.account.address,
+        account: accountAddress ?? sdkForChainId.state.account.address,
       });
 
       return items;

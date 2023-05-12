@@ -2,7 +2,7 @@ import { useEtherspot } from '@etherspot/react-etherspot';
 import { AccountTypes, AccountBalance } from 'etherspot';
 
 interface IEtherspotBalancesHook {
-  getAccountBalances: () => Promise<AccountBalance[]>;
+  getAccountBalances: (accountAddress?: string) => Promise<AccountBalance[]>;
 }
 
 /**
@@ -13,7 +13,7 @@ interface IEtherspotBalancesHook {
 const useEtherspotBalances = (chainId: number = 1): IEtherspotBalancesHook => {
   const { connect, getSdkForChainId } = useEtherspot();
 
-  const getAccountBalances = async () => {
+  const getAccountBalances = async (accountAddress?: string) => {
     const sdkForChainId = getSdkForChainId(chainId);
     if (!sdkForChainId) {
       console.warn(`Unable to get SDK for chain ID ${chainId}`);
@@ -26,7 +26,7 @@ const useEtherspotBalances = (chainId: number = 1): IEtherspotBalancesHook => {
 
     try {
       const { items } = await sdkForChainId.getAccountBalances({
-        account: sdkForChainId.state.account.address,
+        account: accountAddress ?? sdkForChainId.state.account.address,
         chainId,
       });
 

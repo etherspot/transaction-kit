@@ -2,7 +2,7 @@ import { AccountTypes, Transaction } from 'etherspot';
 import { useEtherspot } from '@etherspot/react-etherspot';
 
 interface IEtherspotHistoryHook {
-  getAccountTransactions: () => Promise<Transaction[]>;
+  getAccountTransactions: (accountAddress?: string) => Promise<Transaction[]>;
   getAccountTransaction: (hash: string) => Promise<Transaction | undefined>;
 }
 
@@ -14,7 +14,7 @@ interface IEtherspotHistoryHook {
 const useEtherspotHistory = (chainId: number = 1): IEtherspotHistoryHook => {
   const { connect, getSdkForChainId } = useEtherspot();
 
-  const getAccountTransactions = async (): Promise<Transaction[]> => {
+  const getAccountTransactions = async (accountAddress?: string): Promise<Transaction[]> => {
     const sdkForChainId = getSdkForChainId(chainId);
     if (!sdkForChainId) return [];
 
@@ -26,7 +26,7 @@ const useEtherspotHistory = (chainId: number = 1): IEtherspotHistoryHook => {
 
     try {
       ({ items: transactions } = await sdkForChainId.getTransactions({
-        account: sdkForChainId.state.account.address,
+        account: accountAddress ?? sdkForChainId.state.account.address,
       }));
     } catch (e) {
 

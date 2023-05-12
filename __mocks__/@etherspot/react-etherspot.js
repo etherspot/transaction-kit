@@ -2,7 +2,8 @@ import { AccountTypes } from 'etherspot';
 import ReactEtherspot, { useEtherspot as useEtherspotActual } from '@etherspot/react-etherspot';
 import { ethers } from 'ethers';
 
-const accountAddress = '0x7F30B1960D5556929B03a0339814fE903c55a347';
+const defaultAccountAddress = '0x7F30B1960D5556929B03a0339814fE903c55a347';
+const otherAccountAddress = '0xAb4C67d8D7B248B2fA6B638C645466065fE8F1F1';
 
 export const useEtherspot = () => ({
   ...useEtherspotActual(),
@@ -10,21 +11,29 @@ export const useEtherspot = () => ({
     state: {
       account: {
         type: AccountTypes.Contract,
-        address: accountAddress,
+        address: defaultAccountAddress,
       },
     },
-    getAccountBalances: ({ chainId }) => {
+    getAccountBalances: ({ chainId, account }) => {
       const tokenBalance = ethers.utils.parseEther('420');
       const nativeAssetBalance = ethers.utils.parseEther('0');
 
       const token = { token: '0x', balance: tokenBalance, superBalance: tokenBalance };
       const nativeAsset = { token: null, balance: nativeAssetBalance, superBalance: nativeAssetBalance };
 
-      const items = chainId === 1
-        ? [nativeAsset, token]
-        : [nativeAsset];
+      if (chainId !== 1) {
+        return { items: [nativeAsset] };
+      }
 
-      return { items };
+      if (account === defaultAccountAddress) {
+        return { items: [nativeAsset, token] };
+      }
+
+      if (account === otherAccountAddress) {
+        return { items: [nativeAsset, { ...token, balance: ethers.utils.parseEther('69') }] };
+      }
+
+      return { items: [] };
     },
     getTransactions: ({ account }) => {
       const accountTransactions = [
@@ -32,11 +41,19 @@ export const useEtherspot = () => ({
         { hash: '0x2', value: '420000000000000' },
       ];
 
-      const items = accountAddress === account && sdkChainId === 1
-        ? accountTransactions
-        : [];
+      if (sdkChainId !== 1) {
+        return { items: [] };
+      }
 
-      return { items };
+      if (account === defaultAccountAddress) {
+        return { items: accountTransactions };
+      }
+
+      if (account === otherAccountAddress) {
+        return { items: [{ hash: '0x69', value: '0' }] };
+      }
+
+      return { items: [] };
     },
     getTransaction: ({ hash }) => {
       if (hash !== '0x42' || sdkChainId !== 1) return;
@@ -48,11 +65,19 @@ export const useEtherspot = () => ({
         { contractName: 'Collection Beta', contractAddress: '0x1', items: [{ tokenId: 6 }, { tokenId: 9 }] },
       ];
 
-      const items = accountAddress === account && sdkChainId === 1
-        ? accountNfts
-        : [];
+      if (sdkChainId !== 1) {
+        return { items: [] };
+      }
 
-      return { items };
+      if (account === defaultAccountAddress) {
+        return { items: accountNfts };
+      }
+
+      if (account === otherAccountAddress) {
+        return { items: [{ ...accountNfts[0], contractName: 'Collection Gama' }] };
+      }
+
+      return { items: [] };
     },
     getTokenListTokens: () => {
       const token1 = { address: '0x1', chainId: sdkChainId, name: 'tk1', symbol: 'TK1', decimals: 18, logoURI: '' };
