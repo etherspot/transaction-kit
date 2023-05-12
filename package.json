@@ -21,8 +21,10 @@
   },
   "homepage": "https://github.com/etherspot/transaction-kit#readme",
   "dependencies": {
+    "@etherspot/eip1271-verification-util": "^0.1.0",
     "@etherspot/react-etherspot": "^1.0.7",
     "buffer": "^6.0.3",
+    "ethereumjs-util": "^7.1.5",
     "ethers": "^5.6.9",
     "etherspot": "^1.41.2",
     "lodash.uniq": "^4.5.0",
