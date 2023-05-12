@@ -40,3 +40,16 @@ export const isTestnetChainId = (chainId: number): boolean => {
 
   return testnetChainIds.some((testnetChainId) => testnetChainId === chainId);
 }
+
+export const isCaseInsensitiveMatch = (a: string | undefined, b: string | undefined): boolean => {
+  if (a === b) return true;
+  if (!a || !b) return false;
+  return a.toLowerCase() === b.toLowerCase();
+};
+
+export const addressesEqual = (address1: string | undefined | null, address2: string | undefined | null): boolean => {
+  if (address1 === address2) return true;
+  if (!address1 || !address2) return false;
+
+  return isCaseInsensitiveMatch(address1, address2);
+};
