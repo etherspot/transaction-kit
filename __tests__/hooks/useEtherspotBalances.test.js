@@ -27,6 +27,11 @@ describe('useEtherspotBalances()', () => {
     expect(accountBalancesMainnet[1].token).not.toBeNull();
     expect(accountBalancesMainnet[1].balance.toString()).toEqual(ethers.utils.parseEther('420').toString());
 
+    const otherAccountBalancesMainnet = await result.current.getAccountBalances('0xAb4C67d8D7B248B2fA6B638C645466065fE8F1F1');
+    expect(otherAccountBalancesMainnet.length).toEqual(2);
+    expect(otherAccountBalancesMainnet[1].token).not.toBeNull();
+    expect(otherAccountBalancesMainnet[1].balance.toString()).toEqual(ethers.utils.parseEther('69').toString());
+
     // rerender with different chain ID 137
     rerender({ chainId: 137 });
 

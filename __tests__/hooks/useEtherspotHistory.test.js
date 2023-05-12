@@ -25,6 +25,13 @@ describe('useEtherspotHistory()', () => {
     expect(accountTransactionsMainnet[0].value).toEqual('100000000000000');
     expect(accountTransactionsMainnet[1].hash).toEqual('0x2');
 
+    const otherAccountTransactionsMainnet = await result.current.getAccountTransactions(
+      '0xAb4C67d8D7B248B2fA6B638C645466065fE8F1F1'
+    );
+    expect(otherAccountTransactionsMainnet.length).toEqual(1);
+    expect(otherAccountTransactionsMainnet[0].hash).toEqual('0x69');
+    expect(otherAccountTransactionsMainnet[0].value).toEqual('0');
+
     // rerender with different chain ID 137
     rerender({ chainId: 137 });
 
