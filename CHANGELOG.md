@@ -7,6 +7,7 @@
 - Added `useEtherspotUtils` hook for Etherspot/EVM related utils
 - Added `useEtherspotHistory` hook for Etherspot account transactions history
 - Added `useEtherspotNfts` hook for Etherspot account owned NFTs
+- Added `CHANGELOG.md` to track library changes
 
 ### Improvements
 - Improved Etherspot SDK session connection flows
