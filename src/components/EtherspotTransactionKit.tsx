@@ -2,8 +2,9 @@ import React from 'react';
 import { WalletProviderLike } from 'etherspot';
 import EtherspotSdkContextProvider from '@etherspot/react-etherspot';
 
-// utils
+// providers
 import EtherspotTransactionKitContextProvider from '../providers/EtherspotTransactionKitContextProvider';
+import ProviderWalletContextProvider from '../providers/ProviderWalletContextProvider';
 
 interface EtherspotTransactionKitProps extends React.PropsWithChildren {
   provider?: WalletProviderLike | null | undefined;
@@ -13,7 +14,9 @@ interface EtherspotTransactionKitProps extends React.PropsWithChildren {
 const EtherspotTransactionKit = ({ children, provider, chainId = 1 }: EtherspotTransactionKitProps) => (
   <EtherspotSdkContextProvider provider={provider} chainId={chainId}>
     <EtherspotTransactionKitContextProvider chainId={chainId}>
-      {children}
+      <ProviderWalletContextProvider provider={provider} chainId={chainId}>
+        {children}
+      </ProviderWalletContextProvider>
     </EtherspotTransactionKitContextProvider>
   </EtherspotSdkContextProvider>
 );

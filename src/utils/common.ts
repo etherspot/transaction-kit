@@ -1,3 +1,5 @@
+import { ethers } from 'ethers';
+
 // types
 import { TypePerId } from '../types/Helper';
 
@@ -52,4 +54,38 @@ export const addressesEqual = (address1: string | undefined | null, address2: st
   if (!address1 || !address2) return false;
 
   return isCaseInsensitiveMatch(address1, address2);
+};
+
+export const prepareValueForRpcCall = (rawValue: any): string | undefined => {
+  let value;
+
+  try {
+    const valueBN = ethers.BigNumber.isBigNumber(rawValue) ? rawValue : ethers.BigNumber.from(rawValue);
+    if (!valueBN.isZero()) value = valueBN.toHexString();
+  } catch (e) {
+    //
+  }
+
+  return value;
+};
+
+export const switchWalletProviderToChain = async (chainId: number): Promise<boolean> => {
+  // @ts-ignore
+  if (!window?.ethereum) {
+    alert('Unsupported browser!');
+    return false;
+  }
+
+  try {
+    await window.ethereum.request({
+      method: 'wallet_switchEthereumChain',
+      params: [{ chainId: ethers.utils.hexValue(chainId) }], // chainId must be in hex
+    });
+    return true;
+  } catch (e) {
+    alert('Failed to switch chain!');
+    console.warn('Failed to switch chain', e);
+  }
+
+  return false;
 };

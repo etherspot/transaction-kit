@@ -1,11 +1,18 @@
 import { Fragment, JsonFragment } from '@ethersproject/abi/src.ts/fragments';
-import { BigNumber, BigNumberish } from 'ethers';
+import { BigNumber, BigNumberish, ethers } from 'ethers';
 
 export interface ITransaction {
   id?: string;
   to: string;
   value?: BigNumberish;
   data?: string;
+}
+
+export interface IProviderWalletTransaction {
+  to: string;
+  value?: BigNumberish;
+  data?: string;
+  chainId?: number;
 }
 
 export interface IBatch {
@@ -68,4 +75,14 @@ export interface IEtherspotApprovalTransaction {
   value: BigNumberish;
   tokenAddress: string;
   receiverAddress: string;
+}
+
+export interface IProviderWalletTransactionEstimated {
+  gasCost?: ethers.BigNumberish;
+  errorMessage?: string;
+}
+
+export interface IProviderWalletTransactionSent {
+  transactionHash?: string;
+  errorMessage?: string;
 }
