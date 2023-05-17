@@ -32,7 +32,12 @@ const ProviderWalletTransaction = ({
         : value;
     }
 
-    const transaction = { to, data, value: valueBN };
+    const transaction = {
+      from: context.providerAddress,
+      to,
+      value: valueBN,
+      data,
+    };
 
     context.setTransaction(transaction);
   }, [to, data, value]);

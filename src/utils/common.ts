@@ -56,19 +56,6 @@ export const addressesEqual = (address1: string | undefined | null, address2: st
   return isCaseInsensitiveMatch(address1, address2);
 };
 
-export const prepareValueForRpcCall = (rawValue: any): string | undefined => {
-  let value;
-
-  try {
-    const valueBN = ethers.BigNumber.isBigNumber(rawValue) ? rawValue : ethers.BigNumber.from(rawValue);
-    if (!valueBN.isZero()) value = valueBN.toHexString();
-  } catch (e) {
-    //
-  }
-
-  return value;
-};
-
 export const switchWalletProviderToChain = async (chainId: number): Promise<boolean> => {
   // @ts-ignore
   if (!window?.ethereum) {

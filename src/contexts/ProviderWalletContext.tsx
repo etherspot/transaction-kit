@@ -14,6 +14,7 @@ interface IProviderWalletContext {
     send: () => Promise<IProviderWalletTransactionSent>;
   },
   setTransaction: Dispatch<SetStateAction<IProviderWalletTransaction | undefined>>;
+  providerAddress: string | undefined;
 }
 
 const ProviderWalletContext = createContext<IProviderWalletContext | null>(null);

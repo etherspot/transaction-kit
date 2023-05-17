@@ -1,6 +1,6 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { WalletProviderLike } from 'etherspot';
-import Web3 from 'web3';
+import { ethers } from 'ethers';
 
 // contexts
 import ProviderWalletContext from '../contexts/ProviderWalletContext';
@@ -13,7 +13,7 @@ import {
 } from '../types/EtherspotTransactionKit';
 
 // utils
-import { prepareValueForRpcCall } from '../utils/common';
+import { switchWalletProviderToChain } from '../utils/common';
 
 interface ProviderWalletContextProviderProps {
   provider?: WalletProviderLike | null | undefined;
@@ -23,22 +23,40 @@ interface ProviderWalletContextProviderProps {
 
 const ProviderWalletContextProvider = ({ children, chainId = 1, provider }: ProviderWalletContextProviderProps) => {
   const [transaction, setTransaction] = useState<undefined | IProviderWalletTransaction>(undefined);
+  const [providerAddress, setProviderAddress] = useState<undefined | string>(undefined);
+
+  const web3Provider = useMemo(() => {
+    // @ts-ignore
+    return new ethers.providers.Web3Provider(provider)
+  }, [provider]);
+
+  useEffect(() => {
+    let shouldUpdate = true;
+
+    const update = async () => {
+      const newProviderAddress = await web3Provider.getSigner().getAddress();
+      if (shouldUpdate) {
+        setProviderAddress(newProviderAddress);
+      }
+    }
+
+    update();
+
+    return () => { shouldUpdate = false; };
+  }, [web3Provider]);
 
   const estimate = async (): Promise<IProviderWalletTransactionEstimated> => {
     if (!transaction) {
       return { errorMessage: 'No transaction' };
     }
 
+    const changed = await switchWalletProviderToChain(transaction.chainId ?? chainId);
+    if (!changed) {
+      return { errorMessage: 'Failed to change to selected network!' };
+    }
+
     try {
-      const { to, data, value } = transaction;
-      const web3Provider = new Web3(provider);
-      const tx = {
-        from: providerAddress,
-        to,
-        value: prepareValueForRpcCall(value),
-        data,
-      };
-      const gasCost = await web3Provider.sendRequest('eth_estimateGas', [tx]);
+      const gasCost = await web3Provider.estimateGas(transaction);
       return { gasCost };
     } catch (e) {
       console.warn('Failed to estimate gas', transaction, e);
@@ -52,18 +70,14 @@ const ProviderWalletContextProvider = ({ children, chainId = 1, provider }: Prov
       return { errorMessage: 'No transaction' };
     }
 
-    // TODO: switch chain if needed
+    const changed = await switchWalletProviderToChain(transaction.chainId ?? chainId);
+    if (!changed) {
+      return { errorMessage: 'Failed to change to selected network!' };
+    }
 
     try {
-      const { to, value, data } = transaction;
-      const tx = {
-        from: providerAddress,
-        to,
-        data,
-        value: prepareValueForRpcCall(value),
-      };
-      const web3Provider = new Web3(provider);
-      const transactionHash = await web3Provider.sendRequest('eth_sendTransaction', [tx]);
+      const signer = web3Provider.getSigner();
+      const { hash: transactionHash } = await signer.sendTransaction(transaction);
       return { transactionHash };
     } catch (e) {
       console.warn('Failed to send transaction', transaction, e);
@@ -81,7 +95,7 @@ const ProviderWalletContextProvider = ({ children, chainId = 1, provider }: Prov
   ]);
 
   return (
-    <ProviderWalletContext.Provider value={{ data: contextData, setTransaction }}>
+    <ProviderWalletContext.Provider value={{ data: contextData, setTransaction, providerAddress }}>
       {children}
     </ProviderWalletContext.Provider>
   );
