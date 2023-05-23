@@ -9,6 +9,7 @@ export interface ITransaction {
 }
 
 export interface IProviderWalletTransaction {
+  id?: string;
   to: string;
   value?: BigNumberish;
   data?: string;
