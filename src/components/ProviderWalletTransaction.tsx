@@ -6,6 +6,8 @@ import ProviderWalletContext from '../contexts/ProviderWalletContext';
 
 // types
 import { IProviderWalletTransaction } from '../types/EtherspotTransactionKit';
+
+// hooks
 import useId from '../hooks/useId';
 import useProviderWalletTransaction from '../hooks/useProviderWalletTransaction';
 

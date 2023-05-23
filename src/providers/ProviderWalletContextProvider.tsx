@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { WalletProviderLike } from 'etherspot';
-import { ethers } from 'ethers';
+import { isWalletProvider, WalletProviderLike, Web3WalletProvider } from 'etherspot';
 
 // contexts
 import ProviderWalletContext from '../contexts/ProviderWalletContext';
@@ -24,28 +23,44 @@ interface ProviderWalletContextProviderProps {
 const ProviderWalletContextProvider = ({ children, chainId = 1, provider }: ProviderWalletContextProviderProps) => {
   const [transaction, setTransaction] = useState<undefined | IProviderWalletTransaction>(undefined);
   const [providerAddress, setProviderAddress] = useState<undefined | string>(undefined);
-
-  const web3Provider = useMemo(() => {
-    // @ts-ignore
-    return new ethers.providers.Web3Provider(provider)
-  }, [provider]);
+  const [web3Provider, setWeb3Provider] = useState<undefined | Web3WalletProvider>(undefined);
 
   useEffect(() => {
     let shouldUpdate = true;
 
     const update = async () => {
-      const newProviderAddress = await web3Provider.getSigner().getAddress();
-      if (shouldUpdate) {
-        setProviderAddress(newProviderAddress);
+      if (!shouldUpdate) return;
+
+      let newWeb3Provider;
+      // @ts-ignore
+      if (isWalletProvider(provider)) {
+        newWeb3Provider = provider;
+        // @ts-ignore
+      } else if (provider.isWalletConnect) {
+        // @ts-ignore
+        newWeb3Provider = WalletConnectWalletProvider.connect(provider.connector);
+      } else {
+        // @ts-ignore
+        const mappedProvider = new Web3WalletProvider(provider);
+        await mappedProvider.refresh();
+        newWeb3Provider = mappedProvider;
       }
+
+      if (!shouldUpdate) return;
+      setWeb3Provider(newWeb3Provider);
+      setProviderAddress(newWeb3Provider.address);
     }
 
     update();
 
     return () => { shouldUpdate = false; };
-  }, [web3Provider]);
+  }, [provider]);
 
   const estimate = async (): Promise<IProviderWalletTransactionEstimated> => {
+    if (!web3Provider) {
+      return { errorMessage: 'No Web3 provider' };
+    }
+
     if (!transaction) {
       return { errorMessage: 'No transaction' };
     }
@@ -56,7 +71,8 @@ const ProviderWalletContextProvider = ({ children, chainId = 1, provider }: Prov
     }
 
     try {
-      const gasCost = await web3Provider.estimateGas(transaction);
+      // @ts-ignore
+      const gasCost = await web3Provider.sendRequest('eth_estimateGas', [transaction]);
       return { gasCost };
     } catch (e) {
       console.warn('Failed to estimate gas', transaction, e);
@@ -76,6 +92,7 @@ const ProviderWalletContextProvider = ({ children, chainId = 1, provider }: Prov
     }
 
     try {
+      // @ts-ignore
       const signer = web3Provider.getSigner();
       const { hash: transactionHash } = await signer.sendTransaction(transaction);
       return { transactionHash };
