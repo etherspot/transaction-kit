@@ -7,7 +7,7 @@ const useProviderWalletTransaction = () => {
   const context = useContext(ProviderWalletContext);
 
   if (context === null) {
-    // <EtherspotTransactionKit /> includes ProviderWalletContextProvider
+    // <EtherspotTransactionKit /> includes <ProviderWalletContextProvider />
     throw new Error('No parent <EtherspotTransactionKit />');
   }
 

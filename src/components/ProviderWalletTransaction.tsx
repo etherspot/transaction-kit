@@ -9,30 +9,37 @@ import { IProviderWalletTransaction } from '../types/EtherspotTransactionKit';
 
 // hooks
 import useId from '../hooks/useId';
-import useProviderWalletTransaction from '../hooks/useProviderWalletTransaction';
 
 interface ProviderWalletTransactionProps extends IProviderWalletTransaction {
   children?: React.ReactNode;
 }
+
+let instances = 0;
 
 const ProviderWalletTransaction = ({
   children,
   to,
   data,
   value,
+  chainId,
 }: ProviderWalletTransactionProps): JSX.Element => {
   const context = useContext(ProviderWalletContext);
   const componentId = useId();
-  const { transaction } = useProviderWalletTransaction();
 
   if (context === null) {
-    // <EtherspotTransactionKit /> includes ProviderWalletContextProvider
+    // <EtherspotTransactionKit /> includes <ProviderWalletContextProvider />
     throw new Error('No parent <EtherspotTransactionKit />');
   }
 
-  if (transaction && transaction.id !== componentId) {
-    throw new Error('Multiple <ProviderWalletTransaction /> not allowed');
-  }
+  useEffect(() => {
+    instances++;
+
+    if (instances > 1) {
+      throw new Error('Multiple <ProviderWalletTransaction /> not allowed');
+    }
+
+    return () => { instances--; }
+  }, []);
 
   useEffect(() => {
     let valueBN;
@@ -48,14 +55,19 @@ const ProviderWalletTransaction = ({
       to,
       value: valueBN,
       data,
+      chainId,
     };
 
-    context.setTransaction(transaction);
+    context.setTransactionById((current) => ({ ...current, [componentId]: transaction }));
 
     return () => {
-      context.setTransaction(undefined);
+      context.setTransactionById((current) => {
+        const updated = { ...current };
+        delete updated[componentId];
+        return updated;
+      });
     }
-  }, [to, data, value, componentId]);
+  }, [to, data, value, chainId, componentId]);
 
   return <>{children}</>;
 };

@@ -21,7 +21,7 @@ interface ProviderWalletContextProviderProps {
 }
 
 const ProviderWalletContextProvider = ({ children, chainId = 1, provider }: ProviderWalletContextProviderProps) => {
-  const [transaction, setTransaction] = useState<undefined | IProviderWalletTransaction>(undefined);
+  const [transactionById, setTransactionById] = useState<{ [id: string]: IProviderWalletTransaction | undefined }>({});
   const [providerAddress, setProviderAddress] = useState<undefined | string>(undefined);
   const [web3Provider, setWeb3Provider] = useState<undefined | Web3WalletProvider>(undefined);
 
@@ -55,6 +55,8 @@ const ProviderWalletContextProvider = ({ children, chainId = 1, provider }: Prov
 
     return () => { shouldUpdate = false; };
   }, [provider]);
+
+  const transaction = useMemo(() => Object.values(transactionById)[0], [transactionById]);
 
   const estimate = async (): Promise<IProviderWalletTransactionEstimated> => {
     if (!web3Provider) {
@@ -112,7 +114,7 @@ const ProviderWalletContextProvider = ({ children, chainId = 1, provider }: Prov
   ]);
 
   return (
-    <ProviderWalletContext.Provider value={{ data: contextData, setTransaction, providerAddress }}>
+    <ProviderWalletContext.Provider value={{ data: contextData, setTransactionById, providerAddress }}>
       {children}
     </ProviderWalletContext.Provider>
   );

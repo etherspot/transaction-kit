@@ -13,7 +13,7 @@ interface IProviderWalletContext {
     estimate: () => Promise<IProviderWalletTransactionEstimated>;
     send: () => Promise<IProviderWalletTransactionSent>;
   },
-  setTransaction: Dispatch<SetStateAction<IProviderWalletTransaction | undefined>>;
+  setTransactionById: Dispatch<SetStateAction<{ [id: string]: IProviderWalletTransaction | undefined }>>;
   providerAddress: string | undefined;
 }
 
