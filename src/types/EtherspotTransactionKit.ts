@@ -1,5 +1,7 @@
 import { Fragment, JsonFragment } from '@ethersproject/abi/src.ts/fragments';
 import { BigNumber, BigNumberish } from 'ethers';
+import { ExchangeOffer } from 'etherspot';
+import { Route } from '@lifi/sdk';
 
 export interface ITransaction {
   id?: string;
@@ -68,4 +70,14 @@ export interface IEtherspotApprovalTransaction {
   value: BigNumberish;
   tokenAddress: string;
   receiverAddress: string;
+}
+
+export interface ISameChainSwapOffer {
+  type: 'same-chain';
+  offers: ExchangeOffer[],
+}
+
+export interface ICrossChainSwapOffer {
+  type: 'cross-chain';
+  offers: Route[],
 }
