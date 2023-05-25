@@ -31,6 +31,11 @@ const ProviderWalletContextProvider = ({ children, chainId = 1, provider }: Prov
     const update = async () => {
       if (!shouldUpdate) return;
 
+      if (!provider) {
+        console.warn('No provider set!');
+        return;
+      }
+
       let newWeb3Provider;
       // @ts-ignore
       if (isWalletProvider(provider)) {
