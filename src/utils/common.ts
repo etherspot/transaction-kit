@@ -56,11 +56,11 @@ export const addressesEqual = (address1: string | undefined | null, address2: st
   return isCaseInsensitiveMatch(address1, address2);
 };
 
-export const switchWalletProviderToChain = async (chainId: number): Promise<boolean> => {
+export const switchWalletProviderToChain = async (chainId: number): Promise<{ errorMessage?: string }> => {
   // @ts-ignore
   if (!window?.ethereum) {
-    alert('Unsupported browser!');
-    return false;
+    console.warn('Unsupported browser!');
+    return { errorMessage: 'Unsupported browser!' };
   }
 
   try {
@@ -68,11 +68,9 @@ export const switchWalletProviderToChain = async (chainId: number): Promise<bool
       method: 'wallet_switchEthereumChain',
       params: [{ chainId: ethers.utils.hexValue(chainId) }], // chainId must be in hex
     });
-    return true;
   } catch (e) {
-    alert('Failed to switch chain!');
     console.warn('Failed to switch chain', e);
   }
 
-  return false;
+  return { errorMessage: 'Failed to switch chain!' };
 };

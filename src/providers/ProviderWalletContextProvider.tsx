@@ -72,9 +72,9 @@ const ProviderWalletContextProvider = ({ children, chainId = 1, provider }: Prov
       return { errorMessage: 'No transaction' };
     }
 
-    const changed = await switchWalletProviderToChain(transaction.chainId ?? chainId);
-    if (!changed) {
-      return { errorMessage: 'Failed to change to selected network!' };
+    const result = await switchWalletProviderToChain(transaction.chainId ?? chainId);
+    if (result?.errorMessage) {
+      return { errorMessage: result.errorMessage };
     }
 
     try {
@@ -93,9 +93,9 @@ const ProviderWalletContextProvider = ({ children, chainId = 1, provider }: Prov
       return { errorMessage: 'No transaction' };
     }
 
-    const changed = await switchWalletProviderToChain(transaction.chainId ?? chainId);
-    if (!changed) {
-      return { errorMessage: 'Failed to change to selected network!' };
+    const result = await switchWalletProviderToChain(transaction.chainId ?? chainId);
+    if (result?.errorMessage) {
+      return { errorMessage: result.errorMessage };
     }
 
     try {
