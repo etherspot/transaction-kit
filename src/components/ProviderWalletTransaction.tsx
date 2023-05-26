@@ -27,7 +27,11 @@ const ProviderWalletTransaction = ({
   const componentId = useId();
 
   if (context === null) {
-    // <EtherspotTransactionKit /> includes <ProviderWalletContextProvider />
+    /**
+     * No parent <EtherspotTransactionKit /> message is thrown because
+     * <EtherspotTransactionKit /> tag includes <ProviderWalletContextProvider />
+     * which holds ProviderWalletContext required for hook to work.
+     */
     throw new Error('No parent <EtherspotTransactionKit />');
   }
 
