@@ -72,12 +72,12 @@ export interface IEtherspotApprovalTransaction {
   receiverAddress: string;
 }
 
-export interface ISameChainSwapOffer {
+export interface ISameChainSwapOffers {
   type: 'same-chain';
   offers: ExchangeOffer[],
 }
 
-export interface ICrossChainSwapOffer {
+export interface ICrossChainSwapOffers {
   type: 'cross-chain';
   offers: Route[],
 }

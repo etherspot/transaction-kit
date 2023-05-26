@@ -88,6 +88,74 @@ export const useEtherspot = () => ({
         ? [token1, token2, token3]
         : [token1];
     },
+    getExchangeOffers: ({
+      fromTokenAddress,
+      toTokenAddress,
+    }) => {
+      if (sdkChainId !== 1 || fromTokenAddress !== '0x111' || toTokenAddress !== '0x222') {
+        return [];
+      }
+
+      const offer1 = {
+        provider: 'abc-swap',
+        receiveAmount: ethers.utils.parseEther('0.1'),
+        transactions: ['0x1', '0x2'],
+      }
+
+      const offer2 = {
+        provider: 'def-swap',
+        receiveAmount: ethers.utils.parseEther('0.11'),
+        transactions: ['0x1'],
+      }
+
+      return [offer1, offer2];
+    },
+    getAdvanceRoutesLiFi: ({
+      fromAmount,
+      fromChainId,
+      toChainId,
+      fromTokenAddress,
+      toTokenAddress,
+    }) => {
+      if (fromChainId !== 1
+        || toChainId !== 137
+        || fromTokenAddress !== '0x111'
+        || toTokenAddress !== '0x222') {
+        return { items: [] };
+      }
+
+      const offer1 = {
+        id: 'abc-bridge-offer-1',
+        fromChainId,
+        toChainId,
+        fromAmount,
+        toAmount: ethers.utils.parseEther('0.1'),
+        steps: ['0x1', '0x2'],
+      }
+
+      const offer2 = {
+        id: 'abc-bridge-offer-2',
+        fromChainId,
+        toChainId,
+        fromAmount,
+        toAmount: ethers.utils.parseEther('0.12'),
+        steps: ['0x1', '0x2'],
+      }
+
+      return { items: [offer1, offer2] };
+    },
+    getStepTransaction: ({ route: { id } }) => {
+      if (id !== 'abc-bridge-offer-1') {
+        return { items: [] };
+      }
+
+      const transactions = [
+        { to: '0x111', data: '0x2', value: undefined },
+        { to: '0x222', data: '0x3', value: '100000000000000' },
+      ];
+
+      return { items: transactions };
+    }
   }),
 });
 

@@ -4,12 +4,12 @@ import { BigNumber } from 'ethers';
 import { Route } from '@lifi/sdk';
 
 // types
-import { ICrossChainSwapOffer, ISameChainSwapOffer } from '../types/EtherspotTransactionKit';
+import { ICrossChainSwapOffers, ISameChainSwapOffers } from '../types/EtherspotTransactionKit';
 
 /**
  * @typedef {Object} IEtherspotSwapsHook
  * @property getOffers {function} - fetches Etherspot aggregated offers for same-chain and cross-chain swaps
- * @property getCrossChainOfferTransactions {function} - fetches Etherspot cross-chain offer transactions
+ * @property prepareCrossChainOfferTransactions {function} - fetches Etherspot cross-chain offer transactions
  */
 interface IEtherspotSwapsHook {
   getOffers: (
@@ -17,8 +17,8 @@ interface IEtherspotSwapsHook {
     fromTokenAddress: string,
     toTokenAddress: string,
     toChainId?: number,
-  ) => Promise<ISameChainSwapOffer | ICrossChainSwapOffer | undefined>;
-  getCrossChainOfferTransactions: (offer: Route) => Promise<StepTransaction[] | undefined>;
+  ) => Promise<ISameChainSwapOffers | ICrossChainSwapOffers | undefined>;
+  prepareCrossChainOfferTransactions: (offer: Route) => Promise<StepTransaction[] | undefined>;
 }
 
 /**
@@ -29,7 +29,7 @@ interface IEtherspotSwapsHook {
 const useEtherspotSwaps = (chainId: number = 1): IEtherspotSwapsHook => {
   const { connect, getSdkForChainId } = useEtherspot();
 
-  const getCrossChainOfferTransactions = async (offer: Route): Promise<StepTransaction[] | undefined> => {
+  const prepareCrossChainOfferTransactions = async (offer: Route): Promise<StepTransaction[] | undefined> => {
     const sdkForChainId = getSdkForChainId(chainId);
     if (!sdkForChainId) {
       console.warn(`Unable to get SDK for chain ID ${chainId}`);
@@ -57,7 +57,7 @@ const useEtherspotSwaps = (chainId: number = 1): IEtherspotSwapsHook => {
     fromTokenAddress: string,
     toTokenAddress: string,
     toChainId?: number,
-  ): Promise<ISameChainSwapOffer | ICrossChainSwapOffer | undefined> => {
+  ): Promise<ISameChainSwapOffers | ICrossChainSwapOffers | undefined> => {
     const sdkForChainId = getSdkForChainId(chainId);
     if (!sdkForChainId) {
       console.warn(`Unable to get SDK for chain ID ${chainId}`);
@@ -106,7 +106,7 @@ const useEtherspotSwaps = (chainId: number = 1): IEtherspotSwapsHook => {
 
   return ({
     getOffers,
-    getCrossChainOfferTransactions,
+    prepareCrossChainOfferTransactions,
   });
 };
 
