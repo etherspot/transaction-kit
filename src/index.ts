@@ -17,6 +17,7 @@ export { default as useEtherspotHistory } from './hooks/useEtherspotHistory';
 export { default as useEtherspotTransactions } from './hooks/useEtherspotTransactions';
 export { default as useEtherspotNfts } from './hooks/useEtherspotNfts';
 export { default as useEtherspotUtils } from './hooks/useEtherspotUtils';
+export { default as useEtherspotPrices } from './hooks/useEtherspotPrices';
 export * from './types/EtherspotTransactionKit';
 export { useEtherspot };
 
