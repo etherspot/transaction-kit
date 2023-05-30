@@ -1,3 +1,5 @@
+import { ethers } from 'ethers';
+
 // types
 import { TypePerId } from '../types/Helper';
 
@@ -52,4 +54,23 @@ export const addressesEqual = (address1: string | undefined | null, address2: st
   if (!address1 || !address2) return false;
 
   return isCaseInsensitiveMatch(address1, address2);
+};
+
+export const switchWalletProviderToChain = async (chainId: number): Promise<{ errorMessage?: string }> => {
+  // @ts-ignore
+  if (!window?.ethereum) {
+    console.warn('Unsupported browser!');
+    return { errorMessage: 'Unsupported browser!' };
+  }
+
+  try {
+    await window.ethereum.request({
+      method: 'wallet_switchEthereumChain',
+      params: [{ chainId: ethers.utils.hexValue(chainId) }], // chainId must be in hex
+    });
+  } catch (e) {
+    console.warn('Failed to switch chain', e);
+  }
+
+  return { errorMessage: 'Failed to switch chain!' };
 };

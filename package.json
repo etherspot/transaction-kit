@@ -1,11 +1,11 @@
 {
   "name": "@etherspot/transaction-kit",
   "description": "React Etherspot Transaction Kit",
-  "version": "0.2.0",
+  "version": "0.2.2",
   "main": "dist/cjs/index.js",
   "scripts": {
     "rollup:build": "NODE_OPTIONS=--max-old-space-size=8192 rollup -c",
-    "rollup:watch": "rm -rf ./node_modules/react ./node_modules/react-dom && rollup -c -w",
+    "rollup:watch": "rimraf ./node_modules/react ./node_modules/react-dom && rollup -c -w",
     "test": "jest --silent",
     "test:watch": "jest --watch"
   },
@@ -21,7 +21,7 @@
   },
   "homepage": "https://github.com/etherspot/transaction-kit#readme",
   "dependencies": {
-    "@etherspot/eip1271-verification-util": "^0.1.0",
+    "@etherspot/eip1271-verification-util": "^0.1.1",
     "@etherspot/react-etherspot": "^1.0.7",
     "buffer": "^6.0.3",
     "ethereumjs-util": "^7.1.5",
@@ -47,7 +47,7 @@
     "@jest/globals": "^29.3.1",
     "@rollup/plugin-replace": "^5.0.2",
     "@rollup/plugin-typescript": "^8.3.3",
-    "@testing-library/react": "^13.4.0",
+    "@testing-library/react": "^14.0.0",
     "@types/jest": "^29.2.5",
     "@types/lodash.uniq": "^4.5.7",
     "@types/react": "^18.0.15",
@@ -59,6 +59,7 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-test-renderer": "^18.2.0",
+    "rimraf": "^5.0.1",
     "rollup": "^2.76.0",
     "rollup-plugin-dts": "^4.2.3",
     "typescript": "^4.7.4"
