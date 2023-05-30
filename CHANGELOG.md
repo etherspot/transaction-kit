@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.2.2] - 2023-05-30
+- Updated  `@etherspot/eip1271-verification-util` to version `0.1.1`.
+
+## [0.2.1] - 2023-05-30
+- Added `rimraf` to suport developers in `Windows` environment.
+
 ## [0.2.0] - 2023-05-12
 
 ### Added
