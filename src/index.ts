@@ -1,5 +1,6 @@
 import { Buffer as ImportedBuffer } from 'buffer';
-window.Buffer = window.Buffer ?? ImportedBuffer;
+
+if (typeof window !== 'undefined') window.Buffer = window.Buffer ?? ImportedBuffer;
 
 import { useEtherspot } from '@etherspot/react-etherspot';
 

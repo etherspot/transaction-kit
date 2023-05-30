@@ -1,5 +1,8 @@
 # Changelog
 
+## [0.2.3] - 2023-05-30
+- Updated `window` context to not be used within non-browser environments.
+
 ## [0.2.2] - 2023-05-30
 - Updated  `@etherspot/eip1271-verification-util` to version `0.1.1`.
 
