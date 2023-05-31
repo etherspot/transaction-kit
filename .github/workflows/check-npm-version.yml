@@ -1,4 +1,4 @@
-name: npm package version bump check
+name: npm package version bump and changelog check
 
 on:
   pull_request:
@@ -10,15 +10,27 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-      - name: Check if version has been updated
+      - name: Check if package version has been updated
         id: check
         uses: EndBug/version-check@v2.1.1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           file-name: ./package.json
-      - name: Log when changed
-        if: steps.check.outputs.changed == 'true'
-        run: 'echo "Yayy!! Version change found in commit ${{ steps.check.outputs.commit }}! New version: ${{ steps.check.outputs.version }} (${{ steps.check.outputs.type }})"'
-      - name: Log when unchanged
+     - name: Verify Changelog changes
+        uses: tj-actions/verify-changed-files@v14
+        id: verify-changed-files
+        with:
+          files: |
+            CHANGELOG.md
+      - name: Log when CHANGELOG.md is updated
+        if: steps.verify-changed-files.outputs.files_changed == 'true'
+        run: 'echo "Yayy!! CHANGELOG.md is updated!"'
+      - name: Log when CHANGELOG.md is not updated
+        if: steps.verify-changed-files.outputs.files_changed == 'false'
+        run: echo "Please update CHANGELOG.md with your changes" && exit 1
+      - name: Log when package version unchanged
         if: steps.check.outputs.changed == 'false'
         run: echo "No version change :/ Please update version in package.json!" && exit 1
+      - name: Log when package version changed
+        if: steps.check.outputs.changed == 'true'
+        run: 'echo "Yayy!! Version change found in commit ${{ steps.check.outputs.commit }}! New version: ${{ steps.check.outputs.version }} (${{ steps.check.outputs.type }})"'
