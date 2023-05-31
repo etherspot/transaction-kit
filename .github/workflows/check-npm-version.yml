@@ -16,7 +16,7 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           file-name: ./package.json
-     - name: Verify Changelog changes
+      - name: Verify Changelog changes
         uses: tj-actions/verify-changed-files@v14
         id: verify-changed-files
         with:
