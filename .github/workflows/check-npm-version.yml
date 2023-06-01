@@ -7,6 +7,8 @@ on:
 jobs:
   start:
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -22,15 +24,18 @@ jobs:
         with:
           files: |
             CHANGELOG.md
+      # - name: Log when package version changed
+      #   if: steps.check.outputs.changed == 'true'
+      #   run: 'echo "Yayy!! Version change found in commit ${{ steps.check.outputs.commit }}! New version: ${{ steps.check.outputs.version }} (${{ steps.check.outputs.type }})"'
+      # - name: Log when package version unchanged
+      #   if: steps.check.outputs.changed == 'false'
+      #   run: echo "No version change :/ Please update version in package.json!" && exit 1
       - name: Log when CHANGELOG.md is updated
         if: steps.verify-changed-files.outputs.files_changed == 'true'
         run: 'echo "Yayy!! CHANGELOG.md is updated!"'
       - name: Log when CHANGELOG.md is not updated
         if: steps.verify-changed-files.outputs.files_changed == 'false'
-        run: echo "Please update CHANGELOG.md with your changes" && exit 1
-      - name: Log when package version unchanged
-        if: steps.check.outputs.changed == 'false'
-        run: echo "No version change :/ Please update version in package.json!" && exit 1
-      - name: Log when package version changed
-        if: steps.check.outputs.changed == 'true'
-        run: 'echo "Yayy!! Version change found in commit ${{ steps.check.outputs.commit }}! New version: ${{ steps.check.outputs.version }} (${{ steps.check.outputs.type }})"'
+        uses: mshick/add-pr-comment@v2
+        with:
+          message: |
+            **Hello, Please add your changes to CHANGELOG.md**
