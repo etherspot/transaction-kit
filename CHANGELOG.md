@@ -14,7 +14,6 @@
 
 ### Added
 - Updated  `@etherspot/eip1271-verification-util` to version `0.1.1`.
-- Added  `
 
 ## [0.2.1] - 2023-05-30
 
@@ -25,7 +24,7 @@
 
 ## [0.2.0] - 2023-05-12
 
-### Added
+### Improvements
 - Added `useEtherspotBalances` hook for Etherspot/EVM related contract
 - Added `useEtherspotUtils` hook for Etherspot/EVM related utils
 - Added `useEtherspotHistory` hook for Etherspot account transactions history
