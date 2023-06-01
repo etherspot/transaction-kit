@@ -24,7 +24,7 @@
 
 ## [0.2.0] - 2023-05-12
 
-### Improvements
+### Added
 - Added `useEtherspotBalances` hook for Etherspot/EVM related contract
 - Added `useEtherspotUtils` hook for Etherspot/EVM related utils
 - Added `useEtherspotHistory` hook for Etherspot account transactions history
