@@ -20,6 +20,7 @@ export { default as useEtherspotTransactions } from './hooks/useEtherspotTransac
 export { default as useEtherspotNfts } from './hooks/useEtherspotNfts';
 export { default as useEtherspotUtils } from './hooks/useEtherspotUtils';
 export { default as useProviderWalletTransaction } from './hooks/useProviderWalletTransaction';
+export { default as useEtherspotPrices } from './hooks/useEtherspotPrices';
 export * from './types/EtherspotTransactionKit';
 export { useEtherspot };
 
