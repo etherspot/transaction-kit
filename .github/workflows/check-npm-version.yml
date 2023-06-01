@@ -32,7 +32,8 @@ jobs:
         uses: mshick/add-pr-comment@v2
         with:
           message: |
-            **Yooo! You forgot to update package.json file!**
+            **Yooo! You forgot to bump the version in package.json!**
+      -name: Exit if package version is not changed
         run: echo "No version change :/ Please update version in package.json!" && exit 1
       - name: Log when CHANGELOG.md is updated
         if: steps.verify-changed-files.outputs.files_changed == 'true'
