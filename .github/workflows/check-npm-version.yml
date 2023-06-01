@@ -29,6 +29,10 @@ jobs:
         run: 'echo "Yayy!! Version change found in commit ${{ steps.check.outputs.commit }}! New version: ${{ steps.check.outputs.version }} (${{ steps.check.outputs.type }})"'
       - name: Log when package version unchanged
         if: steps.check.outputs.changed == 'false'
+        uses: mshick/add-pr-comment@v2
+        with:
+          message: |
+            **Yooo! You forgot to update package.json file!**
         run: echo "No version change :/ Please update version in package.json!" && exit 1
       - name: Log when CHANGELOG.md is updated
         if: steps.verify-changed-files.outputs.files_changed == 'true'
