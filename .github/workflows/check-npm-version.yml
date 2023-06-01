@@ -33,6 +33,7 @@ jobs:
         with:
           message: |
             **Yooo! You forgot to bump the version in package.json!**
+          allow-repeats: true
       - name: Exit if package version is not changed
         run: echo "No version change :/ Please update version in package.json!" && exit 1
       - name: Log when CHANGELOG.md is updated
@@ -44,3 +45,4 @@ jobs:
         with:
           message: |
             **Hello, Please add your changes to CHANGELOG.md**
+          allow-repeats: true
