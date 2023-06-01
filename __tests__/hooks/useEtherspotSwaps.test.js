@@ -18,7 +18,7 @@ describe('useEtherspotSwaps()', () => {
         wrapper,
       });
 
-      // wait for history to be fetched for chain ID 1
+      // wait for hook to load
       await waitFor(() => expect(result.current).not.toBeNull());
 
       const offersMainnet = await result.current.getOffers(
@@ -57,7 +57,7 @@ describe('useEtherspotSwaps()', () => {
         wrapper,
       });
 
-      // wait for history to be fetched for chain ID 1
+      // wait for hook to load
       await waitFor(() => expect(result.current).not.toBeNull());
 
       const offersMainnetToPolygon = await result.current.getOffers(
@@ -102,7 +102,7 @@ describe('useEtherspotSwaps()', () => {
         wrapper,
       });
 
-      // wait for history to be fetched for chain ID 1
+      // wait for hook to load
       await waitFor(() => expect(result.current).not.toBeNull());
 
       const offer = {
