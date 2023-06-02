@@ -155,7 +155,24 @@ export const useEtherspot = () => ({
       ];
 
       return { items: transactions };
-    }
+    },
+    fetchExchangeRates: ({ chainId, tokens }) => {
+      if (chainId !== 1) {
+        return { items: [] };
+      }
+
+      if (tokens.includes('some_wrongAddressFormat')) {
+        return { items: [], errored: true, error: 'Wrong address provided!' };
+      }
+
+      const prices = tokens.map((token, index) => ({
+        address: token,
+        eth: 1 + index * 0.1,
+        usd: 1800 * (1 + index * 0.1),
+      }));
+
+      return { items: prices }
+    },
   }),
 });
 

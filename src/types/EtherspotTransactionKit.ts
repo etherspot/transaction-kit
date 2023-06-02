@@ -10,6 +10,14 @@ export interface ITransaction {
   data?: string;
 }
 
+export interface IProviderWalletTransaction {
+  id?: string;
+  to: string;
+  value?: BigNumberish;
+  data?: string;
+  chainId?: number;
+}
+
 export interface IBatch {
   id?: string;
   chainId?: number;
@@ -80,4 +88,14 @@ export interface ISameChainSwapOffers {
 export interface ICrossChainSwapOffers {
   type: 'cross-chain';
   offers: Route[],
+}
+
+export interface IProviderWalletTransactionEstimated {
+  gasCost?: BigNumberish;
+  errorMessage?: string;
+}
+
+export interface IProviderWalletTransactionSent {
+  transactionHash?: string;
+  errorMessage?: string;
 }
