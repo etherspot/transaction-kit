@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.2.5] - 2023-06-02
+
+### Added
+- Added `useEtherspotSwaps` hook for cross chain and same chain asset swaps
+
 ## [0.2.4] - 2023-06-01
 
 ### Added
