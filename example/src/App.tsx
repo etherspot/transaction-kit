@@ -196,13 +196,17 @@ const App = () => {
           Etherspot Smart Wallet Addresses:
         </Typography>
         {etherspotAddresses
-          ?.map((smartWalletAddress) =>
-            <Paper key={`swa-${smartWalletAddress.chainId}`} sx={{p: 1}} variant="outlined">
-              <Typography>
-                Chain ID: {smartWalletAddress.chainId}<br />Chain Name: {smartWalletAddress.chainName}<br />Address: {smartWalletAddress.address}
-              </Typography>
-            </Paper>
-          )
+          ?.map((smartWalletAddress) => {
+            if (!smartWalletAddress) return null;
+            return (
+              <Paper key={`swa-${smartWalletAddress.chainId}`} sx={{p: 1}} variant="outlined">
+                <Typography>
+                  Chain ID: {smartWalletAddress.chainId}<br/>Chain
+                  Name: {smartWalletAddress.chainName}<br/>Address: {smartWalletAddress.address}
+                </Typography>
+              </Paper>
+            );
+          })
         }
       </Box>
       <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
