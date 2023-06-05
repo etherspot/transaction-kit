@@ -22,11 +22,12 @@
   "homepage": "https://github.com/etherspot/transaction-kit#readme",
   "dependencies": {
     "@etherspot/eip1271-verification-util": "^0.1.1",
-    "@etherspot/react-etherspot": "^1.0.7",
+    "@etherspot/react-etherspot": "^1.1.0",
     "buffer": "^6.0.3",
     "ethereumjs-util": "^7.1.5",
     "ethers": "^5.6.9",
     "etherspot": "^1.41.2",
+    "etherspot-prime": "^1.0.1",
     "lodash.uniq": "^4.5.0",
     "react": ">=18.2.0",
     "react-dom": "^18.2.0",

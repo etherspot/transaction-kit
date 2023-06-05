@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { isWalletProvider, WalletProviderLike, Web3WalletProvider } from 'etherspot';
+import { isWalletProvider, Web3WalletProvider } from 'etherspot';
+import { useEtherspot } from '@etherspot/react-etherspot';
 
 // contexts
 import ProviderWalletContext from '../contexts/ProviderWalletContext';
@@ -15,15 +16,14 @@ import {
 import { switchWalletProviderToChain } from '../utils/common';
 
 interface ProviderWalletContextProviderProps {
-  provider?: WalletProviderLike | null | undefined;
   children?: React.ReactNode;
   chainId?: number | undefined;
 }
 
-const ProviderWalletContextProvider = ({ children, chainId = 1, provider }: ProviderWalletContextProviderProps) => {
+const ProviderWalletContextProvider = ({ children, chainId = 1 }: ProviderWalletContextProviderProps) => {
   const [transactionById, setTransactionById] = useState<{ [id: string]: IProviderWalletTransaction | undefined }>({});
-  const [providerAddress, setProviderAddress] = useState<undefined | string>(undefined);
   const [web3Provider, setWeb3Provider] = useState<undefined | Web3WalletProvider>(undefined);
+  const { provider} = useEtherspot();
 
   useEffect(() => {
     let shouldUpdate = true;
@@ -53,7 +53,6 @@ const ProviderWalletContextProvider = ({ children, chainId = 1, provider }: Prov
 
       if (!shouldUpdate) return;
       setWeb3Provider(newWeb3Provider);
-      setProviderAddress(newWeb3Provider.address);
     }
 
     update();
@@ -119,7 +118,7 @@ const ProviderWalletContextProvider = ({ children, chainId = 1, provider }: Prov
   ]);
 
   return (
-    <ProviderWalletContext.Provider value={{ data: contextData, setTransactionById, providerAddress }}>
+    <ProviderWalletContext.Provider value={{ data: contextData, setTransactionById }}>
       {children}
     </ProviderWalletContext.Provider>
   );

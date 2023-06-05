@@ -9,6 +9,7 @@ import { IProviderWalletTransaction } from '../types/EtherspotTransactionKit';
 
 // hooks
 import useId from '../hooks/useId';
+import useWalletAddress from '../hooks/useWalletAddress';
 
 interface ProviderWalletTransactionProps extends IProviderWalletTransaction {
   children?: React.ReactNode;
@@ -25,6 +26,7 @@ const ProviderWalletTransaction = ({
 }: ProviderWalletTransactionProps): JSX.Element => {
   const context = useContext(ProviderWalletContext);
   const componentId = useId();
+  const providerWalletAddress = useWalletAddress('provider', chainId);
 
   if (context === null) {
     /**
@@ -55,7 +57,7 @@ const ProviderWalletTransaction = ({
 
     const transaction = {
       id: componentId,
-      from: context.providerAddress,
+      from: providerWalletAddress,
       to,
       value: valueBN,
       data,
@@ -71,7 +73,7 @@ const ProviderWalletTransaction = ({
         return updated;
       });
     }
-  }, [to, data, value, chainId, componentId]);
+  }, [to, data, value, chainId, componentId, providerWalletAddress]);
 
   return <>{children}</>;
 };
