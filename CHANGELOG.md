@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.3.0] - 2023-06-06
+
+### Added
+- Added `via` prop to `<EtherspotBatches />` component that accepts default `etherspot` provider or newly added SDK
+provider `etherspot-prime` that can be used to send EIP-4337 (Account Abstraction / UserOperation) transactions
+via Etherspot bundler
+- Added `useWalletAddres` hook to get `etherspot`, `etherspot-prime` and connected `provider` wallet address by type
+- Added deprecation warning for `useEtherspotAddresses` hook, `useWalletAddress('etherspot', chainId)` should
+be used instead
+
+### Fixes
+- Fixed `batches` ordering issue that were affecting renders with few `<EtherspotBatches />` components rendered
+at the same time
+
 ## [0.2.5] - 2023-06-02
 
 ### Added
