@@ -1,4 +1,4 @@
-import { AccountTypes } from 'etherspot';
+import { AccountTypes, EnvNames } from 'etherspot';
 import ReactEtherspot, { useEtherspot as useEtherspotActual } from '@etherspot/react-etherspot';
 import { ethers } from 'ethers';
 
@@ -9,6 +9,10 @@ export const useEtherspot = () => ({
   ...useEtherspotActual(),
   getSdkForChainId: (sdkChainId) => ({
     state: {
+      network: {
+        name: 'goerli',
+        env: EnvNames.TestNets,
+      },
       account: {
         type: AccountTypes.Contract,
         address: defaultAccountAddress,

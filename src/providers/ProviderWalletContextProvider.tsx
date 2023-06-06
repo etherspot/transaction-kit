@@ -23,7 +23,7 @@ interface ProviderWalletContextProviderProps {
 const ProviderWalletContextProvider = ({ children, chainId = 1 }: ProviderWalletContextProviderProps) => {
   const [transactionById, setTransactionById] = useState<{ [id: string]: IProviderWalletTransaction | undefined }>({});
   const [web3Provider, setWeb3Provider] = useState<undefined | Web3WalletProvider>(undefined);
-  const { provider} = useEtherspot();
+  const { provider } = useEtherspot();
 
   useEffect(() => {
     let shouldUpdate = true;
