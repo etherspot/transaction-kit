@@ -35,6 +35,7 @@ jobs:
             **Yooo! You forgot to bump the version in package.json!**
           allow-repeats: true
       - name: Exit if package version is not changed
+        if: steps.check.outputs.changed == 'false'
         run: echo "No version change :/ Please update version in package.json!" && exit 1
       - name: Log when CHANGELOG.md is updated
         if: steps.verify-changed-files.outputs.files_changed == 'true'
