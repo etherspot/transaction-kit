@@ -196,13 +196,9 @@ const EtherspotTransactionKitContextProvider = ({ children, chainId = 1 }: Ether
           }
 
           try {
-            // @ts-ignore
             const op = await etherspotPrimeSdkForChainId.sign();
-            const uoHash = await etherspotPrimeSdkForChainId.send(op);
-            console.log({ uoHash })
-            const txHash = await etherspotPrimeSdkForChainId.getUserOpReceipt(uoHash);
-            console.log({ txHash })
-            sentBatches.push({ ...estimatedBatch, batchHash: '0x' });
+            const batchHash = await etherspotPrimeSdkForChainId.send(op);
+            sentBatches.push({ ...estimatedBatch, batchHash });
           } catch (e) {
             sentBatches.push({ ...estimatedBatch, errorMessage: (e instanceof Error && e.message) || 'Failed to estimate!' });
           }
