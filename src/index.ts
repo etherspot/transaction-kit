@@ -22,6 +22,7 @@ export { default as useEtherspotUtils } from './hooks/useEtherspotUtils';
 export { default as useProviderWalletTransaction } from './hooks/useProviderWalletTransaction';
 export { default as useEtherspotPrices } from './hooks/useEtherspotPrices';
 export { default as useEtherspotSwaps } from './hooks/useEtherspotSwaps';
+export { default as useWalletAddress } from './hooks/useWalletAddress';
 export * from './types/EtherspotTransactionKit';
 export { useEtherspot };
 
