@@ -21,7 +21,7 @@
   },
   "homepage": "https://github.com/etherspot/transaction-kit#readme",
   "dependencies": {
-    "@etherspot/eip1271-verification-util": "^0.1.1",
+    "@etherspot/eip1271-verification-util": "^0.1.2",
     "@etherspot/react-etherspot": "^1.1.0",
     "buffer": "^6.0.3",
     "ethereumjs-util": "^7.1.5",

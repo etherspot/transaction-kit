@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.3.1] - 2023-06-13
+
+### Added
+- Updated `@etherspot/eip1271-verification-util` to version `0.1.2`
+
 ## [0.3.0] - 2023-06-06
 
 ### Added
