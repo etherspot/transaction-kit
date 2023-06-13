@@ -7,6 +7,7 @@ import { isTestnetChainId } from '../utils/common';
 let isConnecting: Promise<any> | undefined;
 
 /**
+ * @deprecated
  * Hook to fetch Etherspot Smart Wallet addresses
  * @returns {ISmartWalletAddress[] | null} - An array of Etherspot addresses
  */

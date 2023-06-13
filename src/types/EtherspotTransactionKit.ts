@@ -41,6 +41,7 @@ export interface IBatches {
   onEstimated?: (estimated: EstimatedBatch[]) => void;
   onSent?: (sent: SentBatch[]) => void;
   skip?: boolean;
+  via?: IBatchesWalletType;
 }
 
 export interface IEstimatedBatches extends IBatches {
@@ -99,3 +100,7 @@ export interface IProviderWalletTransactionSent {
   transactionHash?: string;
   errorMessage?: string;
 }
+
+export type IBatchesWalletType = 'etherspot' | 'etherspot-prime';
+
+export type IWalletType = 'provider' | IBatchesWalletType;
