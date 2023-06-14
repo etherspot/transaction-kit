@@ -30,10 +30,18 @@ export interface EstimatedBatch extends IBatch {
   cost?: BigNumber;
 }
 
-export interface SentBatch extends EstimatedBatch {
-  errorMessage?: string;
+export interface EtherspotSentBatch extends EstimatedBatch {
+  via: 'etherspot';
   batchHash?: string;
 }
+export interface EtherspotPrimeSentBatch extends EstimatedBatch {
+  via: 'etherspot-prime';
+  userOpHash?: string;
+}
+
+export type SentBatch = {
+  errorMessage?: string;
+} & (EtherspotSentBatch | EtherspotPrimeSentBatch);
 
 export interface IBatches {
   id?: string;

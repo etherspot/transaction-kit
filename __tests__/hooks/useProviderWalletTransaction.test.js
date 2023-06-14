@@ -119,7 +119,7 @@ describe('useProviderWalletTransaction()', () => {
       .toThrow('Multiple <ProviderWalletTransaction /> not allowed');
   });
 
-  it('throws an error if <ProviderWalletTransaction /> rendered without <EtherspotTransactionKit />', () => {
+  it('throws an error if <ProviderWalletTransaction /> rendered without <EtherspotTransactionKit /> that includes <EtherspotContextProvider />', () => {
     expect(() => render(
       <ProviderWalletTransaction
         to={'0x12'}
@@ -129,6 +129,6 @@ describe('useProviderWalletTransaction()', () => {
           <span>test</span>
       </ProviderWalletTransaction>
     ))
-      .toThrow('No parent <EtherspotTransactionKit />');
+      .toThrow('No parent <EtherspotContextProvider />');
   });
 })

@@ -1,23 +1,23 @@
 import { useEffect, useState } from 'react';
 import { useEtherspot } from '@etherspot/react-etherspot';
-import { AccountTypes, EnvNames } from 'etherspot';
-import { PrimeSdk } from 'etherspot-prime';
+import { AccountTypes } from 'etherspot';
 
 // types
 import { IWalletType } from '../types/EtherspotTransactionKit';
 
-// utils
-import { isTestnetChainId } from '../utils/common';
+// hooks
+import useEtherspotTransactions from './useEtherspotTransactions';
 
 /**
  * Hook to return wallet address by wallet type
  * @param walletType {IWalletType} - wallet type
  * @param chainId {number} - Chain ID
- * @returns {string | undefined} - wallet address by it's type
+ * @returns {string | undefined} - wallet address by its type
  */
 const useWalletAddress = (walletType: IWalletType = 'etherspot', chainId: number = 1): string | undefined => {
   const [walletAddress, setWalletAddress] = useState<(string | undefined)>(undefined);
-  const { connect, getSdkForChainId, provider, providerWalletAddress } = useEtherspot();
+  const { connect, getSdkForChainId, providerWalletAddress } = useEtherspot();
+  const { getEtherspotPrimeSdkForChainId } = useEtherspotTransactions();
 
   useEffect(() => {
     let shouldUpdate = true;
@@ -44,12 +44,15 @@ const useWalletAddress = (walletType: IWalletType = 'etherspot', chainId: number
           return;
         }
 
+        const etherspotPrimeSdk = await getEtherspotPrimeSdkForChainId(chainId);
+        if (!etherspotPrimeSdk) {
+          console.warn(`Unable to get Etherspot Prime SDK for chain ID ${chainId}`);
+          setWalletAddress(undefined);
+          return;
+        }
+
         try {
           // @ts-ignore
-          const etherspotPrimeSdk = new PrimeSdk(provider, {
-            networkName: etherspotNetwork.name,
-            env: isTestnetChainId(etherspotNetwork.chainId) ? EnvNames.TestNets : EnvNames.MainNets,
-          });
           updatedWalletAddress = await etherspotPrimeSdk.getCounterFactualAddress();
         } catch (e) {
           console.warn(

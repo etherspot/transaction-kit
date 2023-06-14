@@ -1,4 +1,5 @@
 import { createContext, Dispatch, SetStateAction } from 'react';
+import { PrimeSdk } from 'etherspot-prime';
 
 // types
 import { IBatches, IEstimatedBatches, ISentBatches } from '../types/EtherspotTransactionKit';
@@ -10,6 +11,7 @@ export interface IEtherspotTransactionKitContext {
     batches: IBatches[];
     estimate: (batchesIds?: string[]) => Promise<IEstimatedBatches[]>;
     send: (batchesIds?: string[]) => Promise<ISentBatches[]>;
+    getEtherspotPrimeSdkForChainId: (chainId: number, force?: boolean) => Promise<PrimeSdk | null>;
   },
   setGroupedBatchesPerId: Dispatch<SetStateAction<TypePerId<IBatches>>>;
 }
