@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.2] - 2023-06-14
+
+### Added
+- Added fixes and improvements how Etherspot Prime SDK is created and handled
+- Added `userOpHash` and `via` type to `SentBatches` type to to able to tell if it is
+`etherspot` `batchHash` or `etherspot-prime` `userOpHash`
+
 ## [0.3.1] - 2023-06-13
 
 ### Added
