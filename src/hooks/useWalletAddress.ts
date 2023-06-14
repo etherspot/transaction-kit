@@ -74,7 +74,7 @@ const useWalletAddress = (walletType: IWalletType = 'etherspot', chainId: number
     updateWalletAddress();
 
     return () => { shouldUpdate = false; }
-  }, [getSdkForChainId, connect]);
+  }, [getSdkForChainId, getEtherspotPrimeSdkForChainId, connect]);
 
   return walletAddress;
 };
