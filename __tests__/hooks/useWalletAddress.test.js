@@ -4,7 +4,8 @@ import { ethers } from 'ethers';
 // hooks
 import { EtherspotTransactionKit, useWalletAddress } from '../../src';
 
-const provider = new ethers.Wallet.createRandom();
+const ethersProvider = new ethers.providers.JsonRpcProvider('http://localhost:8545', 'goerli'); // replace with your node's RPC URL
+const provider = new ethers.Wallet.createRandom().connect(ethersProvider);
 
 const etherspotAddress = '0x7F30B1960D5556929B03a0339814fE903c55a347';
 const etherspotPrimeAddress = '0x07ff85757f5209534EB601E1CA60d72807ECE0bC';
