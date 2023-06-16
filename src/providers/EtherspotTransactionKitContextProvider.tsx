@@ -1,7 +1,7 @@
 import { useEtherspot } from '@etherspot/react-etherspot';
 import React, { useCallback, useMemo, useState } from 'react';
-import { PrimeSdk } from 'etherspot-prime';
-import { AccountStates, EnvNames, isWalletProvider, NETWORK_NAME_TO_CHAIN_ID, Web3WalletProvider } from 'etherspot';
+import { PrimeSdk, isWalletProvider, Web3WalletProvider } from '@etherspot/prime-sdk';
+import { AccountStates } from 'etherspot';
 import { ethers } from 'ethers';
 
 // contexts
@@ -70,10 +70,10 @@ const EtherspotTransactionKitContextProvider = ({ children, chainId = 1 }: Ether
           }
 
           try {
-            if (!forSending) await etherspotPrimeSdkForChainId.clearTransactionsFromBatch();
+            if (!forSending) await etherspotPrimeSdkForChainId.clearUserOpsFromBatch();
 
             await Promise.all(batch.transactions.map(async ({ to, value, data }) => {
-              await etherspotPrimeSdkForChainId.addTransactionToBatch(({ to, value, data }));
+              await etherspotPrimeSdkForChainId.addUserOpsToBatch(({ to, value, data }));
             }));
 
             // TODO: add actual estimation when available on Etherspot Prime
@@ -131,13 +131,6 @@ const EtherspotTransactionKitContextProvider = ({ children, chainId = 1 }: Ether
       return null;
     }
 
-    const networkNames = Object.keys(NETWORK_NAME_TO_CHAIN_ID);
-    const matchingNetworkName = networkNames.find((networkName) => NETWORK_NAME_TO_CHAIN_ID[networkName] === sdkChainId);
-    if (!matchingNetworkName) {
-      console.warn(`No matching network name for Etherspot Prime chain ID ${sdkChainId}`);
-      return null;
-    }
-
     let mappedProvider;
 
     try {
@@ -160,15 +153,18 @@ const EtherspotTransactionKitContextProvider = ({ children, chainId = 1 }: Ether
       console.warn('Failed to refresh Etherspot Prime provider', e);
     }
 
-    // @ts-ignore
-    const sdkForChain = new PrimeSdk(mappedProvider, {
-      networkName: matchingNetworkName,
-      env: isTestnetChainId(sdkChainId) ? EnvNames.TestNets : EnvNames.MainNets,
-    });
+    let sdkForChain = null;
 
-    etherspotPrimeSdkPerChain = {
-      ...etherspotPrimeSdkPerChain,
-      [sdkChainId]: sdkForChain,
+    try {
+      // @ts-ignore
+      sdkForChain = new PrimeSdk(mappedProvider, { chainId: sdkChainId });
+
+      etherspotPrimeSdkPerChain = {
+        ...etherspotPrimeSdkPerChain,
+        [sdkChainId]: sdkForChain,
+      }
+    } catch (e) {
+      console.warn('Failed to create Etherspot Prime SDK', e);
     }
 
     return sdkForChain;
@@ -188,7 +184,7 @@ const EtherspotTransactionKitContextProvider = ({ children, chainId = 1 }: Ether
       if (via === 'etherspot-prime') {
         const etherspotPrimeSdkForChainId = await getEtherspotPrimeSdkForChainId(batchChainId);
         if (!etherspotPrimeSdkForChainId) return;
-        await etherspotPrimeSdkForChainId.clearTransactionsFromBatch();
+        await etherspotPrimeSdkForChainId.clearUserOpsFromBatch();
         return;
       }
 

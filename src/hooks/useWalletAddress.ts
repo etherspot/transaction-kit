@@ -37,13 +37,6 @@ const useWalletAddress = (walletType: IWalletType = 'etherspot', chainId: number
 
         updatedWalletAddress = sdkForChainId?.state?.account?.address;
       } else if (walletType === 'etherspot-prime') {
-        const etherspotNetwork = sdkForChainId?.state?.network;
-        if (!etherspotNetwork) {
-          console.warn(`Unable to get network for Etherspot chain ID ${chainId}`);
-          setWalletAddress(undefined);
-          return;
-        }
-
         const etherspotPrimeSdk = await getEtherspotPrimeSdkForChainId(chainId);
         if (!etherspotPrimeSdk) {
           console.warn(`Unable to get Etherspot Prime SDK for chain ID ${chainId}`);
@@ -55,12 +48,7 @@ const useWalletAddress = (walletType: IWalletType = 'etherspot', chainId: number
           // @ts-ignore
           updatedWalletAddress = await etherspotPrimeSdk.getCounterFactualAddress();
         } catch (e) {
-          console.warn(
-            `Unable to get wallet address for Etherspot-Prime type `
-            + `at network ${etherspotNetwork.name} ID ${etherspotNetwork.chainId}. `
-            + `Received error: `,
-            e
-          );
+          console.warn(`Unable to get wallet address for etherspot-prime type for chainId ID ${chainId}. `, e);
         }
       } else if (walletType === 'provider') {
         updatedWalletAddress = providerWalletAddress;
