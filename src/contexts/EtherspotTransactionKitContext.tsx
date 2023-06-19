@@ -1,5 +1,5 @@
 import { createContext, Dispatch, SetStateAction } from 'react';
-import { PrimeSdk } from 'etherspot-prime';
+import { PrimeSdk } from '@etherspot/prime-sdk';
 
 // types
 import { IBatches, IEstimatedBatches, ISentBatches } from '../types/EtherspotTransactionKit';
