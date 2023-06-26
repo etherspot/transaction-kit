@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.4.0] - 2023-06-16
+
+### Added
+- Added updated Etherspot Prime SDK that solves multiple issues within their SDK
+
 ## [0.3.2] - 2023-06-14
 
 ### Added
