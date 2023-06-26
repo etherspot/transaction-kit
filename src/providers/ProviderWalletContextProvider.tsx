@@ -17,13 +17,12 @@ import { switchWalletProviderToChain } from '../utils/common';
 
 interface ProviderWalletContextProviderProps {
   children?: React.ReactNode;
-  chainId?: number | undefined;
 }
 
-const ProviderWalletContextProvider = ({ children, chainId = 1 }: ProviderWalletContextProviderProps) => {
+const ProviderWalletContextProvider = ({ children }: ProviderWalletContextProviderProps) => {
   const [transactionById, setTransactionById] = useState<{ [id: string]: IProviderWalletTransaction | undefined }>({});
   const [web3Provider, setWeb3Provider] = useState<undefined | Web3WalletProvider>(undefined);
-  const { provider } = useEtherspot();
+  const { provider, chainId } = useEtherspot();
 
   useEffect(() => {
     let shouldUpdate = true;

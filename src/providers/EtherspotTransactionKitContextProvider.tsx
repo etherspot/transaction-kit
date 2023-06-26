@@ -15,7 +15,6 @@ import { EstimatedBatch, IBatch, IBatches, IEstimatedBatches, ISentBatches, Sent
 import { TypePerId } from '../types/Helper';
 
 interface EtherspotTransactionKitContextProviderProps {
-  chainId?: number | undefined;
   children?: React.ReactNode;
 }
 
@@ -23,8 +22,8 @@ let isSdkConnecting: Promise<any> | undefined;
 
 let etherspotPrimeSdkPerChain: { [chainId: number]: PrimeSdk } = {};
 
-const EtherspotTransactionKitContextProvider = ({ children, chainId = 1 }: EtherspotTransactionKitContextProviderProps) => {
-  const { getSdkForChainId, connect, provider } = useEtherspot();
+const EtherspotTransactionKitContextProvider = ({ children }: EtherspotTransactionKitContextProviderProps) => {
+  const { getSdkForChainId, connect, provider, chainId } = useEtherspot();
   const [groupedBatchesPerId, setGroupedBatchesPerId] = useState<TypePerId<IBatches>>({});
 
   const connectToSdkForChainIfNeeded = async (chainId: number) => {

@@ -13,8 +13,8 @@ interface EtherspotTransactionKitProps extends React.PropsWithChildren {
 
 const EtherspotTransactionKit = ({ children, provider, chainId = 1 }: EtherspotTransactionKitProps) => (
   <EtherspotSdkContextProvider provider={provider} chainId={chainId}>
-    <EtherspotTransactionKitContextProvider chainId={chainId}>
-      <ProviderWalletContextProvider chainId={chainId}>
+    <EtherspotTransactionKitContextProvider>
+      <ProviderWalletContextProvider>
         {children}
       </ProviderWalletContextProvider>
     </EtherspotTransactionKitContextProvider>
