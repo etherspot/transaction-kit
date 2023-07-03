@@ -25,6 +25,7 @@
     "@etherspot/react-etherspot": "^1.2.0",
     "buffer": "^6.0.3",
     "ethereumjs-util": "^7.1.5",
+    "ethers": "^5.6.9",
     "etherspot": "^1.41.2",
     "@etherspot/prime-sdk": "^1.0.1",
     "lodash.uniq": "^4.5.0",
