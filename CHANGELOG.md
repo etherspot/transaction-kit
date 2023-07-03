@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.4.2] - 2023-07-03
+
+### Added
+- Updated `@etherspot/react-etherspot` to version `1.2.0` with `provider` state update fixes
+- Added Etherspot Prime SDK saved instances fix to support `provider` change
+
 ## [0.4.1] - 2023-06-26
 
 ### Added
