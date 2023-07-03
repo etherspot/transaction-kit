@@ -2,6 +2,7 @@ import { AccountTypes, StepTransaction } from 'etherspot';
 import { useEtherspot } from '@etherspot/react-etherspot';
 import { BigNumber } from 'ethers';
 import { Route } from '@lifi/sdk';
+import { useMemo } from 'react';
 
 // types
 import { ICrossChainSwapOffers, ISameChainSwapOffers } from '../types/EtherspotTransactionKit';
@@ -23,21 +24,26 @@ interface IEtherspotSwapsHook {
 
 /**
  * Hook to fetch Etherspot aggregated offers for same-chain and cross-chain swaps
- * @param chainId {number} - Source Chain ID
+ * @param chainId {number | undefined} - Source Chain ID
  * @returns {IEtherspotSwapsHook} - hook method to fetch Etherspot aggregated offers for same-chain and cross-chain swaps
  */
-const useEtherspotSwaps = (chainId: number = 1): IEtherspotSwapsHook => {
-  const { connect, getSdkForChainId } = useEtherspot();
+const useEtherspotSwaps = (chainId?: number): IEtherspotSwapsHook => {
+  const { connect, getSdkForChainId, chainId: defaultChainId } = useEtherspot();
+
+  const swapsChainId = useMemo(() => {
+    if (chainId) return chainId;
+    return defaultChainId;
+  }, [chainId, defaultChainId]);
 
   const prepareCrossChainOfferTransactions = async (offer: Route): Promise<StepTransaction[] | undefined> => {
-    const sdkForChainId = getSdkForChainId(chainId);
+    const sdkForChainId = getSdkForChainId(swapsChainId);
     if (!sdkForChainId) {
-      console.warn(`Unable to get SDK for chain ID ${chainId}`);
+      console.warn(`Unable to get SDK for chain ID ${swapsChainId}`);
       return;
     }
 
     if (sdkForChainId?.state?.account?.type !== AccountTypes.Contract) {
-      await connect(chainId);
+      await connect(swapsChainId);
     }
 
     try {
@@ -58,9 +64,9 @@ const useEtherspotSwaps = (chainId: number = 1): IEtherspotSwapsHook => {
     toTokenAddress: string,
     toChainId?: number,
   ): Promise<ISameChainSwapOffers | ICrossChainSwapOffers | undefined> => {
-    const sdkForChainId = getSdkForChainId(chainId);
+    const sdkForChainId = getSdkForChainId(swapsChainId);
     if (!sdkForChainId) {
-      console.warn(`Unable to get SDK for chain ID ${chainId}`);
+      console.warn(`Unable to get SDK for chain ID ${swapsChainId}`);
       return;
     }
 
@@ -71,7 +77,7 @@ const useEtherspotSwaps = (chainId: number = 1): IEtherspotSwapsHook => {
     if (toChainId && toChainId !== chainId) {
       try {
         const { items: offers } = await sdkForChainId.getAdvanceRoutesLiFi({
-          fromChainId: chainId,
+          fromChainId: swapsChainId,
           toChainId,
           fromAmount,
           fromTokenAddress,

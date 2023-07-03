@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.4.1] - 2023-06-26
+
+### Added
+- Added updated Etherspot Prime SDK that supports Arbitrum chain
+- Added improvements how `chainId` is handled
+
 ## [0.4.0] - 2023-06-16
 
 ### Added

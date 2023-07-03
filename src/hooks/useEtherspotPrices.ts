@@ -1,5 +1,6 @@
 import { useEtherspot } from '@etherspot/react-etherspot';
 import { AccountTypes, RateInfo } from 'etherspot';
+import { useMemo } from 'react';
 
 /**
  * @typedef {Object} IEtherspotPricesHook
@@ -13,21 +14,26 @@ interface IEtherspotPricesHook {
 
 /**
  * Hook to fetch asset prices from Etherspot
- * @param chainId {number} - Chain ID
+ * @param chainId {number | undefined} - Chain ID
  * @returns {IEtherspotPricesHook} - hook method to fetch prices from Etherspot
  */
-const useEtherspotPrices = (chainId: number = 1): IEtherspotPricesHook => {
-  const { connect, getSdkForChainId } = useEtherspot();
+const useEtherspotPrices = (chainId?: number): IEtherspotPricesHook => {
+  const { connect, getSdkForChainId, chainId: etherspotChainId } = useEtherspot();
 
-  const getPrice = async (assetAddress: string, assetChainId: number = chainId) => {
+  const defaultChainId = useMemo(() => {
+    if (chainId) return chainId;
+    return etherspotChainId;
+  }, [chainId, etherspotChainId]);
+
+  const getPrice = async (assetAddress: string, assetChainId: number = defaultChainId) => {
     const [price] = await getPrices([assetAddress], assetChainId);
     return price;
   }
 
-  const getPrices = async (assetAddresses: string[], assetsChainId: number = chainId) => {
+  const getPrices = async (assetAddresses: string[], assetsChainId: number = defaultChainId) => {
     const sdkForChainId = getSdkForChainId(assetsChainId);
     if (!sdkForChainId) {
-      console.warn(`Unable to get SDK for chain ID ${chainId}`);
+      console.warn(`Unable to get SDK for chain ID ${assetsChainId}`);
       return [];
     }
 
