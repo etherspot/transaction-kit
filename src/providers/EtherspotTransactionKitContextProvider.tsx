@@ -1,5 +1,5 @@
 import { useEtherspot } from '@etherspot/react-etherspot';
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { PrimeSdk, isWalletProvider, Web3WalletProvider } from '@etherspot/prime-sdk';
 import { AccountStates } from 'etherspot';
 import { ethers } from 'ethers';
@@ -121,6 +121,11 @@ const EtherspotTransactionKitContextProvider = ({ children }: EtherspotTransacti
       return { ...groupedBatch, estimatedBatches };
     }));
   }
+
+  useEffect(() => {
+    // reset prime sdk instances on provider change
+    etherspotPrimeSdkPerChain = {};
+  }, [provider]);
 
   const getEtherspotPrimeSdkForChainId = useCallback(async (sdkChainId: number, forceNewInstance: boolean = false) => {
     if (etherspotPrimeSdkPerChain[sdkChainId] && !forceNewInstance) return etherspotPrimeSdkPerChain[sdkChainId];
