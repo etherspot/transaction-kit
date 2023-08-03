@@ -3,7 +3,7 @@
 ## [0.4.6] - 2023-08-03
 
 ### Added
-- Updated `@etherspot/prime-sdk` to version `1.1.2`
+- Chore on `@etherspot/prime-sdk` version `1.1.1`
 
 ## [0.4.5] - 2023-07-27
 
