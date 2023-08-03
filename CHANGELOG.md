@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.4.5] - 2023-07-27
+
+### Added
+- Updated `@etherspot/prime-sdk` to version `1.1.1`
+
+## [0.4.4] - 2023-07-25
+
+### Fixes
+- Fixed transaction sending after recent `@etherspot/prime-sdk` update to version `1.1.0`
+
+## [0.4.3] - 2023-07-25
+
+### Added
+- Updated `@etherspot/prime-sdk` to version `1.1.0`
+
 ## [0.4.2] - 2023-07-03
 
 ### Added
