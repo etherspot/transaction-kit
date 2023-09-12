@@ -18,12 +18,6 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           file-name: ./package.json
-      - name: Verify Changelog changes
-        uses: tj-actions/verify-changed-files@v14
-        id: verify-changed-files
-        with:
-          files: |
-            CHANGELOG.md
       - name: Log when package version changed
         if: steps.check.outputs.changed == 'true'
         run: 'echo "Yayy!! Version change found in commit ${{ steps.check.outputs.commit }}! New version: ${{ steps.check.outputs.version }} (${{ steps.check.outputs.type }})"'
@@ -37,13 +31,14 @@ jobs:
       - name: Exit if package version is not changed
         if: steps.check.outputs.changed == 'false'
         run: echo "No version change :/ Please update version in package.json!" && exit 1
-      - name: Log when CHANGELOG.md is updated
-        if: steps.verify-changed-files.outputs.files_changed == 'true'
-        run: 'echo "Yayy!! CHANGELOG.md is updated!"'
-      - name: Log when CHANGELOG.md is not updated
-        if: steps.verify-changed-files.outputs.files_changed == 'false'
-        uses: mshick/add-pr-comment@v2
-        with:
-          message: |
-            **Hello, Please add your changes to CHANGELOG.md**
-          allow-repeats: true
+      - name: Check if CHANGELOG.md is updated
+        id: changelog-status
+        run: |
+          git fetch origin ${{ github.base_ref }}:${{ github.base_ref }}
+          changed_files=$(git diff --name-only ${{ github.base_ref }} ${{ github.sha }} | grep CHANGELOG.md)
+          if [ -n "$changed_files" ]; then
+            echo "CHANGELOG.md has been changed."
+            echo "$changed_files"
+          else
+            echo "CHANGELOG.md has not been changed." && exit 1
+          fi
