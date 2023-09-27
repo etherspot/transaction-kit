@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.4.8] - 2023-09-27
+
+### Added
+- Updated `@etherspot/prime-sdk` to version `1.2.10`
+
 ## [0.4.7] - 2023-09-27
 
 ### Fixes
