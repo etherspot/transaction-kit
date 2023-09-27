@@ -1,5 +1,4 @@
 import { ethers } from 'ethers';
-import { toChecksumAddress } from 'ethereumjs-util';
 import { isValidEip1271Signature } from '@etherspot/eip1271-verification-util';
 
 // utils
@@ -26,7 +25,10 @@ interface IEtherspotUtilsHook {
 const useEtherspotUtils = (): IEtherspotUtilsHook => {
 
   const checksumAddress = (address: string) => {
-    return toChecksumAddress(address);
+    if (!ethers.utils.isAddress(address)) {
+      throw new Error('Invalid address');
+    }
+    return ethers.utils.getAddress(address.toLowerCase());
   }
 
   const verifyEip1271Message = async (
