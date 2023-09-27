@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.4.7] - 2023-09-27
+
+### Fixes
+- Updated `@etherspot/prime-sdk` to version `1.2.9`
+- Removed `ethereumjs-util` dependency
+- Updated address `checksum` util and tests
+- Made library compatible with latest `react-scripts` (5.0.1)
+
+## [0.4.6] - 2023-08-03
+
+### Added
+- Chore on `@etherspot/prime-sdk` version `1.1.1`
+
 ## [0.4.5] - 2023-07-27
 
 ### Added

@@ -1,12 +1,12 @@
 {
   "name": "@etherspot/transaction-kit",
   "description": "React Etherspot Transaction Kit",
-  "version": "0.4.5",
+  "version": "0.4.7",
   "main": "dist/cjs/index.js",
   "scripts": {
     "rollup:build": "NODE_OPTIONS=--max-old-space-size=8192 rollup -c",
     "rollup:watch": "rimraf ./node_modules/react ./node_modules/react-dom && rollup -c -w",
-    "test": "jest --silent",
+    "test": "jest __tests__ --silent",
     "test:watch": "jest --watch"
   },
   "repository": {
@@ -24,10 +24,9 @@
     "@etherspot/eip1271-verification-util": "^0.1.2",
     "@etherspot/react-etherspot": "^1.2.0",
     "buffer": "^6.0.3",
-    "ethereumjs-util": "^7.1.5",
     "ethers": "^5.6.9",
     "etherspot": "^1.41.2",
-    "@etherspot/prime-sdk": "^1.1.1",
+    "@etherspot/prime-sdk": "^1.2.9",
     "lodash.uniq": "^4.5.0",
     "react": ">=18.2.0",
     "reflect-metadata": "^0.1.13",
