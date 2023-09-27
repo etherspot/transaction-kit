@@ -7,6 +7,14 @@ dotenv.config();
 
 const packageJson = require('./package.json');
 
+const external = [
+  'etherspot',
+  '@etherspot/prime-sdk',
+  'ethers',
+  'react',
+  'buffer',
+];
+
 export default [
   {
     input: 'src/index.ts',
@@ -32,12 +40,7 @@ export default [
         preventAssignment: true,
       }),
     ],
-    external: [
-      ...Object.keys(packageJson.dependencies || {}),
-      ...Object.keys(packageJson.peerDependencies || {}),
-      'etherspot',
-      'ethers',
-    ],
+    external,
     watch: {
       clearScreen: false,
       include: 'src/**',
@@ -47,12 +50,7 @@ export default [
     input: 'dist/esm/index.d.ts',
     output: [{ file: 'dist/index.d.ts', format: 'esm' }],
     plugins: [dts()],
-    external: [
-      ...Object.keys(packageJson.dependencies || {}),
-      ...Object.keys(packageJson.peerDependencies || {}),
-      'etherspot',
-      'ethers',
-    ],
+    external,
     watch: {
       clearScreen: false,
       include: 'src/**',

@@ -13,11 +13,22 @@ describe('useEtherspotUtils()', () => {
   });
 
   describe('checksumAddress()', () => {
-    it('returns checksum address', () => {
+     it('throws error when invalid address provided', () => {
+      const checkInvalidAddress = () => hookUtils.checksumAddress('0xsomeInvalidAddress');
+      expect(checkInvalidAddress).toThrow('Invalid address');
+    });
+
+    it('returns checksum address when non checksum provided', () => {
       const walletAddress = '0x7f30b1960D5556929B03a0339814fE903c55a347';
-      const checksumAddress = hookUtils.checksumAddress(walletAddress);
+      const checksumAddress = hookUtils.checksumAddress(walletAddress.toLowerCase());
       expect(walletAddress).not.toEqual(checksumAddress);
       expect(checksumAddress).toEqual('0x7F30B1960D5556929B03a0339814fE903c55a347');
+    });
+
+    it('returns checksum address when checksum provided', () => {
+      const walletAddress = '0x7F30B1960D5556929B03a0339814fE903c55a347';
+      const checksumAddress = hookUtils.checksumAddress(walletAddress);
+      expect(walletAddress).toEqual(checksumAddress);
     });
   });
 
