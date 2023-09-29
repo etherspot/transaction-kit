@@ -226,7 +226,7 @@ const EtherspotTransactionKitContextProvider = ({ children }: EtherspotTransacti
           }
 
           try {
-            const estimated = await etherspotPrimeSdkForChainId.estimate();
+            const estimated = await etherspotPrimeSdkForChainId.estimate(estimatedBatches.paymaster);
             const userOpHash = await etherspotPrimeSdkForChainId.send(estimated);
             sentBatches.push({ ...estimatedBatch, via, userOpHash });
           } catch (e) {

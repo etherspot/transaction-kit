@@ -2,6 +2,7 @@ import { Fragment, JsonFragment } from '@ethersproject/abi/src.ts/fragments';
 import { BigNumber, BigNumberish } from 'ethers';
 import { ExchangeOffer } from 'etherspot';
 import { Route } from '@lifi/sdk';
+import { PaymasterApi } from '@etherspot/prime-sdk';
 
 export interface ITransaction {
   id?: string;
@@ -43,20 +44,28 @@ export type SentBatch = {
   errorMessage?: string;
 } & (EtherspotSentBatch | EtherspotPrimeSentBatch);
 
-export interface IBatches {
+export type IBatches = IDefaultBatches<undefined>
+  | IDefaultBatches<'etherspot'>
+  | (IDefaultBatches<'etherspot-prime'> & IEtherspotPrimeBatchesExtra);
+
+interface IDefaultBatches<T extends IBatchesWalletType | undefined> {
   id?: string;
   batches?: IBatch[];
   onEstimated?: (estimated: EstimatedBatch[]) => void;
   onSent?: (sent: SentBatch[]) => void;
   skip?: boolean;
-  via?: IBatchesWalletType;
+  via?: T;
 }
 
-export interface IEstimatedBatches extends IBatches {
+interface IEtherspotPrimeBatchesExtra {
+  paymaster?: PaymasterApi,
+}
+
+export type IEstimatedBatches = IBatches & {
   estimatedBatches: EstimatedBatch[];
 }
 
-export interface ISentBatches extends IEstimatedBatches {
+export type ISentBatches = IEstimatedBatches & {
   sentBatches: SentBatch[];
 }
 
