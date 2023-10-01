@@ -44,8 +44,7 @@ export type SentBatch = {
   errorMessage?: string;
 } & (EtherspotSentBatch | EtherspotPrimeSentBatch);
 
-export type IBatches = IDefaultBatches<undefined>
-  | IDefaultBatches<'etherspot'>
+export type IBatches = IDefaultBatches<undefined | 'etherspot'>
   | (IDefaultBatches<'etherspot-prime'> & IEtherspotPrimeBatchesExtra);
 
 interface IDefaultBatches<T extends IBatchesWalletType | undefined> {
