@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.4.9] - 2023-09-29
+
+### Added
+- Updated `@etherspot/prime-sdk` to version `1.2.11`
+- Added `paymaster` prop to `<EtherspotBatches />` which is used for setting custom `paymaster` sent via `etherspot-prime` provider
+
 ## [0.4.8] - 2023-09-27
 
 ### Added
