@@ -1,4 +1,5 @@
 import React, { useContext, useEffect, useState } from 'react';
+import { PaymasterApi } from '@etherspot/prime-sdk';
 
 // contexts
 import EtherspotTransactionKitContext from '../contexts/EtherspotTransactionKitContext';
@@ -15,11 +16,19 @@ import { getObjectSortedByKeys } from '../utils/common';
 // hooks
 import useId from '../hooks/useId';
 
-interface EtherspotBatchesProps extends IBatches {
+type EtherspotBatchesProps = IBatches & {
   children?: React.ReactNode;
 }
 
-const EtherspotBatches = ({ children, skip, onEstimated, onSent, id: batchesId, via }: EtherspotBatchesProps) => {
+const EtherspotBatches = (props: EtherspotBatchesProps) => {
+  let paymaster: PaymasterApi | undefined;
+
+  const { children, skip, onEstimated, onSent, id: batchesId, via } = props;
+
+  if (via === 'etherspot-prime') {
+    paymaster = props.paymaster;
+  }
+
   const context = useContext(EtherspotTransactionKitContext);
   const existingBatchesContext = useContext(EtherspotBatchesContext);
   const existingBatchContext = useContext(EtherspotBatchContext);
@@ -40,7 +49,7 @@ const EtherspotBatches = ({ children, skip, onEstimated, onSent, id: batchesId, 
   }
 
   useEffect(() => {
-    const groupedBatch = {
+    let groupedBatch: IBatches = {
       id: batchesId ?? componentId,
       skip,
       batches: getObjectSortedByKeys(batchesPerId),
@@ -48,6 +57,10 @@ const EtherspotBatches = ({ children, skip, onEstimated, onSent, id: batchesId, 
       onSent,
       via,
     };
+
+    if (groupedBatch.via === 'etherspot-prime') {
+      groupedBatch = { ...groupedBatch, paymaster };
+    }
 
     context.setGroupedBatchesPerId((current) => ({ ...current, [componentId]: groupedBatch }));
 
@@ -57,7 +70,7 @@ const EtherspotBatches = ({ children, skip, onEstimated, onSent, id: batchesId, 
         return current;
       });
     }
-  }, [componentId, batchesPerId, skip, batchesId, via]);
+  }, [componentId, batchesPerId, skip, batchesId, via, paymaster]);
 
   return (
     <EtherspotBatchesContext.Provider value={{ setBatchesPerId }}>
