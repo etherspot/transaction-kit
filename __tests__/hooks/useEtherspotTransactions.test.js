@@ -62,7 +62,7 @@ describe('useEtherspotTransactions()', () => {
             />
           </EtherspotBatch>
         </EtherspotBatches>
-        <EtherspotBatches via={'etherspot-prime'} paymaster={{ url: 'someUrl', api_key: 'someApiKey' }}>
+        <EtherspotBatches via={'etherspot-prime'} paymaster={{ url: 'someUrl', api_key: 'someApiKey' }} addressTemplate={'zeroDev'}>
           <EtherspotBatch chainId={69}>
             <EtherspotTransaction
               to={'0x420'}
@@ -100,6 +100,7 @@ describe('useEtherspotTransactions()', () => {
     expect(current.batches[2].batches[0].transactions[0].data).toBe('0x69420');
     expect(current.batches[2].batches[0].transactions[0].value.toJSON()).toStrictEqual({ 'hex': '0x03bd913e6c1df40000', 'type': 'BigNumber' });
     expect(current.batches[3].paymaster).toStrictEqual({ url: 'someUrl', api_key: 'someApiKey' });
+    expect(current.batches[3].addressTemplate).toStrictEqual('zeroDev');
   });
 
   it('throws an error if <EtherspotBatches /> within <EtherspotBatches />', () => {

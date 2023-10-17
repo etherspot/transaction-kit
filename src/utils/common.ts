@@ -75,3 +75,20 @@ export const switchWalletProviderToChain = async (chainId: number): Promise<{ er
 
   return { errorMessage: 'Failed to switch chain!' };
 };
+export const toEnumSnakeCase = (input: string): string => {
+  return input.replace(/([a-z])([A-Z])/g, '$1_$2').toUpperCase();
+};
+
+export const mapToEnum = (addressTemple: string) => {
+  const enumValues = ['ETHERSPOT', 'ZERO_DEV','SIMPLE_ACCOUNT']; // Replace with your actual ENUM values
+
+  const enumName = toEnumSnakeCase(addressTemple);
+
+  // Check if the enumName exists in the array of enumValues
+  if (enumValues.includes(enumName)) {
+    return enumName;
+  } else {
+    // If it doesn't exist, return the default value "etherspot"
+    return "etherspot";
+  }
+};

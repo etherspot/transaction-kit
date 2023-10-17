@@ -58,6 +58,7 @@ interface IDefaultBatches<T extends IBatchesWalletType | undefined> {
 
 interface IEtherspotPrimeBatchesExtra {
   paymaster?: PaymasterApi,
+  addressTemplate?: string;
 }
 
 export type IEstimatedBatches = IBatches & {

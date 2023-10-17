@@ -11,7 +11,7 @@ import { IBatch, IBatches } from '../types/EtherspotTransactionKit';
 import { TypePerId } from '../types/Helper';
 
 // utils
-import { getObjectSortedByKeys } from '../utils/common';
+import { getObjectSortedByKeys, mapToEnum } from '../utils/common';
 
 // hooks
 import useId from '../hooks/useId';
@@ -22,11 +22,13 @@ type EtherspotBatchesProps = IBatches & {
 
 const EtherspotBatches = (props: EtherspotBatchesProps) => {
   let paymaster: PaymasterApi | undefined;
+  let addressTemplate: string;
 
   const { children, skip, onEstimated, onSent, id: batchesId, via } = props;
 
   if (via === 'etherspot-prime') {
     paymaster = props.paymaster;
+    addressTemplate = props.addressTemplate;
   }
 
   const context = useContext(EtherspotTransactionKitContext);
@@ -58,8 +60,10 @@ const EtherspotBatches = (props: EtherspotBatchesProps) => {
       via,
     };
 
+    addressTemplate = mapToEnum(addressTemplate);
+
     if (groupedBatch.via === 'etherspot-prime') {
-      groupedBatch = { ...groupedBatch, paymaster };
+      groupedBatch = { ...groupedBatch, paymaster, addressTemplate };
     }
 
     context.setGroupedBatchesPerId((current) => ({ ...current, [componentId]: groupedBatch }));
@@ -70,7 +74,7 @@ const EtherspotBatches = (props: EtherspotBatchesProps) => {
         return current;
       });
     }
-  }, [componentId, batchesPerId, skip, batchesId, via, paymaster]);
+  }, [componentId, batchesPerId, skip, batchesId, via, paymaster, addressTemplate]);
 
   return (
     <EtherspotBatchesContext.Provider value={{ setBatchesPerId }}>
