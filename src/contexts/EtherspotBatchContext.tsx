@@ -1,4 +1,4 @@
-import React, { createContext, Dispatch, SetStateAction } from 'react';
+import { createContext, Dispatch, SetStateAction } from 'react';
 
 // types
 import { ITransaction } from '../types/EtherspotTransactionKit';
