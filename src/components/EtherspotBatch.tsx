@@ -18,7 +18,7 @@ interface EtherspotBatchProps extends IBatch {
   children?: React.ReactNode;
 }
 
-const EtherspotBatch = ({ children, chainId, gasTokenAddress, id: batchId }: EtherspotBatchProps) => {
+const EtherspotBatch = ({ children, chainId, id: batchId }: EtherspotBatchProps) => {
   const context = useContext(EtherspotBatchesContext);
   const existingBatchContext = useContext(EtherspotBatchContext);
   const componentId = useId();
@@ -36,7 +36,6 @@ const EtherspotBatch = ({ children, chainId, gasTokenAddress, id: batchId }: Eth
     const batch = {
       id: batchId ?? componentId,
       chainId,
-      gasTokenAddress,
       transactions: getObjectSortedByKeys(transactionsPerId),
     };
 
@@ -48,7 +47,7 @@ const EtherspotBatch = ({ children, chainId, gasTokenAddress, id: batchId }: Eth
         return current;
       });
     }
-  }, [componentId, transactionsPerId, chainId, batchId, gasTokenAddress]);
+  }, [componentId, transactionsPerId, chainId, batchId]);
 
   return (
     <EtherspotBatchContext.Provider value={{ setTransactionsPerId, chainId }}>

@@ -1,5 +1,5 @@
 import { Fragment, JsonFragment } from '@ethersproject/abi/src.ts/fragments';
-import { BigNumber, BigNumberish } from 'ethers';
+import { BigNumber, BigNumberish, BytesLike } from 'ethers';
 import { ExchangeOffer } from 'etherspot';
 import { Route } from '@lifi/sdk';
 import { PaymasterApi } from '@etherspot/prime-sdk';
@@ -22,13 +22,13 @@ export interface IProviderWalletTransaction {
 export interface IBatch {
   id?: string;
   chainId?: number;
-  gasTokenAddress?: string;
   transactions?: ITransaction[];
 }
 
 export interface EstimatedBatch extends IBatch {
   errorMessage?: string;
   cost?: BigNumber;
+  userOp?: UserOp;
 }
 
 export interface EtherspotPrimeSentBatch extends EstimatedBatch {
@@ -106,3 +106,19 @@ export interface IProviderWalletTransactionSent {
 }
 
 export type IWalletType = 'provider' | 'etherspot-prime';
+
+type EtherspotPromiseOrValue<T> = T | Promise<T>;
+
+interface UserOp {
+  sender: EtherspotPromiseOrValue<string>;
+  nonce: EtherspotPromiseOrValue<BigNumberish>;
+  initCode: EtherspotPromiseOrValue<BytesLike>;
+  callData: EtherspotPromiseOrValue<BytesLike>;
+  callGasLimit: EtherspotPromiseOrValue<BigNumberish>;
+  verificationGasLimit: EtherspotPromiseOrValue<BigNumberish>;
+  preVerificationGas: EtherspotPromiseOrValue<BigNumberish>;
+  maxFeePerGas: EtherspotPromiseOrValue<BigNumberish>;
+  maxPriorityFeePerGas: EtherspotPromiseOrValue<BigNumberish>;
+  paymasterAndData: EtherspotPromiseOrValue<BytesLike>;
+  signature: EtherspotPromiseOrValue<BytesLike>;
+}
