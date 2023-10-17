@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.5.1] - 2023-10-17
+
+### Added
+- `react` dependencies chore.
+
 ## [0.5.0] - 2023-10-17
 
 ### Breaking Changes
