@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.5.0] - 2023-10-17
+
+### Breaking Changes
+- Downgraded `react` peer dependency to version `>=16.13.0`
+
 ## [0.4.9] - 2023-09-29
 
 ### Added
