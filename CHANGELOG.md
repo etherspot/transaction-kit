@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.0] - 2023-10-17
+
+### Breaking Changes
+- Removed `etherspot` wallet type from `useWalletAddress` hook
+- Removed `via` prop from `<EtherspotBatches />` component
+- Default `useWalletAddress` and  `<EtherspotBatches />` provider is set to `etherspot-prime`
+
 ## [0.5.0] - 2023-10-17
 
 ### Breaking Changes

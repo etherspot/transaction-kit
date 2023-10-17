@@ -31,32 +31,20 @@ export interface EstimatedBatch extends IBatch {
   cost?: BigNumber;
 }
 
-export interface EtherspotSentBatch extends EstimatedBatch {
-  via: 'etherspot';
-  batchHash?: string;
-}
 export interface EtherspotPrimeSentBatch extends EstimatedBatch {
-  via: 'etherspot-prime';
   userOpHash?: string;
 }
 
 export type SentBatch = {
   errorMessage?: string;
-} & (EtherspotSentBatch | EtherspotPrimeSentBatch);
+} & (EtherspotPrimeSentBatch);
 
-export type IBatches = IDefaultBatches<undefined | 'etherspot'>
-  | (IDefaultBatches<'etherspot-prime'> & IEtherspotPrimeBatchesExtra);
-
-interface IDefaultBatches<T extends IBatchesWalletType | undefined> {
+export interface IBatches {
   id?: string;
   batches?: IBatch[];
   onEstimated?: (estimated: EstimatedBatch[]) => void;
   onSent?: (sent: SentBatch[]) => void;
   skip?: boolean;
-  via?: T;
-}
-
-interface IEtherspotPrimeBatchesExtra {
   paymaster?: PaymasterApi,
 }
 
@@ -117,6 +105,4 @@ export interface IProviderWalletTransactionSent {
   errorMessage?: string;
 }
 
-export type IBatchesWalletType = 'etherspot' | 'etherspot-prime';
-
-export type IWalletType = 'provider' | IBatchesWalletType;
+export type IWalletType = 'provider' | 'etherspot-prime';
