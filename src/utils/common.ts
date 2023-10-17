@@ -1,5 +1,6 @@
 import { ethers } from 'ethers';
 import * as _ from 'lodash';
+import { Factory } from '@etherspot/prime-sdk';
 
 // types
 import { TypePerId } from '../types/Helper';
@@ -79,16 +80,15 @@ export const toEnumSnakeCase = (input: string): string => {
   return input.replace(/([a-z])([A-Z])/g, '$1_$2').toUpperCase();
 };
 
-export const mapToEnum = (addressTemple: string) => {
-  const enumValues = ['ETHERSPOT', 'ZERO_DEV','SIMPLE_ACCOUNT']; // Replace with your actual ENUM values
+export const mapToEnum = (addressTemple: string): Factory => {
 
   const enumName = toEnumSnakeCase(addressTemple);
 
-  // Check if the enumName exists in the array of enumValues
-  if (enumValues.includes(enumName)) {
-    return enumName;
+  // Check if the enumName exists
+  if (Factory[enumName] !== undefined) {
+    return Factory[enumName];
   } else {
-    // If it doesn't exist, return the default value "etherspot"
-    return "etherspot";
+    // If not found, default to 'etherspot'
+    return Factory.ETHERSPOT;
   }
 };
