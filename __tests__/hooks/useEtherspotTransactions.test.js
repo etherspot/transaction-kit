@@ -6,7 +6,7 @@ import { useEtherspotTransactions, EtherspotTransactionKit, EtherspotBatches, Et
 
 const TestSingleBatchComponent = () => (
   <EtherspotBatches>
-    <EtherspotBatch chainId={1} gasTokenAddress={'testGasTokenAddress'}>
+    <EtherspotBatch chainId={1}>
       <EtherspotTransaction
         to={'0x12'}
         data={'0x0'}
@@ -29,7 +29,7 @@ describe('useEtherspotTransactions()', () => {
           test
           <span>
             <EtherspotBatches>
-              <EtherspotBatch chainId={123} gasTokenAddress={'testGasTokenAddress'}>
+              <EtherspotBatch chainId={123}>
                 <EtherspotTransaction
                   to={'0x12'}
                   data={'0x0'}
@@ -75,7 +75,6 @@ describe('useEtherspotTransactions()', () => {
     expect(current.batches.length).toBe(5);
     expect(current.batches[0].batches.length).toBe(1);
     expect(current.batches[0].batches[0].chainId).toBe(123);
-    expect(current.batches[0].batches[0].gasTokenAddress).toBe('testGasTokenAddress');
     expect(current.batches[0].batches[0].transactions.length).toBe(3);
     expect(current.batches[0].batches[0].transactions[1].to).toBe('0x0');
     expect(current.batches[0].batches[0].transactions[1].data).toBe('0xFFF');

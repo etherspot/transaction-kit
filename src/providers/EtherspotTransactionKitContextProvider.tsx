@@ -1,7 +1,6 @@
 import { useEtherspot } from '@etherspot/react-etherspot';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { PrimeSdk, isWalletProvider, Web3WalletProvider } from '@etherspot/prime-sdk';
-import { ethers } from 'ethers';
 
 // contexts
 import EtherspotTransactionKitContext from '../contexts/EtherspotTransactionKitContext';
@@ -67,8 +66,9 @@ const EtherspotTransactionKitContextProvider = ({ children }: EtherspotTransacti
             await etherspotPrimeSdkForChainId.addUserOpsToBatch(({ to, value, data }));
           }));
 
-          // TODO: add actual estimation when available on Etherspot Prime
-          estimatedBatches.push({ ...batch, cost: ethers.BigNumber.from(0) });
+          const userOp = await etherspotPrimeSdkForChainId.estimate(groupedBatch.paymaster);
+          const totalGas = await etherspotPrimeSdkForChainId.totalGasEstimated(userOp);
+          estimatedBatches.push({ ...batch, cost: totalGas, userOp });
         } catch (e) {
           estimatedBatches.push({ ...batch, errorMessage: (e instanceof Error && e.message) || 'Failed to estimate!' });
         }
@@ -172,9 +172,13 @@ const EtherspotTransactionKitContextProvider = ({ children }: EtherspotTransacti
           continue;
         }
 
+        if (!estimatedBatch.userOp) {
+          sentBatches.push({ ...estimatedBatch, errorMessage: 'Failed to get estimated UserOp!' });
+          continue;
+        }
+
         try {
-          const estimated = await etherspotPrimeSdkForChainId.estimate(estimatedBatches.paymaster);
-          const userOpHash = await etherspotPrimeSdkForChainId.send(estimated);
+          const userOpHash = await etherspotPrimeSdkForChainId.send(estimatedBatch.userOp);
           sentBatches.push({ ...estimatedBatch, userOpHash });
         } catch (e) {
           sentBatches.push({ ...estimatedBatch, errorMessage: (e instanceof Error && e.message) || 'Failed to estimate!' });
