@@ -1,6 +1,8 @@
-import { AccountTypes, Transaction } from 'etherspot';
-import { useEtherspot } from '@etherspot/react-etherspot';
+import { Transaction } from '@etherspot/prime-sdk';
 import { useMemo } from 'react';
+
+// hooks
+import useEtherspot from './useEtherspot';
 
 interface IEtherspotHistoryHook {
   getAccountTransactions: (accountAddress?: string) => Promise<Transaction[]>;
@@ -13,7 +15,7 @@ interface IEtherspotHistoryHook {
  * @returns {IEtherspotHistoryHook} - hook methods to fetch Etherspot transactions history
  */
 const useEtherspotHistory = (chainId: number): IEtherspotHistoryHook => {
-  const { connect, getSdkForChainId, chainId: defaultChainId } = useEtherspot();
+  const { connect, getSdk, chainId: defaultChainId, isConnected } = useEtherspot();
 
   const historyChainId = useMemo(() => {
     if (chainId) return chainId;
@@ -21,16 +23,18 @@ const useEtherspotHistory = (chainId: number): IEtherspotHistoryHook => {
   }, [chainId, defaultChainId]);
 
   const getAccountTransactions = async (accountAddress?: string): Promise<Transaction[]> => {
-    const sdkForChainId = getSdkForChainId(historyChainId);
+    const sdkForChainId = getSdk(historyChainId);
     if (!sdkForChainId) return [];
 
-    if (sdkForChainId?.state?.account?.type !== AccountTypes.Contract) {
+    if (!isConnected(historyChainId)) {
       await connect(historyChainId);
     }
 
     let transactions: Transaction[] = [];
 
     try {
+      // TODO: fix once available on Prime SDK
+      // @ts-ignore
       ({ items: transactions } = await sdkForChainId.getTransactions({
         account: accountAddress ?? sdkForChainId.state.account.address,
       }));
@@ -47,10 +51,10 @@ const useEtherspotHistory = (chainId: number): IEtherspotHistoryHook => {
   };
 
   const getAccountTransaction = async (hash: string): Promise<Transaction | undefined> => {
-    const sdkForChainId = getSdkForChainId(historyChainId);
+    const sdkForChainId = getSdk(historyChainId);
     if (!sdkForChainId) return;
 
-    if (sdkForChainId?.state?.account?.type !== AccountTypes.Contract) {
+    if (!isConnected(historyChainId)) {
       await connect(historyChainId);
     }
 

@@ -1,11 +1,13 @@
-import { AccountTypes, StepTransaction } from 'etherspot';
-import { useEtherspot } from '@etherspot/react-etherspot';
+import { StepTransaction } from '@etherspot/prime-sdk';
+import { Route } from '@lifi/types';
 import { BigNumber } from 'ethers';
-import { Route } from '@lifi/sdk';
 import { useMemo } from 'react';
 
 // types
 import { ICrossChainSwapOffers, ISameChainSwapOffers } from '../types/EtherspotTransactionKit';
+
+// hopoks
+import useEtherspot from './useEtherspot';
 
 /**
  * @typedef {Object} IEtherspotSwapsHook
@@ -28,7 +30,7 @@ interface IEtherspotSwapsHook {
  * @returns {IEtherspotSwapsHook} - hook method to fetch Etherspot aggregated offers for same-chain and cross-chain swaps
  */
 const useEtherspotSwaps = (chainId?: number): IEtherspotSwapsHook => {
-  const { connect, getSdkForChainId, chainId: defaultChainId } = useEtherspot();
+  const { connect, getSdk, chainId: defaultChainId, isConnected } = useEtherspot();
 
   const swapsChainId = useMemo(() => {
     if (chainId) return chainId;
@@ -36,13 +38,13 @@ const useEtherspotSwaps = (chainId?: number): IEtherspotSwapsHook => {
   }, [chainId, defaultChainId]);
 
   const prepareCrossChainOfferTransactions = async (offer: Route): Promise<StepTransaction[] | undefined> => {
-    const sdkForChainId = getSdkForChainId(swapsChainId);
+    const sdkForChainId = getSdk(swapsChainId);
     if (!sdkForChainId) {
       console.warn(`Unable to get SDK for chain ID ${swapsChainId}`);
       return;
     }
 
-    if (sdkForChainId?.state?.account?.type !== AccountTypes.Contract) {
+    if (!isConnected(swapsChainId)) {
       await connect(swapsChainId);
     }
 
@@ -64,14 +66,14 @@ const useEtherspotSwaps = (chainId?: number): IEtherspotSwapsHook => {
     toTokenAddress: string,
     toChainId?: number,
   ): Promise<ISameChainSwapOffers | ICrossChainSwapOffers | undefined> => {
-    const sdkForChainId = getSdkForChainId(swapsChainId);
+    const sdkForChainId = getSdk(swapsChainId);
     if (!sdkForChainId) {
       console.warn(`Unable to get SDK for chain ID ${swapsChainId}`);
       return;
     }
 
-    if (sdkForChainId?.state?.account?.type !== AccountTypes.Contract) {
-      await connect(chainId);
+    if (!isConnected(swapsChainId)) {
+      await connect(swapsChainId);
     }
 
     if (toChainId && toChainId !== chainId) {

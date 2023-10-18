@@ -1,6 +1,8 @@
-import { AccountTypes, NftCollection } from 'etherspot';
-import { useEtherspot } from '@etherspot/react-etherspot';
+import { NftCollection } from '@etherspot/prime-sdk';
 import { useMemo } from 'react';
+
+// hooks
+import useEtherspot from './useEtherspot';
 
 interface IEtherspotNftsHook {
   getAccountNfts: (accountAddress?: string) => Promise<NftCollection[]>;
@@ -12,7 +14,7 @@ interface IEtherspotNftsHook {
  * @returns {IEtherspotNftsHook} - hook methods to fetch Etherspot account NFTs
  */
 const useEtherspotNfts = (chainId?: number): IEtherspotNftsHook => {
-  const { connect, getSdkForChainId, chainId: defaultChainId } = useEtherspot();
+  const { connect, getSdk, chainId: defaultChainId, isConnected } = useEtherspot();
 
   const nftsChainId = useMemo(() => {
     if (chainId) return chainId;
@@ -20,14 +22,14 @@ const useEtherspotNfts = (chainId?: number): IEtherspotNftsHook => {
   }, [chainId, defaultChainId]);
 
   const getAccountNfts = async (accountAddress?: string) => {
-    const sdkForChainId = getSdkForChainId(nftsChainId);
+    const sdkForChainId = getSdk(nftsChainId);
     if (!sdkForChainId) {
       console.warn(`Unable to get SDK for chain ID ${nftsChainId}`);
       return [];
     }
 
-    if (sdkForChainId?.state?.account?.type !== AccountTypes.Contract) {
-      await connect(nftsChainId);
+    if (!isConnected(nftsChainId)) {
+      await connect();
     }
 
     try {

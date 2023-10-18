@@ -1,6 +1,8 @@
-import { useEtherspot } from '@etherspot/react-etherspot';
-import { AccountTypes, AccountBalance } from 'etherspot';
+import { AccountBalance } from '@etherspot/prime-sdk';
 import { useMemo } from 'react';
+
+// hooks
+import useEtherspot from './useEtherspot';
 
 interface IEtherspotBalancesHook {
   getAccountBalances: (accountAddress?: string) => Promise<AccountBalance[]>;
@@ -12,28 +14,28 @@ interface IEtherspotBalancesHook {
  * @returns {IEtherspotBalancesHook} - hook method to fetch Etherspot account balances
  */
 const useEtherspotBalances = (chainId?: number): IEtherspotBalancesHook => {
-  const { connect, getSdkForChainId, chainId: defaultChainId } = useEtherspot();
+  const { connect, getSdk, chainId: defaultChainId, isConnected } = useEtherspot();
 
-  const historyChainId = useMemo(() => {
+  const balancesChainId = useMemo(() => {
     if (chainId) return chainId;
     return defaultChainId;
   }, [chainId, defaultChainId]);
 
   const getAccountBalances = async (accountAddress?: string) => {
-    const sdkForChainId = getSdkForChainId(historyChainId);
+    const sdkForChainId = getSdk(balancesChainId);
     if (!sdkForChainId) {
-      console.warn(`Unable to get SDK for chain ID ${historyChainId}`);
+      console.warn(`Unable to get SDK for chain ID ${balancesChainId}`);
       return [];
     }
 
-    if (sdkForChainId?.state?.account?.type !== AccountTypes.Contract) {
-      await connect(historyChainId);
+    if (!isConnected(balancesChainId)) {
+      await connect(balancesChainId);
     }
 
     try {
       const { items } = await sdkForChainId.getAccountBalances({
         account: accountAddress ?? sdkForChainId.state.account.address,
-        chainId: historyChainId,
+        chainId: balancesChainId,
       });
 
       return items;

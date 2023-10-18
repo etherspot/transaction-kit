@@ -1,7 +1,6 @@
 import React, { useContext, useEffect, useState } from 'react';
 import { ethers } from 'ethers';
-import { AccountTypes } from 'etherspot';
-import { useEtherspot } from '@etherspot/react-etherspot';
+import { AccountTypes } from '@etherspot/prime-sdk';
 
 // contexts
 import EtherspotBatchContext from '../contexts/EtherspotBatchContext';
@@ -11,6 +10,7 @@ import { IEtherspotTokenTransferTransaction } from '../types/EtherspotTransactio
 
 // hooks
 import useId from '../hooks/useId';
+import useEtherspot from '../hooks/useEtherspot';
 
 // components
 import EtherspotContractTransaction from './EtherspotContractTransaction';
@@ -39,9 +39,9 @@ const EtherspotTokenTransferTransaction = ({
     throw new Error('No parent <EtherspotBatch />');
   }
 
-  const { getSdkForChainId, connect } = useEtherspot();
+  const { getSdk, connect } = useEtherspot();
 
-  const sdkForChainId = getSdkForChainId(context?.chainId ?? 1);
+  const sdkForChainId = getSdk(context?.chainId ?? 1);
 
   const [senderAddress, setSenderAddress] = useState<string | undefined>(sdkForChainId?.state?.account?.address);
 

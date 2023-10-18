@@ -1,8 +1,7 @@
-import { Fragment, JsonFragment } from '@ethersproject/abi/src.ts/fragments';
+import { Fragment, JsonFragment } from '@ethersproject/abi';
 import { BigNumber, BigNumberish, BytesLike } from 'ethers';
-import { ExchangeOffer } from 'etherspot';
-import { Route } from '@lifi/sdk';
-import { PaymasterApi } from '@etherspot/prime-sdk';
+import { Route } from '@lifi/types';
+import { PaymasterApi, ExchangeOffer } from '@etherspot/prime-sdk';
 
 export interface ITransaction {
   id?: string;

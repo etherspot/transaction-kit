@@ -1,11 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useEtherspot } from '@etherspot/react-etherspot';
 
 // types
 import { IWalletType } from '../types/EtherspotTransactionKit';
 
 // hooks
-import useEtherspotTransactions from './useEtherspotTransactions';
+import useEtherspot from './useEtherspot';
 
 /**
  * Hook to return wallet address by wallet type
@@ -15,8 +14,7 @@ import useEtherspotTransactions from './useEtherspotTransactions';
  */
 const useWalletAddress = (walletType: IWalletType = 'etherspot-prime', chainId?: number): string | undefined => {
   const [walletAddress, setWalletAddress] = useState<(string | undefined)>(undefined);
-  const { connect, getSdkForChainId, providerWalletAddress, chainId: defaultChainId  } = useEtherspot();
-  const { getEtherspotPrimeSdkForChainId } = useEtherspotTransactions();
+  const { connect, getSdk, providerWalletAddress, chainId: defaultChainId  } = useEtherspot();
 
   const walletAddressChainId = useMemo(() => {
     if (chainId) return chainId;
@@ -29,17 +27,10 @@ const useWalletAddress = (walletType: IWalletType = 'etherspot-prime', chainId?:
     const updateWalletAddress = async () => {
       let updatedWalletAddress = undefined;
 
-      const sdkForChainId = getSdkForChainId(walletAddressChainId);
-      if (!sdkForChainId) {
-        console.warn(`Unable to get SDK for chain ID ${walletAddressChainId}`);
-      }
-
       if (walletType === 'etherspot-prime') {
-        const etherspotPrimeSdk = await getEtherspotPrimeSdkForChainId(walletAddressChainId);
+        const etherspotPrimeSdk = getSdk(walletAddressChainId);
         if (!etherspotPrimeSdk) {
           console.warn(`Unable to get Etherspot Prime SDK for chain ID ${walletAddressChainId}`);
-          setWalletAddress(undefined);
-          return;
         }
 
         try {
@@ -60,7 +51,7 @@ const useWalletAddress = (walletType: IWalletType = 'etherspot-prime', chainId?:
     updateWalletAddress();
 
     return () => { shouldUpdate = false; }
-  }, [getSdkForChainId, getEtherspotPrimeSdkForChainId, connect, walletAddressChainId]);
+  }, [getSdk, connect, walletAddressChainId]);
 
   return walletAddress;
 };
