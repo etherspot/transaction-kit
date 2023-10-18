@@ -7,11 +7,23 @@ import { EtherspotTransactionKit, useWalletAddress } from '../../src';
 const ethersProvider = new ethers.providers.JsonRpcProvider('http://localhost:8545', 'goerli'); // replace with your node's RPC URL
 const provider = new ethers.Wallet.createRandom().connect(ethersProvider);
 
-const etherspotAddress = '0x7F30B1960D5556929B03a0339814fE903c55a347';
 const etherspotPrimeAddress = '0x07ff85757f5209534EB601E1CA60d72807ECE0bC';
 const providerWalletAddress = provider.address;
 
 describe('useWalletAddress()', () => {
+  it('returns default type wallet address if no provided type', async () => {
+    const wrapper = ({ children }) => (
+      <EtherspotTransactionKit provider={provider}>
+        {children}
+      </EtherspotTransactionKit>
+    );
+
+    const { result } = renderHook(() => useWalletAddress(), { wrapper });
+
+    await waitFor(() => expect(result.current).not.toBe(undefined));
+    expect(result.current).toEqual(etherspotPrimeAddress);
+  });
+
   it('returns wallet address by type', async () => {
     const wrapper = ({ children }) => (
       <EtherspotTransactionKit provider={provider}>
@@ -20,15 +32,11 @@ describe('useWalletAddress()', () => {
     );
 
     const { result, rerender } = renderHook(({ providerType }) => useWalletAddress(providerType), {
-      initialProps: { providerType: 'etherspot' },
+      initialProps: { providerType: 'etherspot-prime' },
       wrapper,
     });
 
     await waitFor(() => expect(result.current).not.toBe(undefined));
-    expect(result.current).toEqual(etherspotAddress);
-
-    rerender({ providerType: 'etherspot-prime' });
-    await waitFor(() => expect(result.current).not.toBe(etherspotAddress));
     expect(result.current).toEqual(etherspotPrimeAddress);
 
     rerender({ providerType: 'provider' });
@@ -44,12 +52,12 @@ describe('useWalletAddress()', () => {
     );
 
     const { result, rerender } = renderHook(({ providerType }) => useWalletAddress(providerType), {
-      initialProps: { providerType: 'etherspot' },
+      initialProps: { providerType: 'etherspot-prime' },
       wrapper,
     });
 
     await waitFor(() => expect(result.current).not.toBe(undefined));
-    expect(result.current).toEqual(etherspotAddress);
+    expect(result.current).toEqual(etherspotPrimeAddress);
 
     rerender({ providerType: 'whatever' });
     expect(result.current).toEqual(undefined);

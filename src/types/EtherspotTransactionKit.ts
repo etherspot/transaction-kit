@@ -1,5 +1,5 @@
 import { Fragment, JsonFragment } from '@ethersproject/abi/src.ts/fragments';
-import { BigNumber, BigNumberish } from 'ethers';
+import { BigNumber, BigNumberish, BytesLike } from 'ethers';
 import { ExchangeOffer } from 'etherspot';
 import { Route } from '@lifi/sdk';
 import { PaymasterApi } from '@etherspot/prime-sdk';
@@ -22,41 +22,29 @@ export interface IProviderWalletTransaction {
 export interface IBatch {
   id?: string;
   chainId?: number;
-  gasTokenAddress?: string;
   transactions?: ITransaction[];
 }
 
 export interface EstimatedBatch extends IBatch {
   errorMessage?: string;
   cost?: BigNumber;
+  userOp?: UserOp;
 }
 
-export interface EtherspotSentBatch extends EstimatedBatch {
-  via: 'etherspot';
-  batchHash?: string;
-}
 export interface EtherspotPrimeSentBatch extends EstimatedBatch {
-  via: 'etherspot-prime';
   userOpHash?: string;
 }
 
 export type SentBatch = {
   errorMessage?: string;
-} & (EtherspotSentBatch | EtherspotPrimeSentBatch);
+} & (EtherspotPrimeSentBatch);
 
-export type IBatches = IDefaultBatches<undefined | 'etherspot'>
-  | (IDefaultBatches<'etherspot-prime'> & IEtherspotPrimeBatchesExtra);
-
-interface IDefaultBatches<T extends IBatchesWalletType | undefined> {
+export interface IBatches {
   id?: string;
   batches?: IBatch[];
   onEstimated?: (estimated: EstimatedBatch[]) => void;
   onSent?: (sent: SentBatch[]) => void;
   skip?: boolean;
-  via?: T;
-}
-
-interface IEtherspotPrimeBatchesExtra {
   paymaster?: PaymasterApi,
 }
 
@@ -117,6 +105,20 @@ export interface IProviderWalletTransactionSent {
   errorMessage?: string;
 }
 
-export type IBatchesWalletType = 'etherspot' | 'etherspot-prime';
+export type IWalletType = 'provider' | 'etherspot-prime';
 
-export type IWalletType = 'provider' | IBatchesWalletType;
+type EtherspotPromiseOrValue<T> = T | Promise<T>;
+
+interface UserOp {
+  sender: EtherspotPromiseOrValue<string>;
+  nonce: EtherspotPromiseOrValue<BigNumberish>;
+  initCode: EtherspotPromiseOrValue<BytesLike>;
+  callData: EtherspotPromiseOrValue<BytesLike>;
+  callGasLimit: EtherspotPromiseOrValue<BigNumberish>;
+  verificationGasLimit: EtherspotPromiseOrValue<BigNumberish>;
+  preVerificationGas: EtherspotPromiseOrValue<BigNumberish>;
+  maxFeePerGas: EtherspotPromiseOrValue<BigNumberish>;
+  maxPriorityFeePerGas: EtherspotPromiseOrValue<BigNumberish>;
+  paymasterAndData: EtherspotPromiseOrValue<BytesLike>;
+  signature: EtherspotPromiseOrValue<BytesLike>;
+}

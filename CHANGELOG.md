@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.6.0] - 2023-10-18
+
+### Breaking Changes
+- Removed `etherspot` wallet type from `useWalletAddress` hook
+- Removed `via` prop from `<EtherspotBatches />` component
+- Default `useWalletAddress` and  `<EtherspotBatches />` provider is set to `etherspot-prime`
+- Removed `gasTokenAddress` prop from `<EtherspotBatches />` component due being unsupported in default `etherspot-prime` provider
+
+### Added
+- Added `gasCost` to `etherspot-prime` estimations
+
 ## [0.5.1] - 2023-10-17
 
 ### Added

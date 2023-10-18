@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useEtherspot } from '@etherspot/react-etherspot';
-import { AccountTypes } from 'etherspot';
 
 // types
 import { IWalletType } from '../types/EtherspotTransactionKit';
@@ -14,7 +13,7 @@ import useEtherspotTransactions from './useEtherspotTransactions';
  * @param chainId {number} - Chain ID
  * @returns {string | undefined} - wallet address by its type
  */
-const useWalletAddress = (walletType: IWalletType = 'etherspot', chainId?: number): string | undefined => {
+const useWalletAddress = (walletType: IWalletType = 'etherspot-prime', chainId?: number): string | undefined => {
   const [walletAddress, setWalletAddress] = useState<(string | undefined)>(undefined);
   const { connect, getSdkForChainId, providerWalletAddress, chainId: defaultChainId  } = useEtherspot();
   const { getEtherspotPrimeSdkForChainId } = useEtherspotTransactions();
@@ -35,13 +34,7 @@ const useWalletAddress = (walletType: IWalletType = 'etherspot', chainId?: numbe
         console.warn(`Unable to get SDK for chain ID ${walletAddressChainId}`);
       }
 
-      if (walletType === 'etherspot') {
-        if (sdkForChainId?.state?.account?.type !== AccountTypes.Contract) {
-          await connect(walletAddressChainId);
-        }
-
-        updatedWalletAddress = sdkForChainId?.state?.account?.address;
-      } else if (walletType === 'etherspot-prime') {
+      if (walletType === 'etherspot-prime') {
         const etherspotPrimeSdk = await getEtherspotPrimeSdkForChainId(walletAddressChainId);
         if (!etherspotPrimeSdk) {
           console.warn(`Unable to get Etherspot Prime SDK for chain ID ${walletAddressChainId}`);

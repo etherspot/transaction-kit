@@ -6,7 +6,7 @@ import { useEtherspotTransactions, EtherspotTransactionKit, EtherspotBatches, Et
 
 const TestSingleBatchComponent = () => (
   <EtherspotBatches>
-    <EtherspotBatch chainId={1} gasTokenAddress={'testGasTokenAddress'}>
+    <EtherspotBatch chainId={1}>
       <EtherspotTransaction
         to={'0x12'}
         data={'0x0'}
@@ -29,7 +29,7 @@ describe('useEtherspotTransactions()', () => {
           test
           <span>
             <EtherspotBatches>
-              <EtherspotBatch chainId={123} gasTokenAddress={'testGasTokenAddress'}>
+              <EtherspotBatch chainId={123}>
                 <EtherspotTransaction
                   to={'0x12'}
                   data={'0x0'}
@@ -53,16 +53,7 @@ describe('useEtherspotTransactions()', () => {
         <EtherspotBatches skip>
           <span>test</span>
         </EtherspotBatches>
-        <EtherspotBatches via={'etherspot-prime'}>
-          <EtherspotBatch chainId={69}>
-            <EtherspotTransaction
-              to={'0x420'}
-              data={'0x69420'}
-              value={'69'}
-            />
-          </EtherspotBatch>
-        </EtherspotBatches>
-        <EtherspotBatches via={'etherspot-prime'} paymaster={{ url: 'someUrl', api_key: 'someApiKey' }}>
+        <EtherspotBatches paymaster={{ url: 'someUrl', api_key: 'someApiKey' }}>
           <EtherspotBatch chainId={69}>
             <EtherspotTransaction
               to={'0x420'}
@@ -81,10 +72,9 @@ describe('useEtherspotTransactions()', () => {
 
     const { result: { current } } = renderHook(() => useEtherspotTransactions(), { wrapper });
 
-    expect(current.batches.length).toBe(6);
+    expect(current.batches.length).toBe(5);
     expect(current.batches[0].batches.length).toBe(1);
     expect(current.batches[0].batches[0].chainId).toBe(123);
-    expect(current.batches[0].batches[0].gasTokenAddress).toBe('testGasTokenAddress');
     expect(current.batches[0].batches[0].transactions.length).toBe(3);
     expect(current.batches[0].batches[0].transactions[1].to).toBe('0x0');
     expect(current.batches[0].batches[0].transactions[1].data).toBe('0xFFF');
@@ -93,13 +83,7 @@ describe('useEtherspotTransactions()', () => {
     expect(current.batches[0].batches[0].transactions[2].data).toBe('0xa9059cbb0000000000000000000000007f30b1960d5556929b03a0339814fe903c55a347000000000000000000000000000000000000000000000006aaf7c8516d0c0000');
     expect(current.batches[0].batches[0].transactions[2].value).toBe(undefined);
     expect(current.batches[1].skip).toBe(true);
-    expect(current.batches[2].batches.length).toBe(1);
-    expect(current.batches[2].batches[0].chainId).toBe(69);
-    expect(current.batches[2].batches[0].transactions.length).toBe(1);
-    expect(current.batches[2].batches[0].transactions[0].to).toBe('0x420');
-    expect(current.batches[2].batches[0].transactions[0].data).toBe('0x69420');
-    expect(current.batches[2].batches[0].transactions[0].value.toJSON()).toStrictEqual({ 'hex': '0x03bd913e6c1df40000', 'type': 'BigNumber' });
-    expect(current.batches[3].paymaster).toStrictEqual({ url: 'someUrl', api_key: 'someApiKey' });
+    expect(current.batches[2].paymaster).toStrictEqual({ url: 'someUrl', api_key: 'someApiKey' });
   });
 
   it('throws an error if <EtherspotBatches /> within <EtherspotBatches />', () => {
