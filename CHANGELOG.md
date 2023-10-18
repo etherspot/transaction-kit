@@ -1,13 +1,5 @@
 # Changelog
 
-## [0.6.1] - 2023-10-17
-
-### Breaking Changes
-- Removed `gasTokenAddress` prop from `<EtherspotBatches />` component due being unsupported in default `etherspot-prime` provider
-
-### Added
-- Added `gasCost` to `etherspot-prime` estimations
-
 ## [0.6.0] - 2023-10-17
 
 ### Breaking Changes
