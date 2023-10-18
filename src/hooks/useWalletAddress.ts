@@ -14,7 +14,7 @@ import useEtherspot from './useEtherspot';
  */
 const useWalletAddress = (walletType: IWalletType = 'etherspot-prime', chainId?: number): string | undefined => {
   const [walletAddress, setWalletAddress] = useState<(string | undefined)>(undefined);
-  const { connect, getSdk, providerWalletAddress, chainId: defaultChainId  } = useEtherspot();
+  const { connect, getSdk, providerWalletAddress, chainId: defaultChainId, isConnected  } = useEtherspot();
 
   const walletAddressChainId = useMemo(() => {
     if (chainId) return chainId;
@@ -25,6 +25,12 @@ const useWalletAddress = (walletType: IWalletType = 'etherspot-prime', chainId?:
     let shouldUpdate = true;
 
     const updateWalletAddress = async () => {
+      if (!isConnected(walletAddressChainId)) {
+        await connect(walletAddressChainId);
+      }
+
+      if (!shouldUpdate) return;
+
       let updatedWalletAddress = undefined;
 
       if (walletType === 'etherspot-prime') {
@@ -51,7 +57,7 @@ const useWalletAddress = (walletType: IWalletType = 'etherspot-prime', chainId?:
     updateWalletAddress();
 
     return () => { shouldUpdate = false; }
-  }, [getSdk, connect, walletAddressChainId]);
+  }, [getSdk, connect, walletAddressChainId, isConnected]);
 
   return walletAddress;
 };

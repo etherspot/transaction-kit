@@ -125,6 +125,9 @@ const EtherspotContextProvider = ({
   }, [chainId, getSdk]);
 
   const connect = async (connectToChainId: number = chainId): Promise<undefined | string> => {
+    // nothing to do if provider not loaded in, reduces unnecessary logged errors output
+    if (!provider) return;
+
     let connectSdk = getSdk(connectToChainId);
     if (!connectSdk) {
       console.error('Unable to get SDK!');

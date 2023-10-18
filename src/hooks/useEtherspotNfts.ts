@@ -3,6 +3,7 @@ import { useMemo } from 'react';
 
 // hooks
 import useEtherspot from './useEtherspot';
+import useWalletAddress from './useWalletAddress';
 
 interface IEtherspotNftsHook {
   getAccountNfts: (accountAddress?: string) => Promise<NftCollection[]>;
@@ -15,6 +16,7 @@ interface IEtherspotNftsHook {
  */
 const useEtherspotNfts = (chainId?: number): IEtherspotNftsHook => {
   const { connect, getSdk, chainId: defaultChainId, isConnected } = useEtherspot();
+  const currentAccountAddress = useWalletAddress('etherspot-prime', chainId ?? defaultChainId);
 
   const nftsChainId = useMemo(() => {
     if (chainId) return chainId;
@@ -32,9 +34,15 @@ const useEtherspotNfts = (chainId?: number): IEtherspotNftsHook => {
       await connect();
     }
 
+    const nftsForAccount = accountAddress ?? currentAccountAddress;
+    if (!nftsForAccount) {
+      console.warn(`No account address provided!`);
+      return [];
+    }
+
     try {
       const { items } = await sdkForChainId.getNftList({
-        account: accountAddress ?? sdkForChainId.state.account.address,
+        account: nftsForAccount,
       });
 
       return items;
