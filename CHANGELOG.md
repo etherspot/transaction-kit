@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.6.0] - 2023-10-17
+## [0.6.0] - 2023-10-18
 
 ### Breaking Changes
 - Removed `etherspot` wallet type from `useWalletAddress` hook
