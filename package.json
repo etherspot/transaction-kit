@@ -28,7 +28,6 @@
     "etherspot": "^1.41.2",
     "@etherspot/prime-sdk": "^1.2.11",
     "lodash.uniq": "^4.5.0",
-    "react": "^16.13.0",
     "reflect-metadata": "^0.1.13",
     "rxjs": "^6.6.7"
   },
