@@ -3,11 +3,7 @@ import { PrimeSdk, WalletProviderLike } from '@etherspot/prime-sdk';
 
 export interface EtherspotContextData {
   data: {
-    accountAddress: string | undefined;
-    providerWalletAddress: string | undefined;
-    getSdk: (chainId?: number, forceNewInstance?: boolean) => PrimeSdk | null;
-    isConnected: (chainId?: number) => boolean;
-    connect: (chainId?: number) => Promise<undefined | string>;
+    getSdk: (chainId?: number, forceNewInstance?: boolean) => Promise<PrimeSdk>;
     provider: WalletProviderLike | null | undefined;
     chainId: number;
   }

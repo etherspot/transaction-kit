@@ -4,10 +4,13 @@ import { ethers } from 'ethers';
 // hooks
 import { useEtherspotBalances, EtherspotTransactionKit } from '../../src';
 
+const ethersProvider = new ethers.providers.JsonRpcProvider('http://localhost:8545', 'goerli'); // replace with your node's RPC URL
+const provider = new ethers.Wallet.createRandom().connect(ethersProvider);
+
 describe('useEtherspotBalances()', () => {
   it('returns balances', async () => {
     const wrapper = ({ children }) => (
-      <EtherspotTransactionKit provider={null}>
+      <EtherspotTransactionKit provider={provider}>
         {children}
       </EtherspotTransactionKit>
     );

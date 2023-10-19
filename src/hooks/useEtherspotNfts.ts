@@ -3,7 +3,6 @@ import { useMemo } from 'react';
 
 // hooks
 import useEtherspot from './useEtherspot';
-import useWalletAddress from './useWalletAddress';
 
 interface IEtherspotNftsHook {
   getAccountNfts: (accountAddress?: string) => Promise<NftCollection[]>;
@@ -15,8 +14,7 @@ interface IEtherspotNftsHook {
  * @returns {IEtherspotNftsHook} - hook methods to fetch Etherspot account NFTs
  */
 const useEtherspotNfts = (chainId?: number): IEtherspotNftsHook => {
-  const { connect, getSdk, chainId: defaultChainId, isConnected } = useEtherspot();
-  const currentAccountAddress = useWalletAddress('etherspot-prime', chainId ?? defaultChainId);
+  const { getSdk, chainId: defaultChainId } = useEtherspot();
 
   const nftsChainId = useMemo(() => {
     if (chainId) return chainId;
@@ -24,17 +22,9 @@ const useEtherspotNfts = (chainId?: number): IEtherspotNftsHook => {
   }, [chainId, defaultChainId]);
 
   const getAccountNfts = async (accountAddress?: string) => {
-    const sdkForChainId = getSdk(nftsChainId);
-    if (!sdkForChainId) {
-      console.warn(`Unable to get SDK for chain ID ${nftsChainId}`);
-      return [];
-    }
+    const sdkForChainId = await getSdk(nftsChainId);
 
-    if (!isConnected(nftsChainId)) {
-      await connect();
-    }
-
-    const nftsForAccount = accountAddress ?? currentAccountAddress;
+    const nftsForAccount = accountAddress ?? await sdkForChainId.getCounterFactualAddress();
     if (!nftsForAccount) {
       console.warn(`No account address provided!`);
       return [];
@@ -49,7 +39,7 @@ const useEtherspotNfts = (chainId?: number): IEtherspotNftsHook => {
     } catch (e) {
       console.warn(
         `Sorry, an error occurred whilst trying to fetch account NFTs`
-        + ` for ${sdkForChainId.state.account.address}. Please try again. Error:`,
+        + ` for ${nftsForAccount}. Please try again. Error:`,
         e,
       );
     }

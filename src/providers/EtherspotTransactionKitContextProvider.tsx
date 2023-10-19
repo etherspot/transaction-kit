@@ -47,11 +47,7 @@ const EtherspotTransactionKitContextProvider = ({ children }: EtherspotTransacti
           continue;
         }
 
-        const etherspotPrimeSdk = getSdk(batchChainId);
-        if (!etherspotPrimeSdk) {
-          estimatedBatches.push({ ...batch, errorMessage: 'Failed to get Etherspot Prime SDK for chain!' });
-          continue;
-        }
+        const etherspotPrimeSdk = await getSdk(batchChainId);
 
         try {
           if (!forSending) await etherspotPrimeSdk.clearUserOpsFromBatch();
@@ -84,8 +80,7 @@ const EtherspotTransactionKitContextProvider = ({ children }: EtherspotTransacti
     }) => Promise.all(batches.map(async (batch) => {
       const batchChainId = batch.chainId ?? chainId;
 
-      const etherspotPrimeSdk = getSdk(batchChainId);
-      if (!etherspotPrimeSdk) return;
+      const etherspotPrimeSdk = await getSdk(batchChainId);
 
       await etherspotPrimeSdk.clearUserOpsFromBatch();
     }))));
@@ -101,15 +96,11 @@ const EtherspotTransactionKitContextProvider = ({ children }: EtherspotTransacti
 
         // return error message as provided by estimate
         if (estimatedBatch.errorMessage) {
-          sentBatches.push({ ...estimatedBatch, errorMessage: estimatedBatch.errorMessage })
+          sentBatches.push({ ...estimatedBatch, errorMessage: estimatedBatch.errorMessage });
           continue;
         }
 
-        const etherspotPrimeSdk = getSdk(batchChainId);
-        if (!etherspotPrimeSdk) {
-          sentBatches.push({ ...estimatedBatch, errorMessage: 'Failed to get Etherspot Prime SDK for chain!' });
-          continue;
-        }
+        const etherspotPrimeSdk = await getSdk(batchChainId);
 
         if (!estimatedBatch.userOp) {
           sentBatches.push({ ...estimatedBatch, errorMessage: 'Failed to get estimated UserOp!' });

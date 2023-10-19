@@ -17,7 +17,7 @@ interface IEtherspotAssetsHook {
  * @returns {IEtherspotAssetsHook} - hook method to fetch Etherspot supported assets
  */
 const useEtherspotAssets = (chainId?: number): IEtherspotAssetsHook => {
-  const { connect, getSdk, chainId: defaultChainId, isConnected } = useEtherspot();
+  const { getSdk, chainId: defaultChainId } = useEtherspot();
 
   const assetsChainId = useMemo(() => {
     if (chainId) return chainId;
@@ -25,15 +25,7 @@ const useEtherspotAssets = (chainId?: number): IEtherspotAssetsHook => {
   }, [chainId, defaultChainId]);
 
   const getAssets = async (): Promise<TokenListToken[]> => {
-    const sdkForChainId = getSdk(assetsChainId);
-    if (!sdkForChainId) {
-      console.warn(`Unable to get SDK for chain ID ${assetsChainId}`);
-      return [];
-    }
-
-    if (!isConnected(assetsChainId)) {
-      await connect(assetsChainId);
-    }
+    const sdkForChainId = await getSdk(assetsChainId);
 
     let assets: TokenListToken[] = [];
 

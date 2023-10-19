@@ -15,7 +15,7 @@ interface IEtherspotHistoryHook {
  * @returns {IEtherspotHistoryHook} - hook methods to fetch Etherspot transactions history
  */
 const useEtherspotHistory = (chainId: number): IEtherspotHistoryHook => {
-  const { connect, getSdk, chainId: defaultChainId, isConnected } = useEtherspot();
+  const { getSdk, chainId: defaultChainId } = useEtherspot();
 
   const historyChainId = useMemo(() => {
     if (chainId) return chainId;
@@ -23,26 +23,27 @@ const useEtherspotHistory = (chainId: number): IEtherspotHistoryHook => {
   }, [chainId, defaultChainId]);
 
   const getAccountTransactions = async (accountAddress?: string): Promise<Transaction[]> => {
-    const sdkForChainId = getSdk(historyChainId);
-    if (!sdkForChainId) return [];
-
-    if (!isConnected(historyChainId)) {
-      await connect(historyChainId);
-    }
+    const sdkForChainId = await getSdk(historyChainId);
 
     let transactions: Transaction[] = [];
+
+    const transactionsForAccount = accountAddress ?? await sdkForChainId.getCounterFactualAddress();
+    if (!transactionsForAccount) {
+      console.warn(`No account address provided!`);
+      return [];
+    }
 
     try {
       // TODO: fix once available on Prime SDK
       // @ts-ignore
       ({ items: transactions } = await sdkForChainId.getTransactions({
-        account: accountAddress ?? sdkForChainId.state.account.address,
+        account: transactionsForAccount,
       }));
     } catch (e) {
 
       console.warn(
         `Sorry, an error occurred whilst trying to fetch the transactions`
-        + ` for ${sdkForChainId.state.account.address}. Please try again. Error:`,
+        + ` for account ${transactionsForAccount}. Please try again. Error:`,
         e,
       );
     }
@@ -51,19 +52,14 @@ const useEtherspotHistory = (chainId: number): IEtherspotHistoryHook => {
   };
 
   const getAccountTransaction = async (hash: string): Promise<Transaction | undefined> => {
-    const sdkForChainId = getSdk(historyChainId);
-    if (!sdkForChainId) return;
-
-    if (!isConnected(historyChainId)) {
-      await connect(historyChainId);
-    }
+    const sdkForChainId = await getSdk(historyChainId);
 
     try {
       return sdkForChainId.getTransaction({ hash });
     } catch (e) {
       console.warn(
         `Sorry, an error occurred whilst trying to fetch the transaction`
-        + ` for ${sdkForChainId.state.account.address}. Please try again. Error:`,
+        + ` for hash ${hash}. Please try again. Error:`,
         e,
       );
     }

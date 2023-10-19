@@ -27,7 +27,7 @@ interface IEtherspotPricesHook {
  * @returns {IEtherspotPricesHook} - hook method to fetch prices from Etherspot
  */
 const useEtherspotPrices = (chainId?: number): IEtherspotPricesHook => {
-  const { connect, getSdk, chainId: etherspotChainId, isConnected } = useEtherspot();
+  const { getSdk, chainId: etherspotChainId } = useEtherspot();
 
   const defaultChainId = useMemo(() => {
     if (chainId) return chainId;
@@ -40,15 +40,7 @@ const useEtherspotPrices = (chainId?: number): IEtherspotPricesHook => {
   }
 
   const getPrices = async (assetAddresses: string[], assetsChainId: number = defaultChainId) => {
-    const sdkForChainId = getSdk(assetsChainId);
-    if (!sdkForChainId) {
-      console.warn(`Unable to get SDK for chain ID ${assetsChainId}`);
-      return [];
-    }
-
-    if (!isConnected(assetsChainId)) {
-      await connect(assetsChainId);
-    }
+    const sdkForChainId = await getSdk(assetsChainId);
 
     try {
       // TODO: fix once available on Prime SDK

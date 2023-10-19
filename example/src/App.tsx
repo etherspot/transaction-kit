@@ -148,8 +148,7 @@ const App = () => {
     let expired = false;
 
     const refreshBalances = async () => {
-      const sdk = getSdk(+(process.env.REACT_APP_CHAIN_ID as string));
-      if (!sdk) return;
+      const sdk = await getSdk(+(process.env.REACT_APP_CHAIN_ID as string));
 
       const updatedBalances = {
         [walletAddressByName.Alice]: 'N/A',

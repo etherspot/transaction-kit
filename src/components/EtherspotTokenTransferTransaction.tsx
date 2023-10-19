@@ -1,6 +1,5 @@
-import React, { useContext, useEffect, useState } from 'react';
+import React, { useContext } from 'react';
 import { ethers } from 'ethers';
-import { AccountTypes } from '@etherspot/prime-sdk';
 
 // contexts
 import EtherspotBatchContext from '../contexts/EtherspotBatchContext';
@@ -10,7 +9,7 @@ import { IEtherspotTokenTransferTransaction } from '../types/EtherspotTransactio
 
 // hooks
 import useId from '../hooks/useId';
-import useEtherspot from '../hooks/useEtherspot';
+import useWalletAddress from '../hooks/useWalletAddress';
 
 // components
 import EtherspotContractTransaction from './EtherspotContractTransaction';
@@ -34,35 +33,11 @@ const EtherspotTokenTransferTransaction = ({
 }: EtherspotTokenTransferTransactionProps): JSX.Element => {
   const context = useContext(EtherspotBatchContext);
   const componentId = useId();
+  const senderAddress = useWalletAddress('etherspot-prime', context?.chainId);
 
   if (context === null) {
     throw new Error('No parent <EtherspotBatch />');
   }
-
-  const { getSdk, connect } = useEtherspot();
-
-  const sdkForChainId = getSdk(context?.chainId ?? 1);
-
-  const [senderAddress, setSenderAddress] = useState<string | undefined>(sdkForChainId?.state?.account?.address);
-
-  useEffect(() => {
-    setSenderAddress(undefined);
-    let shouldUpdate = true;
-
-    const update = async () => {
-      const address = sdkForChainId?.state?.account?.type === AccountTypes.Contract
-        ? sdkForChainId?.state?.account?.address
-        : await connect(context.chainId);
-
-      if (!shouldUpdate) return;
-
-      setSenderAddress(address ?? sdkForChainId?.state?.account?.address);
-    }
-
-    update();
-
-    return () => { shouldUpdate = false };
-  }, []);
 
   let valueBN;
   try {
@@ -77,6 +52,13 @@ const EtherspotTokenTransferTransaction = ({
 
   if (!valueBN) {
     throw new Error(`Failed to parse provided value, please make sure value is wei.`);
+  }
+
+  // wait for sender address to be available
+  if (!senderAddress) {
+    return (
+      <>{children}</>
+    )
   }
 
   return (

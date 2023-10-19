@@ -13,8 +13,8 @@ import useEtherspot from './useEtherspot';
  * @returns {string | undefined} - wallet address by its type
  */
 const useWalletAddress = (walletType: IWalletType = 'etherspot-prime', chainId?: number): string | undefined => {
-  const [walletAddress, setWalletAddress] = useState<(string | undefined)>(undefined);
-  const { connect, getSdk, providerWalletAddress, chainId: defaultChainId, isConnected  } = useEtherspot();
+  const [accountAddress, setAccountAddress] = useState<(string | undefined)>(undefined);
+  const { getSdk, chainId: defaultChainId, provider } = useEtherspot();
 
   const walletAddressChainId = useMemo(() => {
     if (chainId) return chainId;
@@ -24,42 +24,37 @@ const useWalletAddress = (walletType: IWalletType = 'etherspot-prime', chainId?:
   useEffect(() => {
     let shouldUpdate = true;
 
-    const updateWalletAddress = async () => {
-      if (!isConnected(walletAddressChainId)) {
-        await connect(walletAddressChainId);
+    const updateAccountAddress = async () => {
+      const etherspotPrimeSdk = await getSdk(walletAddressChainId);
+
+      try {
+        const newAccountAddress = await etherspotPrimeSdk.getCounterFactualAddress();
+        if (!shouldUpdate) return;
+        setAccountAddress(newAccountAddress);
+      } catch (e) {
+        console.warn(`Unable to get wallet address for etherspot-prime type for chainId ID ${walletAddressChainId}.`, e);
       }
-
-      if (!shouldUpdate) return;
-
-      let updatedWalletAddress = undefined;
-
-      if (walletType === 'etherspot-prime') {
-        const etherspotPrimeSdk = getSdk(walletAddressChainId);
-        if (!etherspotPrimeSdk) {
-          console.warn(`Unable to get Etherspot Prime SDK for chain ID ${walletAddressChainId}`);
-        }
-
-        try {
-          // @ts-ignore
-          updatedWalletAddress = await etherspotPrimeSdk.getCounterFactualAddress();
-        } catch (e) {
-          console.warn(`Unable to get wallet address for etherspot-prime type for chainId ID ${walletAddressChainId}. `, e);
-        }
-      } else if (walletType === 'provider') {
-        updatedWalletAddress = providerWalletAddress;
-      }
-
-      if (!shouldUpdate) return;
-
-      setWalletAddress(updatedWalletAddress);
     }
 
-    updateWalletAddress();
+    updateAccountAddress();
 
     return () => { shouldUpdate = false; }
-  }, [getSdk, connect, walletAddressChainId, isConnected]);
+  }, [getSdk, walletAddressChainId]);
 
-  return walletAddress;
+  return useMemo(() => {
+    if (walletType === 'etherspot-prime') {
+      return accountAddress;
+    }
+
+    if (walletType === 'provider') {
+      // @ts-ignore
+      const providerAddress = provider?.address || provider?.accounts?.[0];
+      if (providerAddress) return providerAddress;
+      console.warn(`Unable to get wallet address for provider type`);
+    }
+
+    return undefined;
+  }, [accountAddress, walletType]);
 };
 
 export default useWalletAddress;

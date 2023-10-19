@@ -14,7 +14,7 @@ interface IEtherspotBalancesHook {
  * @returns {IEtherspotBalancesHook} - hook method to fetch Etherspot account balances
  */
 const useEtherspotBalances = (chainId?: number): IEtherspotBalancesHook => {
-  const { connect, getSdk, chainId: defaultChainId, isConnected } = useEtherspot();
+  const { getSdk, chainId: defaultChainId } = useEtherspot();
 
   const balancesChainId = useMemo(() => {
     if (chainId) return chainId;
@@ -22,19 +22,17 @@ const useEtherspotBalances = (chainId?: number): IEtherspotBalancesHook => {
   }, [chainId, defaultChainId]);
 
   const getAccountBalances = async (accountAddress?: string) => {
-    const sdkForChainId = getSdk(balancesChainId);
-    if (!sdkForChainId) {
-      console.warn(`Unable to get SDK for chain ID ${balancesChainId}`);
-      return [];
-    }
+    const sdkForChainId = await getSdk(balancesChainId);
 
-    if (!isConnected(balancesChainId)) {
-      await connect(balancesChainId);
+    const balancesForAccount = accountAddress ?? await sdkForChainId.getCounterFactualAddress();
+    if (!balancesForAccount) {
+      console.warn(`No account address provided!`);
+      return [];
     }
 
     try {
       const { items } = await sdkForChainId.getAccountBalances({
-        account: accountAddress ?? sdkForChainId.state.account.address,
+        account: balancesForAccount,
         chainId: balancesChainId,
       });
 
@@ -42,7 +40,7 @@ const useEtherspotBalances = (chainId?: number): IEtherspotBalancesHook => {
     } catch (e) {
       console.warn(
         `Sorry, an error occurred whilst trying to fetch the balances`
-        + ` for ${sdkForChainId.state.account.address}. Please try again. Error:`,
+        + ` for ${balancesForAccount}. Please try again. Error:`,
         e,
       );
     }
