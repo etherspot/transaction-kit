@@ -29,7 +29,7 @@ const tabs = {
 
 const CodePreview = ({ code }: { code: string }) => (
   <Paper>
-    <pre style={{margin: '40px 0 40px', padding: '0 15px'}}>
+    <pre style={{ margin: '40px 0 40px', padding: '0 15px' }}>
       <code>
         {code.replaceAll('\n      ', '\n')}
       </code>
@@ -49,7 +49,7 @@ const exampleCode = {
     code: (
       <EtherspotBatches>
         <EtherspotBatch>
-          <EtherspotTransaction to={walletAddressByName.Bob} value={'0.01'}/>
+          <EtherspotTransaction to={walletAddressByName.Bob} value={'0.01'} />
         </EtherspotBatch>
       </EtherspotBatches>
     )
@@ -66,8 +66,8 @@ const exampleCode = {
     code: (
       <EtherspotBatches>
         <EtherspotBatch>
-          <EtherspotTransaction to={walletAddressByName.Bob} value={'0.01'}/>
-          <EtherspotTransaction to={walletAddressByName.Christie} value={'0.01'}/>
+          <EtherspotTransaction to={walletAddressByName.Bob} value={'0.01'} />
+          <EtherspotTransaction to={walletAddressByName.Christie} value={'0.01'} />
         </EtherspotBatch>
       </EtherspotBatches>
     )
@@ -164,8 +164,8 @@ const App = () => {
       };
 
       await Promise.all(Object.values(walletAddressByName).map(async (address) => {
-        const balances = await sdk?.getAccountBalances({account: address});
-        const balance = balances && balances.items.find(({token}) => token === null);
+        const balances = await sdk?.getAccountBalances({ account: address });
+        const balance = balances && balances.items.find(({ token }) => token === null);
         if (balance) updatedBalances[address] = ethers.utils.formatEther(balance.balance);
       }));
 
@@ -187,7 +187,7 @@ const App = () => {
 
   return (
     <Container maxWidth={'sm'}>
-      <Box sx={{pt: 3, pb: 4}}>
+      <Box sx={{ pt: 3, pb: 4 }}>
         <Typography mb={2}>
           <a href={'https://faucet.polygon.technology/'} target={'_blank'} rel="noreferrer">Mumbai MATIC Faucet</a>
         </Typography>
@@ -199,7 +199,7 @@ const App = () => {
             <Chip
               label={chipLabel}
               variant={'outlined'}
-              style={{marginRight: 10, marginTop: 10}}
+              style={{ marginRight: 10, marginTop: 10 }}
               key={address}
             />
           );
@@ -210,14 +210,14 @@ const App = () => {
           Etherspot Smart Wallet Address:
         </Typography>
         {!!etherspotPrimeAddress?.length && (
-          <Paper sx={{p: 1}} variant="outlined">
+          <Paper sx={{ p: 1 }} variant="outlined">
             <Typography>
               {etherspotPrimeAddress}
             </Typography>
           </Paper>
         )}
       </Box>
-      <Box sx={{borderBottom: 1, borderColor: 'divider'}}>
+      <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
         <Tabs value={activeTab} onChange={(event, id) => setActiveTab(id)}>
           <Tab label={'Single transaction'} value={tabs.SINGLE_TRANSACTION}/>
           <Tab label={'Multiple transactions'} value={tabs.MULTIPLE_TRANSACTIONS}/>
@@ -228,7 +228,7 @@ const App = () => {
         <Button
           variant={'contained'}
           disabled={isEstimating}
-          style={{marginRight: 5}}
+          style={{ marginRight: 5 }}
           onClick={onEstimateClick}
         >
           {isEstimating ? 'Estimating...' : 'Estimate'}
@@ -258,11 +258,11 @@ const App = () => {
                   let sentBatch: SentBatch | undefined;
 
                   estimated?.forEach((estimatedGroup) => {
-                    estimatedBatch = estimatedGroup.estimatedBatches?.find(({id}) => id === batch.id);
+                    estimatedBatch = estimatedGroup.estimatedBatches?.find(({ id }) => id === batch.id);
                   });
 
                   sent?.forEach((sentGroup) => {
-                    sentBatch = sentGroup.sentBatches?.find(({id}) => id === batch.id);
+                    sentBatch = sentGroup.sentBatches?.find(({ id }) => id === batch.id);
                   });
 
                   return (
