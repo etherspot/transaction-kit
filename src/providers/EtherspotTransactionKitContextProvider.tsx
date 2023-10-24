@@ -31,6 +31,8 @@ const EtherspotTransactionKitContextProvider = ({ children }: EtherspotTransacti
     return Promise.all(groupedBatchesToEstimate.map(async (groupedBatch): Promise<IEstimatedBatches> => {
       const batches = (groupedBatch.batches ?? []) as IBatch[];
 
+      if (groupedBatch.skip) return { ...groupedBatch, estimatedBatches: [] };
+
       const estimatedBatches: EstimatedBatch[] = [];
 
       // push estimations in same order
@@ -47,7 +49,8 @@ const EtherspotTransactionKitContextProvider = ({ children }: EtherspotTransacti
           continue;
         }
 
-        const etherspotPrimeSdk = await getSdk(batchChainId);
+        // force new instance for each batch to not mix up user ops added to SDK state batch
+        const etherspotPrimeSdk = await getSdk(batchChainId, true);
 
         try {
           if (!forSending) await etherspotPrimeSdk.clearUserOpsFromBatch();

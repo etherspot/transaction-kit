@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.2] - 2023-10-24
+
+### Added Changes
+- Added missing `useEtherspotTransactions` hook tests for `estimate` method
+- Fixed `skip` prop to ignore batch group estimations
+- Fixed batching for same chain ID SDK instance
+
 ## [0.6.1] - 2023-10-24
 
 ### Added Changes

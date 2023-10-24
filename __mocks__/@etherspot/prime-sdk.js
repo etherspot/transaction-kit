@@ -6,6 +6,7 @@ const otherAccountAddress = '0xAb4C67d8D7B248B2fA6B638C645466065fE8F1F1'
 
 export class PrimeSdk {
   sdkChainId;
+  userOps = [];
 
   constructor (provider, config) {
     this.sdkChainId = config.chainId;
@@ -176,6 +177,62 @@ export class PrimeSdk {
     }));
 
     return { items: prices }
+  }
+
+  async clearUserOpsFromBatch() {
+    this.userOps = [];
+  }
+
+  async addUserOpsToBatch(userOp) {
+    this.userOps.push(userOp);
+  }
+
+  async estimate(paymaster) {
+    let maxFeePerGas = ethers.utils.parseUnits('1', 'gwei');
+    let maxPriorityFeePerGas = ethers.utils.parseUnits('1', 'gwei');
+    let callGasLimit = ethers.BigNumber.from('50000');
+
+    if (paymaster?.url === 'someUrl') {
+      maxFeePerGas = ethers.utils.parseUnits('2', 'gwei');
+      maxPriorityFeePerGas = ethers.utils.parseUnits('3', 'gwei');
+      callGasLimit = ethers.BigNumber.from('75000');
+    }
+
+    let finalGasLimit = ethers.BigNumber.from(callGasLimit);
+
+    if (this.sdkChainId === 420) {
+      throw new Error('Transaction reverted: chain too high');
+    }
+
+    this.userOps.forEach((userOp) => {
+      if (userOp.to === '0xDEADBEEF') {
+        throw new Error('Transaction reverted: invalid address');
+      }
+      finalGasLimit = finalGasLimit.add(callGasLimit);
+      if (userOp.data
+        && userOp.data !== '0x0'
+        && userOp.data !== '0xFFF') {
+        finalGasLimit = finalGasLimit.add(callGasLimit);
+      }
+    });
+
+    return {
+      sender: defaultAccountAddress,
+      nonce: ethers.BigNumber.from(1),
+      initCode: '0x001',
+      callData: '0x002',
+      callGasLimit: finalGasLimit,
+      verificationGasLimit: ethers.BigNumber.from('25000'),
+      preVerificationGas: ethers.BigNumber.from('75000'),
+      maxFeePerGas,
+      maxPriorityFeePerGas,
+      paymasterAndData: '0x003',
+      signature: '0x004',
+    }
+  }
+
+  totalGasEstimated({ callGasLimit, verificationGasLimit, preVerificationGas }) {
+    return callGasLimit.add(verificationGasLimit).add(preVerificationGas);
   }
 }
 
