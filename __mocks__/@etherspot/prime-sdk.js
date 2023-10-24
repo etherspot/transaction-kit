@@ -16,10 +16,6 @@ export class PrimeSdk {
     return defaultAccountAddress;
   }
 
-  createSession() {
-    return { token: 'some-session-token' };
-  }
-
   getAccountBalances({ chainId, account }) {
     const tokenBalance = ethers.utils.parseEther('420');
     const nativeAssetBalance = ethers.utils.parseEther('0');
@@ -234,7 +230,5 @@ export class PrimeSdk {
 }
 
 export const isWalletProvider = EtherspotPrime.isWalletProvider;
-
-export const SessionStorage = EtherspotPrime.SessionStorage;
 
 export default EtherspotPrime;

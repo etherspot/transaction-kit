@@ -1,6 +1,5 @@
 import {
   PrimeSdk,
-  SessionStorage,
   WalletProviderLike,
   isWalletProvider
 } from '@etherspot/prime-sdk';
@@ -15,21 +14,16 @@ import React, {
 // contexts
 import EtherspotContext from '../contexts/EtherspotContext';
 
-// services
-import { sessionStorageInstance } from '../services/EtherspotSessionStorage';
-
 let sdkPerChain: { [chainId: number]: PrimeSdk } = {};
 
 const EtherspotContextProvider = ({
   children,
   provider,
   chainId = 1,
-  etherspotSessionStorage,
 }: {
   children: ReactNode;
   provider: WalletProviderLike;
   chainId?: number;
-  etherspotSessionStorage?: SessionStorage;
 }) => {
   const context = useContext(EtherspotContext);
 
@@ -41,8 +35,6 @@ const EtherspotContextProvider = ({
     throw new Error('Invalid provider!')
   }
 
-  const sessionStorage = etherspotSessionStorage ?? sessionStorageInstance;
-
   useEffect(() => {
     // reset on provider change
     sdkPerChain = {};
@@ -53,7 +45,6 @@ const EtherspotContextProvider = ({
 
     const sdkForChain = new PrimeSdk(provider, {
       chainId: sdkChainId,
-      sessionStorage,
       projectKey: '__ETHERSPOT_PROJECT_KEY__' || undefined,
     });
 

@@ -10,10 +10,15 @@
 - Removed `etherspot` dependency
 - Removed `@etherspot/react-etherspot` dependency
 - Updated `provider` prop as required for `<EtherspotTransactionKit />` component
-- Method `getSdkForChainId` on `useEtherspot` hook replaced with `getSdk` that returns `Prime SDK` instance as `Promise`
-- Method `connect` on `useEtherspot` is no longer available and not required to start SDK session
-- Values `accountAddress` and `providerWalletAddress` are no longer on `useEtherspot` hook, please use `useWalletAddress` hook
-- Value `sdk` on `useEtherspot` hook is no longer present, please use `getSdk` on `useEtherspot` hook
+- Removed `getSdkForChainId` from `useEtherspot` hook, replaced with `getSdk` that returns `Prime SDK` instance as `Promise`
+- Removed `connect` from `useEtherspot` therefore it's no longer required to start SDK session
+- Removed `accountAddress` and `providerWalletAddress` from `useEtherspot` hook, please use `useWalletAddress` hook
+- Removed `sdk` from `useEtherspot` hook, please use `getSdk` on `useEtherspot` hook
+- Removed `etherspotSessionStorage` from `<EtherspotTransactionKit />` component, session is now handled internally
+
+### Pending Changes
+- Method `getOffers` for same chain swaps on `useEtherspotSwaps` hook is not working on this release
+- Methods `getAccountTransactions` and `getAccountTransaction` on `useEtherspotHistory` hook are not working on this release
 
 ## [0.6.0] - 2023-10-18
 
