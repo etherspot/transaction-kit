@@ -232,6 +232,13 @@ describe('useEtherspotTransactions()', () => {
                   params={['0x7F30B1960D5556929B03a0339814fE903c55a347', ethers.utils.parseEther('123')]}
                 />
               </EtherspotBatch>
+              <EtherspotBatch chainId={124}>
+                <EtherspotTransaction
+                  to={'0x124'}
+                  data={'0x0'}
+                  value={'0.124'}
+                />
+              </EtherspotBatch>
             </EtherspotBatches>
           </span>
         </div>
@@ -259,6 +266,7 @@ describe('useEtherspotTransactions()', () => {
 
     const estimated = await result.current.estimate();
     expect(estimated[0].estimatedBatches[0].cost.toString()).toBe('350000');
+    expect(estimated[0].estimatedBatches[1].cost.toString()).toBe('200000');
     expect(estimated[2].estimatedBatches[0].cost.toString()).toBe('250000');
   });
 
@@ -336,6 +344,13 @@ describe('useEtherspotTransactions()', () => {
                   params={['0x7F30B1960D5556929B03a0339814fE903c55a347', ethers.utils.parseEther('123')]}
                 />
               </EtherspotBatch>
+              <EtherspotBatch chainId={123}>
+                <EtherspotTransaction
+                  to={'0x124'}
+                  data={'0x0'}
+                  value={'0.124'}
+                />
+              </EtherspotBatch>
             </EtherspotBatches>
           </span>
         </div>
@@ -366,6 +381,7 @@ describe('useEtherspotTransactions()', () => {
 
     const estimated = await result.current.estimate();
     expect(estimated[0].estimatedBatches[0].cost.toString()).toBe('350000');
+    expect(estimated[0].estimatedBatches[1].cost.toString()).toBe('200000');
     expect(estimated[1].estimatedBatches[0].cost.toString()).toBe('325000');
     expect(estimated[2].estimatedBatches[0].cost.toString()).toBe('325000');
   });
@@ -398,6 +414,13 @@ describe('useEtherspotTransactions()', () => {
                   params={['0x7F30B1960D5556929B03a0339814fE903c55a347', ethers.utils.parseEther('123')]}
                 />
               </EtherspotBatch>
+              <EtherspotBatch chainId={124}>
+                <EtherspotTransaction
+                  to={'0x124'}
+                  data={'0x0'}
+                  value={'0.124'}
+                />
+              </EtherspotBatch>
             </EtherspotBatches>
           </span>
         </div>
@@ -421,6 +444,61 @@ describe('useEtherspotTransactions()', () => {
 
     expect(onEstimated1).toBeCalledTimes(1);
     expect(onEstimated2).toBeCalledTimes(1);
+    expect(onEstimated1.mock.calls[0][0]).toStrictEqual(estimated[0].estimatedBatches);
+    expect(onEstimated2.mock.calls[0][0]).toStrictEqual(estimated[1].estimatedBatches);
+  });
+
+  it('estimates and returns error messages for each batch group', async () => {
+    const onEstimated1 = jest.fn((estimated) => estimated);
+    const onEstimated2 = jest.fn((estimated) => estimated);
+
+    const wrapper = ({ children }) => (
+      <EtherspotTransactionKit provider={provider}>
+        <div>
+          test
+          <span>
+            <EtherspotBatches onEstimated={onEstimated1}>
+              <EtherspotBatch chainId={420}>
+                <EtherspotTransaction
+                  to={'0x12'}
+                  data={'0x0'}
+                  value={'0.123'}
+                />
+                <EtherspotTransaction
+                  to={'0x0'}
+                  data={'0xFFF'}
+                  value={'420'}
+                />
+                <EtherspotContractTransaction
+                  abi={['function transfer(address, uint)']}
+                  contractAddress={'0xe3818504c1b32bf1557b16c238b2e01fd3149c17'}
+                  methodName={'transfer'}
+                  params={['0x7F30B1960D5556929B03a0339814fE903c55a347', ethers.utils.parseEther('123')]}
+                />
+              </EtherspotBatch>
+            </EtherspotBatches>
+          </span>
+        </div>
+        <EtherspotBatches paymaster={{ url: 'someUrl', api_key: 'someApiKey' }} onEstimated={onEstimated2}>
+          <EtherspotBatch chainId={69}>
+            <EtherspotTransaction
+              to={'0xDEADBEEF'}
+              data={'0x69420'}
+              value={'69'}
+            />
+          </EtherspotBatch>
+        </EtherspotBatches>
+        <TestSingleBatchComponent />
+        {children}
+      </EtherspotTransactionKit>
+    );
+
+    const { result } = renderHook(() => useEtherspotTransactions(), { wrapper });
+
+    const estimated = await result.current.estimate();
+
+    expect(estimated[0].estimatedBatches[0].errorMessage).toBe('Transaction reverted: chain too high');
+    expect(estimated[1].estimatedBatches[0].errorMessage).toBe('Transaction reverted: invalid address');
     expect(onEstimated1.mock.calls[0][0]).toStrictEqual(estimated[0].estimatedBatches);
     expect(onEstimated2.mock.calls[0][0]).toStrictEqual(estimated[1].estimatedBatches);
   });

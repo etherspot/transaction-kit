@@ -200,7 +200,14 @@ export class PrimeSdk {
 
     let finalGasLimit = ethers.BigNumber.from(callGasLimit);
 
+    if (this.sdkChainId === 420) {
+      throw new Error('Transaction reverted: chain too high');
+    }
+
     this.userOps.forEach((userOp) => {
+      if (userOp.to === '0xDEADBEEF') {
+        throw new Error('Transaction reverted: invalid address');
+      }
       finalGasLimit = finalGasLimit.add(callGasLimit);
       if (userOp.data
         && userOp.data !== '0x0'
