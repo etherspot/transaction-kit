@@ -1,6 +1,13 @@
 import {
-  EstimatedBatch, EtherspotBatch, EtherspotBatches, EtherspotTransaction, IEstimatedBatches, ISentBatches,
-  SentBatch, useEtherspot, useEtherspotTransactions, useWalletAddress
+  EstimatedBatch,
+  EtherspotBatch,
+  EtherspotBatches,
+  EtherspotTransaction,
+  IEstimatedBatches, ISentBatches,
+  SentBatch,
+  useEtherspot,
+  useEtherspotTransactions,
+  useWalletAddress,
 } from '@etherspot/transaction-kit';
 import TreeItem from '@mui/lab/TreeItem';
 import TreeView from '@mui/lab/TreeView';
@@ -20,9 +27,9 @@ const tabs = {
   MULTIPLE_TRANSACTIONS: 'MULTIPLE_TRANSACTIONS',
 };
 
-const CodePreview = ({code}: { code: string }) => (
+const CodePreview = ({ code }: { code: string }) => (
   <Paper>
-    <pre style={{margin: '40px 0 40px', padding: '0 15px'}}>
+    <pre style={{ margin: '40px 0 40px', padding: '0 15px' }}>
       <code>
         {code.replaceAll('\n      ', '\n')}
       </code>
@@ -42,7 +49,7 @@ const exampleCode = {
     code: (
       <EtherspotBatches>
         <EtherspotBatch>
-          <EtherspotTransaction to={walletAddressByName.Bob} value={'0.01'}/>
+          <EtherspotTransaction to={walletAddressByName.Bob} value={'0.01'} />
         </EtherspotBatch>
       </EtherspotBatches>
     )
@@ -59,8 +66,8 @@ const exampleCode = {
     code: (
       <EtherspotBatches>
         <EtherspotBatch>
-          <EtherspotTransaction to={walletAddressByName.Bob} value={'0.01'}/>
-          <EtherspotTransaction to={walletAddressByName.Christie} value={'0.01'}/>
+          <EtherspotTransaction to={walletAddressByName.Bob} value={'0.01'} />
+          <EtherspotTransaction to={walletAddressByName.Christie} value={'0.01'} />
         </EtherspotBatch>
       </EtherspotBatches>
     )
@@ -69,7 +76,7 @@ const exampleCode = {
 
 const App = () => {
   const [activeTab, setActiveTab] = useState(tabs.SINGLE_TRANSACTION);
-  const {batches, estimate, send} = useEtherspotTransactions();
+  const { batches, estimate, send } = useEtherspotTransactions();
   const { getSdk } = useEtherspot();
   const [balancePerAddress, setBalancePerAddress] = useState({
     [walletAddressByName.Alice]: '',
@@ -157,8 +164,8 @@ const App = () => {
       };
 
       await Promise.all(Object.values(walletAddressByName).map(async (address) => {
-        const balances = await sdk?.getAccountBalances({account: address});
-        const balance = balances && balances.items.find(({token}) => token === null);
+        const balances = await sdk?.getAccountBalances({ account: address });
+        const balance = balances && balances.items.find(({ token }) => token === null);
         if (balance) updatedBalances[address] = ethers.utils.formatEther(balance.balance);
       }));
 
@@ -180,7 +187,7 @@ const App = () => {
 
   return (
     <Container maxWidth={'sm'}>
-      <Box sx={{pt: 3, pb: 4}}>
+      <Box sx={{ pt: 3, pb: 4 }}>
         <Typography mb={2}>
           <a href={'https://faucet.polygon.technology/'} target={'_blank'} rel="noreferrer">Mumbai MATIC Faucet</a>
         </Typography>
@@ -192,7 +199,7 @@ const App = () => {
             <Chip
               label={chipLabel}
               variant={'outlined'}
-              style={{marginRight: 10, marginTop: 10}}
+              style={{ marginRight: 10, marginTop: 10 }}
               key={address}
             />
           );
@@ -200,28 +207,28 @@ const App = () => {
       </Box>
       <Box>
         <Typography>
-          Etherspot Smart Wallet Addresses:
+          Etherspot Smart Wallet Address:
         </Typography>
         {!!etherspotPrimeAddress?.length && (
-          <Paper sx={{p: 1}} variant="outlined">
+          <Paper sx={{ p: 1 }} variant="outlined">
             <Typography>
-              Address: {etherspotPrimeAddress}
+              {etherspotPrimeAddress}
             </Typography>
           </Paper>
         )}
       </Box>
-      <Box sx={{borderBottom: 1, borderColor: 'divider'}}>
+      <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
         <Tabs value={activeTab} onChange={(event, id) => setActiveTab(id)}>
-          <Tab label={'Single transaction'} value={tabs.SINGLE_TRANSACTION}/>
-          <Tab label={'Multiple transactions'} value={tabs.MULTIPLE_TRANSACTIONS}/>
+          <Tab label={'Single transaction'} value={tabs.SINGLE_TRANSACTION} />
+          <Tab label={'Multiple transactions'} value={tabs.MULTIPLE_TRANSACTIONS} />
         </Tabs>
       </Box>
       <Box>
-        <CodePreview code={exampleCode[activeTab].preview}/>
+        <CodePreview code={exampleCode[activeTab].preview} />
         <Button
           variant={'contained'}
           disabled={isEstimating}
-          style={{marginRight: 5}}
+          style={{ marginRight: 5 }}
           onClick={onEstimateClick}
         >
           {isEstimating ? 'Estimating...' : 'Estimate'}
@@ -237,8 +244,8 @@ const App = () => {
         {exampleCode[activeTab].code}
         <Box mt={4} mb={4}>
           <TreeView
-            defaultExpandIcon={<AiFillCaretRight/>}
-            defaultCollapseIcon={<AiFillCaretDown/>}
+            defaultExpandIcon={<AiFillCaretRight />}
+            defaultCollapseIcon={<AiFillCaretDown />}
             expanded={expanded}
             onNodeToggle={handleToggle}
             disableSelection
@@ -251,23 +258,35 @@ const App = () => {
                   let sentBatch: SentBatch | undefined;
 
                   estimated?.forEach((estimatedGroup) => {
-                    estimatedBatch = estimatedGroup.estimatedBatches?.find(({id}) => id === batch.id);
+                    estimatedBatch = estimatedGroup.estimatedBatches?.find(({ id }) => id === batch.id);
                   });
 
                   sent?.forEach((sentGroup) => {
-                    sentBatch = sentGroup.sentBatches?.find(({id}) => id === batch.id);
+                    sentBatch = sentGroup.sentBatches?.find(({ id }) => id === batch.id);
                   });
 
                   return (
                     <TreeItem nodeId={batch.treeNodeId} label={`Batch ${id2 + 1}`} key={batch.treeNodeId}>
-                      {estimatedBatch?.cost && <Typography ml={1} fontWeight={800}>Batch
-                        estimated: {ethers.utils.formatEther(estimatedBatch.cost)} MATIC</Typography>}
-                      {estimatedBatch?.errorMessage && <Typography ml={1} fontWeight={800}>Batch estimation
-                        error: {estimatedBatch.errorMessage}</Typography>}
-                      {sentBatch?.userOpHash &&
-                        <Typography ml={1} fontWeight={800}>Sent user-op hash: {sentBatch.userOpHash}</Typography>}
-                      {sentBatch?.errorMessage &&
-                        <Typography ml={1} fontWeight={800}>Error on send: {sentBatch.errorMessage}</Typography>}
+                      {!!estimatedBatch?.cost && (
+                        <Typography ml={1} fontWeight={800}>
+                          Batch estimated: {ethers.utils.formatEther(estimatedBatch.cost)} MATIC
+                        </Typography>
+                      )}
+                      {!!estimatedBatch?.errorMessage && (
+                        <Typography ml={1} fontWeight={800}>
+                          Batch estimation error: {estimatedBatch.errorMessage}
+                        </Typography>
+                      )}
+                      {!!sentBatch?.userOpHash && (
+                        <Typography ml={1} fontWeight={800}>
+                          Sent user-op hash: {sentBatch.userOpHash}
+                        </Typography>
+                      )}
+                      {!!sentBatch?.errorMessage && (
+                        <Typography ml={1} fontWeight={800}>
+                          Error on send: {sentBatch.errorMessage}
+                        </Typography>
+                      )}
                       {batch.transactions?.map((transaction, id3) => {
                         let transactionValue = typeof transaction.value === 'string'
                           ? transaction.value
@@ -278,8 +297,11 @@ const App = () => {
                         }
 
                         return (
-                          <TreeItem nodeId={transaction.treeNodeId} label={`Transaction ${id3 + 1}`}
-                                    key={transaction.treeNodeId}>
+                          <TreeItem
+                            nodeId={transaction.treeNodeId}
+                            label={`Transaction ${id3 + 1}`}
+                            key={transaction.treeNodeId}
+                          >
                             <Typography ml={1}>To: {transaction.to}</Typography>
                             <Typography ml={1}>Value: {transactionValue} MATIC</Typography>
                             <Typography ml={1}>Data: {transaction.data ?? 'None'}</Typography>
