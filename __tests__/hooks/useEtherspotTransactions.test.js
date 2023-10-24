@@ -167,4 +167,206 @@ describe('useEtherspotTransactions()', () => {
     ))
       .toThrow('No parent <EtherspotBatch />');
   });
+
+  it('estimates single grouped batches', async () => {
+    const wrapper = ({ children }) => (
+      <EtherspotTransactionKit provider={provider}>
+        <div>
+          test
+          <span>
+            <EtherspotBatches>
+              <EtherspotBatch chainId={123}>
+                <EtherspotTransaction
+                  to={'0x12'}
+                  data={'0x0'}
+                  value={'0.123'}
+                />
+                <EtherspotTransaction
+                  to={'0x0'}
+                  data={'0xFFF'}
+                  value={'420'}
+                />
+                <EtherspotContractTransaction
+                  abi={['function transfer(address, uint)']}
+                  contractAddress={'0xe3818504c1b32bf1557b16c238b2e01fd3149c17'}
+                  methodName={'transfer'}
+                  params={['0x7F30B1960D5556929B03a0339814fE903c55a347', ethers.utils.parseEther('123')]}
+                />
+              </EtherspotBatch>
+            </EtherspotBatches>
+          </span>
+        </div>
+        <TestSingleBatchComponent />
+        {children}
+      </EtherspotTransactionKit>
+    );
+
+    const { result } = renderHook(() => useEtherspotTransactions(), { wrapper });
+
+    const estimated = await result.current.estimate();
+    expect(estimated[0].estimatedBatches[0].cost.toString()).toBe('350000');
+  });
+
+  it('estimates multiple grouped batches with skipped and with no batches', async () => {
+    const wrapper = ({ children }) => (
+      <EtherspotTransactionKit provider={provider}>
+        <div>
+          test
+          <span>
+            <EtherspotBatches>
+              <EtherspotBatch chainId={123}>
+                <EtherspotTransaction
+                  to={'0x12'}
+                  data={'0x0'}
+                  value={'0.123'}
+                />
+                <EtherspotTransaction
+                  to={'0x0'}
+                  data={'0xFFF'}
+                  value={'420'}
+                />
+                <EtherspotContractTransaction
+                  abi={['function transfer(address, uint)']}
+                  contractAddress={'0xe3818504c1b32bf1557b16c238b2e01fd3149c17'}
+                  methodName={'transfer'}
+                  params={['0x7F30B1960D5556929B03a0339814fE903c55a347', ethers.utils.parseEther('123')]}
+                />
+              </EtherspotBatch>
+            </EtherspotBatches>
+          </span>
+        </div>
+        <EtherspotBatches skip>
+          <span>test</span>
+        </EtherspotBatches>
+        <EtherspotBatches>
+          <EtherspotBatch chainId={69}>
+            <EtherspotTransaction
+              to={'0x420'}
+              data={'0x69420'}
+              value={'69'}
+            />
+          </EtherspotBatch>
+        </EtherspotBatches>
+        <EtherspotBatches>
+          <span>test</span>
+        </EtherspotBatches>
+        <TestSingleBatchComponent />
+        {children}
+      </EtherspotTransactionKit>
+    );
+
+    const { result } = renderHook(() => useEtherspotTransactions(), { wrapper });
+
+    const estimated = await result.current.estimate();
+    expect(estimated[0].estimatedBatches[0].cost.toString()).toBe('350000');
+    expect(estimated[2].estimatedBatches[0].cost.toString()).toBe('250000');
+  });
+
+  it('estimates multiple grouped batches with paymaster', async () => {
+    const wrapper = ({ children }) => (
+      <EtherspotTransactionKit provider={provider}>
+        <div>
+          test
+          <span>
+            <EtherspotBatches>
+              <EtherspotBatch chainId={123}>
+                <EtherspotTransaction
+                  to={'0x12'}
+                  data={'0x0'}
+                  value={'0.123'}
+                />
+                <EtherspotTransaction
+                  to={'0x0'}
+                  data={'0xFFF'}
+                  value={'420'}
+                />
+                <EtherspotContractTransaction
+                  abi={['function transfer(address, uint)']}
+                  contractAddress={'0xe3818504c1b32bf1557b16c238b2e01fd3149c17'}
+                  methodName={'transfer'}
+                  params={['0x7F30B1960D5556929B03a0339814fE903c55a347', ethers.utils.parseEther('123')]}
+                />
+              </EtherspotBatch>
+            </EtherspotBatches>
+          </span>
+        </div>
+        <EtherspotBatches paymaster={{ url: 'someUrl', api_key: 'someApiKey' }}>
+          <EtherspotBatch chainId={69}>
+            <EtherspotTransaction
+              to={'0x420'}
+              data={'0x69420'}
+              value={'69'}
+            />
+          </EtherspotBatch>
+        </EtherspotBatches>
+        <TestSingleBatchComponent />
+        {children}
+      </EtherspotTransactionKit>
+    );
+
+    const { result } = renderHook(() => useEtherspotTransactions(), { wrapper });
+
+    const estimated = await result.current.estimate();
+    expect(estimated[0].estimatedBatches[0].cost.toString()).toBe('350000');
+    expect(estimated[1].estimatedBatches[0].cost.toString()).toBe('325000');
+  });
+
+  it('estimates multiple grouped batches with matching chain IDs', async () => {
+    const wrapper = ({ children }) => (
+      <EtherspotTransactionKit provider={provider}>
+        <div>
+          test
+          <span>
+            <EtherspotBatches>
+              <EtherspotBatch chainId={123}>
+                <EtherspotTransaction
+                  to={'0x12'}
+                  data={'0x0'}
+                  value={'0.123'}
+                />
+                <EtherspotTransaction
+                  to={'0x0'}
+                  data={'0xFFF'}
+                  value={'420'}
+                />
+                <EtherspotContractTransaction
+                  abi={['function transfer(address, uint)']}
+                  contractAddress={'0xe3818504c1b32bf1557b16c238b2e01fd3149c17'}
+                  methodName={'transfer'}
+                  params={['0x7F30B1960D5556929B03a0339814fE903c55a347', ethers.utils.parseEther('123')]}
+                />
+              </EtherspotBatch>
+            </EtherspotBatches>
+          </span>
+        </div>
+        <EtherspotBatches paymaster={{ url: 'someUrl', api_key: 'someApiKey' }}>
+          <EtherspotBatch chainId={69}>
+            <EtherspotTransaction
+              to={'0x420'}
+              data={'0x69420'}
+              value={'69'}
+            />
+          </EtherspotBatch>
+        </EtherspotBatches>
+        <EtherspotBatches paymaster={{ url: 'someUrl', api_key: 'someApiKey' }}>
+          <EtherspotBatch chainId={123}>
+            <EtherspotTransaction
+              to={'0x420'}
+              data={'0x69420'}
+              value={'69'}
+            />
+          </EtherspotBatch>
+        </EtherspotBatches>
+        <TestSingleBatchComponent />
+        {children}
+      </EtherspotTransactionKit>
+    );
+
+    const { result } = renderHook(() => useEtherspotTransactions(), { wrapper });
+
+    const estimated = await result.current.estimate();
+    expect(estimated[0].estimatedBatches[0].cost.toString()).toBe('350000');
+    expect(estimated[1].estimatedBatches[0].cost.toString()).toBe('325000');
+    expect(estimated[2].estimatedBatches[0].cost.toString()).toBe('325000');
+  });
 })
