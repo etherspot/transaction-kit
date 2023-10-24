@@ -1,13 +1,17 @@
 import { renderHook, waitFor } from '@testing-library/react';
+import { ethers } from 'ethers';
 
 // hooks
 import { useEtherspotPrices, EtherspotTransactionKit } from '../../src';
+
+const ethersProvider = new ethers.providers.JsonRpcProvider('http://localhost:8545', 'goerli'); // replace with your node's RPC URL
+const provider = new ethers.Wallet.createRandom().connect(ethersProvider);
 
 describe('useEtherspotPrices()', () => {
   describe('getPrices()',  () => {
     it('fails if wrong asset address provided', async () => {
       const wrapper = ({ children }) => (
-        <EtherspotTransactionKit provider={null}>
+        <EtherspotTransactionKit provider={provider}>
           {children}
         </EtherspotTransactionKit>
       );
@@ -23,7 +27,7 @@ describe('useEtherspotPrices()', () => {
 
     it('returns prices for assets', async () => {
       const wrapper = ({ children }) => (
-        <EtherspotTransactionKit provider={null}>
+        <EtherspotTransactionKit provider={provider}>
           {children}
         </EtherspotTransactionKit>
       );
@@ -58,7 +62,7 @@ describe('useEtherspotPrices()', () => {
   describe('getPrice()',  () => {
     it('fails if wrong asset address provided', async () => {
       const wrapper = ({ children }) => (
-        <EtherspotTransactionKit provider={null}>
+        <EtherspotTransactionKit provider={provider}>
           {children}
         </EtherspotTransactionKit>
       );
@@ -74,7 +78,7 @@ describe('useEtherspotPrices()', () => {
 
     it('returns price for asset', async () => {
       const wrapper = ({ children }) => (
-        <EtherspotTransactionKit provider={null}>
+        <EtherspotTransactionKit provider={provider}>
           {children}
         </EtherspotTransactionKit>
       );

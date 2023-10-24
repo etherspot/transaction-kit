@@ -1,6 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { isWalletProvider, Web3WalletProvider } from 'etherspot';
-import { useEtherspot } from '@etherspot/react-etherspot';
+import React, { useMemo, useState } from 'react';
 
 // contexts
 import ProviderWalletContext from '../contexts/ProviderWalletContext';
@@ -15,54 +13,21 @@ import {
 // utils
 import { switchWalletProviderToChain } from '../utils/common';
 
+// hooks
+import useEtherspot from '../hooks/useEtherspot';
+
 interface ProviderWalletContextProviderProps {
   children?: React.ReactNode;
 }
 
 const ProviderWalletContextProvider = ({ children }: ProviderWalletContextProviderProps) => {
   const [transactionById, setTransactionById] = useState<{ [id: string]: IProviderWalletTransaction | undefined }>({});
-  const [web3Provider, setWeb3Provider] = useState<undefined | Web3WalletProvider>(undefined);
   const { provider, chainId } = useEtherspot();
-
-  useEffect(() => {
-    let shouldUpdate = true;
-
-    const update = async () => {
-      if (!shouldUpdate) return;
-
-      if (!provider) {
-        console.warn('No provider set!');
-        return;
-      }
-
-      let newWeb3Provider;
-      // @ts-ignore
-      if (isWalletProvider(provider)) {
-        newWeb3Provider = provider;
-        // @ts-ignore
-      } else if (provider.isWalletConnect) {
-        // @ts-ignore
-        newWeb3Provider = WalletConnectWalletProvider.connect(provider.connector);
-      } else {
-        // @ts-ignore
-        const mappedProvider = new Web3WalletProvider(provider);
-        await mappedProvider.refresh();
-        newWeb3Provider = mappedProvider;
-      }
-
-      if (!shouldUpdate) return;
-      setWeb3Provider(newWeb3Provider);
-    }
-
-    update();
-
-    return () => { shouldUpdate = false; };
-  }, [provider]);
 
   const transaction = useMemo(() => Object.values(transactionById)[0], [transactionById]);
 
   const estimate = async (): Promise<IProviderWalletTransactionEstimated> => {
-    if (!web3Provider) {
+    if (!provider) {
       return { errorMessage: 'No Web3 provider' };
     }
 

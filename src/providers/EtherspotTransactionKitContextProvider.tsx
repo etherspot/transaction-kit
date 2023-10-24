@@ -1,12 +1,13 @@
-import { useEtherspot } from '@etherspot/react-etherspot';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { PrimeSdk, isWalletProvider, Web3WalletProvider } from '@etherspot/prime-sdk';
+import React, { useMemo, useState } from 'react';
 
 // contexts
 import EtherspotTransactionKitContext from '../contexts/EtherspotTransactionKitContext';
 
 // utils
 import { getObjectSortedByKeys } from '../utils/common';
+
+// hooks
+import useEtherspot from '../hooks/useEtherspot';
 
 // types
 import { EstimatedBatch, IBatch, IBatches, IEstimatedBatches, ISentBatches, SentBatch } from '../types/EtherspotTransactionKit';
@@ -16,12 +17,8 @@ interface EtherspotTransactionKitContextProviderProps {
   children?: React.ReactNode;
 }
 
-let isSdkConnecting: Promise<any> | undefined;
-
-let etherspotPrimeSdkPerChain: { [chainId: number]: PrimeSdk } = {};
-
 const EtherspotTransactionKitContextProvider = ({ children }: EtherspotTransactionKitContextProviderProps) => {
-  const { provider, chainId } = useEtherspot();
+  const { provider, chainId, getSdk } = useEtherspot();
   const [groupedBatchesPerId, setGroupedBatchesPerId] = useState<TypePerId<IBatches>>({});
 
   const estimate = async (
@@ -32,9 +29,6 @@ const EtherspotTransactionKitContextProvider = ({ children }: EtherspotTransacti
       .filter((groupedBatch) => (!batchesIds?.length|| batchesIds.some((batchesId) => batchesId === groupedBatch.id)));
 
     return Promise.all(groupedBatchesToEstimate.map(async (groupedBatch): Promise<IEstimatedBatches> => {
-      // hold when connecting
-      if (isSdkConnecting) await isSdkConnecting;
-
       const batches = (groupedBatch.batches ?? []) as IBatch[];
 
       const estimatedBatches: EstimatedBatch[] = [];
@@ -53,21 +47,17 @@ const EtherspotTransactionKitContextProvider = ({ children }: EtherspotTransacti
           continue;
         }
 
-        const etherspotPrimeSdkForChainId = await getEtherspotPrimeSdkForChainId(batchChainId);
-        if (!etherspotPrimeSdkForChainId) {
-          estimatedBatches.push({ ...batch, errorMessage: 'Failed to get Etherspot Prime SDK for chain!' });
-          continue;
-        }
+        const etherspotPrimeSdk = await getSdk(batchChainId);
 
         try {
-          if (!forSending) await etherspotPrimeSdkForChainId.clearUserOpsFromBatch();
+          if (!forSending) await etherspotPrimeSdk.clearUserOpsFromBatch();
 
           await Promise.all(batch.transactions.map(async ({ to, value, data }) => {
-            await etherspotPrimeSdkForChainId.addUserOpsToBatch(({ to, value, data }));
+            await etherspotPrimeSdk.addUserOpsToBatch(({ to, value, data }));
           }));
 
-          const userOp = await etherspotPrimeSdkForChainId.estimate(groupedBatch.paymaster);
-          const totalGas = await etherspotPrimeSdkForChainId.totalGasEstimated(userOp);
+          const userOp = await etherspotPrimeSdk.estimate(groupedBatch.paymaster);
+          const totalGas = await etherspotPrimeSdk.totalGasEstimated(userOp);
           estimatedBatches.push({ ...batch, cost: totalGas, userOp });
         } catch (e) {
           estimatedBatches.push({ ...batch, errorMessage: (e instanceof Error && e.message) || 'Failed to estimate!' });
@@ -80,58 +70,6 @@ const EtherspotTransactionKitContextProvider = ({ children }: EtherspotTransacti
     }));
   }
 
-  useEffect(() => {
-    // reset prime sdk instances on provider change
-    etherspotPrimeSdkPerChain = {};
-  }, [provider]);
-
-  const getEtherspotPrimeSdkForChainId = useCallback(async (sdkChainId: number, forceNewInstance: boolean = false) => {
-    if (etherspotPrimeSdkPerChain[sdkChainId] && !forceNewInstance) return etherspotPrimeSdkPerChain[sdkChainId];
-
-    if (!provider) {
-      console.warn('No initial provider set for Etherspot Prime');
-      return null;
-    }
-
-    let mappedProvider;
-
-    try {
-      // @ts-ignore
-      mappedProvider = isWalletProvider(provider) ? provider : new Web3WalletProvider(provider);
-    } catch (e) {
-      console.warn('Failed to map Etherspot Prime provider', e);
-    }
-
-    if (!mappedProvider) {
-      console.warn('No mapped provider set for Etherspot Prime');
-      return null;
-    }
-
-    try {
-      // @ts-ignore
-      if (mappedProvider) await mappedProvider.refresh();
-    } catch (e) {
-      // this should be ok to throw warning but proceed
-      console.warn('Failed to refresh Etherspot Prime provider', e);
-    }
-
-    let sdkForChain = null;
-
-    try {
-      // @ts-ignore
-      sdkForChain = new PrimeSdk(mappedProvider, { chainId: sdkChainId });
-
-      etherspotPrimeSdkPerChain = {
-        ...etherspotPrimeSdkPerChain,
-        [sdkChainId]: sdkForChain,
-      }
-    } catch (e) {
-      console.warn('Failed to create Etherspot Prime SDK', e);
-    }
-
-    return sdkForChain;
-  }, [provider]);
-
   const send = async (batchesIds?: string[]): Promise<ISentBatches[]> => {
     const groupedBatchesToClean = Object.values<IBatches>(groupedBatchesPerId)
       .filter((groupedBatch) => (!batchesIds?.length|| batchesIds.some((batchesId) => batchesId === groupedBatch.id)));
@@ -142,18 +80,14 @@ const EtherspotTransactionKitContextProvider = ({ children }: EtherspotTransacti
     }) => Promise.all(batches.map(async (batch) => {
       const batchChainId = batch.chainId ?? chainId;
 
-      const etherspotPrimeSdkForChainId = await getEtherspotPrimeSdkForChainId(batchChainId);
-      if (!etherspotPrimeSdkForChainId) return;
+      const etherspotPrimeSdk = await getSdk(batchChainId);
 
-      await etherspotPrimeSdkForChainId.clearUserOpsFromBatch();
+      await etherspotPrimeSdk.clearUserOpsFromBatch();
     }))));
 
     const estimated = await estimate(batchesIds, true);
 
     return Promise.all(estimated.map(async (estimatedBatches): Promise<ISentBatches> => {
-      // hold when connecting
-      if (isSdkConnecting) await isSdkConnecting;
-
       const sentBatches: SentBatch[] = [];
 
       // send in same order as estimated
@@ -162,15 +96,11 @@ const EtherspotTransactionKitContextProvider = ({ children }: EtherspotTransacti
 
         // return error message as provided by estimate
         if (estimatedBatch.errorMessage) {
-          sentBatches.push({ ...estimatedBatch, errorMessage: estimatedBatch.errorMessage })
+          sentBatches.push({ ...estimatedBatch, errorMessage: estimatedBatch.errorMessage });
           continue;
         }
 
-        const etherspotPrimeSdkForChainId = await getEtherspotPrimeSdkForChainId(batchChainId);
-        if (!etherspotPrimeSdkForChainId) {
-          sentBatches.push({ ...estimatedBatch, errorMessage: 'Failed to get Etherspot Prime SDK for chain!' });
-          continue;
-        }
+        const etherspotPrimeSdk = await getSdk(batchChainId);
 
         if (!estimatedBatch.userOp) {
           sentBatches.push({ ...estimatedBatch, errorMessage: 'Failed to get estimated UserOp!' });
@@ -178,7 +108,7 @@ const EtherspotTransactionKitContextProvider = ({ children }: EtherspotTransacti
         }
 
         try {
-          const userOpHash = await etherspotPrimeSdkForChainId.send(estimatedBatch.userOp);
+          const userOpHash = await etherspotPrimeSdk.send(estimatedBatch.userOp);
           sentBatches.push({ ...estimatedBatch, userOpHash });
         } catch (e) {
           sentBatches.push({ ...estimatedBatch, errorMessage: (e instanceof Error && e.message) || 'Failed to estimate!' });
@@ -196,11 +126,9 @@ const EtherspotTransactionKitContextProvider = ({ children }: EtherspotTransacti
     estimate,
     send,
     chainId,
-    getEtherspotPrimeSdkForChainId,
   }), [
     chainId,
     groupedBatchesPerId,
-    getEtherspotPrimeSdkForChainId,
   ]);
 
   return (

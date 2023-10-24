@@ -7,7 +7,7 @@ import { EtherspotTransactionKit, useWalletAddress } from '../../src';
 const ethersProvider = new ethers.providers.JsonRpcProvider('http://localhost:8545', 'goerli'); // replace with your node's RPC URL
 const provider = new ethers.Wallet.createRandom().connect(ethersProvider);
 
-const etherspotPrimeAddress = '0x07ff85757f5209534EB601E1CA60d72807ECE0bC';
+const etherspotPrimeAddress = '0x7F30B1960D5556929B03a0339814fE903c55a347';
 const providerWalletAddress = provider.address;
 
 describe('useWalletAddress()', () => {
@@ -60,6 +60,6 @@ describe('useWalletAddress()', () => {
     expect(result.current).toEqual(etherspotPrimeAddress);
 
     rerender({ providerType: 'whatever' });
-    expect(result.current).toEqual(undefined);
+    await waitFor(() => expect(result.current).toBe(undefined));
   });
 })

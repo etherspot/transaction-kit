@@ -1,7 +1,8 @@
-import { AccountTypes } from 'etherspot';
-import { useEtherspot } from '@etherspot/react-etherspot';
-import { TokenListToken } from 'etherspot/dist/sdk/assets/classes/token-list-token';
 import { useMemo } from 'react';
+import { TokenListToken } from '@etherspot/prime-sdk';
+
+// hooks
+import useEtherspot from './useEtherspot';
 
 interface IEtherspotAssetsHook {
   getAssets: () => Promise<TokenListToken[]>;
@@ -13,7 +14,7 @@ interface IEtherspotAssetsHook {
  * @returns {IEtherspotAssetsHook} - hook method to fetch Etherspot supported assets
  */
 const useEtherspotAssets = (chainId?: number): IEtherspotAssetsHook => {
-  const { connect, getSdkForChainId, chainId: defaultChainId } = useEtherspot();
+  const { getSdk, chainId: defaultChainId } = useEtherspot();
 
   const assetsChainId = useMemo(() => {
     if (chainId) return chainId;
@@ -21,15 +22,7 @@ const useEtherspotAssets = (chainId?: number): IEtherspotAssetsHook => {
   }, [chainId, defaultChainId]);
 
   const getAssets = async (): Promise<TokenListToken[]> => {
-    const sdkForChainId = getSdkForChainId(assetsChainId);
-    if (!sdkForChainId) {
-      console.warn(`Unable to get SDK for chain ID ${assetsChainId}`);
-      return [];
-    }
-
-    if (sdkForChainId?.state?.account?.type !== AccountTypes.Contract) {
-      await connect(assetsChainId);
-    }
+    const sdkForChainId = await getSdk(assetsChainId);
 
     let assets: TokenListToken[] = [];
 

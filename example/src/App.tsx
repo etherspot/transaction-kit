@@ -1,6 +1,13 @@
 import {
-  EstimatedBatch, EtherspotBatch, EtherspotBatches, EtherspotTransaction, IEstimatedBatches, ISentBatches,
-  SentBatch, useEtherspot, useEtherspotAddresses, useEtherspotTransactions
+  EstimatedBatch,
+  EtherspotBatch,
+  EtherspotBatches,
+  EtherspotTransaction,
+  IEstimatedBatches, ISentBatches,
+  SentBatch,
+  useEtherspot,
+  useEtherspotTransactions,
+  useWalletAddress,
 } from '@etherspot/transaction-kit';
 import TreeItem from '@mui/lab/TreeItem';
 import TreeView from '@mui/lab/TreeView';
@@ -13,12 +20,12 @@ const walletAddressByName = {
   Alice: '0x3E3e21928AC037DFF9D4E82839eF691c0ca37664',
   Bob: '0xFCc46bD8186B90aF1d5a850b80017aB98EbE373d',
   Christie: '0x8D8Fa3c1db3c0195f98e693Bfa22eBc8bA914ef4',
-}
+};
 
 const tabs = {
   SINGLE_TRANSACTION: 'SINGLE_TRANSACTION',
   MULTIPLE_TRANSACTIONS: 'MULTIPLE_TRANSACTIONS',
-}
+};
 
 const CodePreview = ({ code }: { code: string }) => (
   <Paper>
@@ -70,7 +77,7 @@ const exampleCode = {
 const App = () => {
   const [activeTab, setActiveTab] = useState(tabs.SINGLE_TRANSACTION);
   const { batches, estimate, send } = useEtherspotTransactions();
-  const { getSdkForChainId } = useEtherspot();
+  const { getSdk } = useEtherspot();
   const [balancePerAddress, setBalancePerAddress] = useState({
     [walletAddressByName.Alice]: '',
     [walletAddressByName.Bob]: '',
@@ -80,7 +87,7 @@ const App = () => {
   const [sent, setSent] = useState<ISentBatches[] | null>(null);
   const [isEstimating, setIsEstimating] = useState(false);
   const [isSending, setIsSending] = useState(false);
-  const etherspotAddresses = useEtherspotAddresses();
+  const etherspotPrimeAddress = useWalletAddress();
 
   const batchesTreeView = batches.map((batchGroup, id1) => ({
     ...batchGroup,
@@ -144,28 +151,35 @@ const App = () => {
     setExpanded(batchesTreeViewExpandedIds);
   };
 
-  const refreshBalances = async () => {
-    const sdk = getSdkForChainId(+(process.env.REACT_APP_CHAIN_ID as string));
-    if (!sdk) return;
+  useEffect(() => {
+    let expired = false;
 
-    const updatedBalances = {
-      [walletAddressByName.Alice]: 'N/A',
-      [walletAddressByName.Bob]: 'N/A',
-      [walletAddressByName.Christie]: 'N/A',
+    const refreshBalances = async () => {
+      const sdk = await getSdk(+(process.env.REACT_APP_CHAIN_ID as string));
+
+      const updatedBalances = {
+        [walletAddressByName.Alice]: 'N/A',
+        [walletAddressByName.Bob]: 'N/A',
+        [walletAddressByName.Christie]: 'N/A',
+      };
+
+      await Promise.all(Object.values(walletAddressByName).map(async (address) => {
+        const balances = await sdk?.getAccountBalances({ account: address });
+        const balance = balances && balances.items.find(({ token }) => token === null);
+        if (balance) updatedBalances[address] = ethers.utils.formatEther(balance.balance);
+      }));
+
+      if (expired) return;
+
+      setBalancePerAddress(updatedBalances);
     };
 
-    await Promise.all(Object.values(walletAddressByName).map(async (address) => {
-      const balances = await sdk?.getAccountBalances({ account: address });
-      const balance = balances && balances.items.find(({ token }) => token === null);
-      if (balance) updatedBalances[address] = ethers.utils.formatEther(balance.balance);
-    }));
-
-    setBalancePerAddress(updatedBalances);
-  };
-
-  useEffect(() => {
     refreshBalances();
-  }, [getSdkForChainId]);
+
+    return () => {
+      expired = true;
+    }
+  }, [getSdk]);
 
   const estimationFailed = estimated?.some((
     estimatedGroup,
@@ -179,7 +193,7 @@ const App = () => {
         </Typography>
         {Object.keys(walletAddressByName).map((addressName: string) => {
           const address = walletAddressByName[addressName as keyof typeof walletAddressByName];
-          const balancePart = `balance: ${balancePerAddress[address] ? `${balancePerAddress[address]} MATIC` : 'Loading...' }`;
+          const balancePart = `balance: ${balancePerAddress[address] ? `${balancePerAddress[address]} MATIC` : 'Loading...'}`;
           const chipLabel = `${addressName} ${balancePart}`;
           return (
             <Chip
@@ -193,21 +207,15 @@ const App = () => {
       </Box>
       <Box>
         <Typography>
-          Etherspot Smart Wallet Addresses:
+          Etherspot Smart Wallet Address:
         </Typography>
-        {etherspotAddresses
-          ?.map((smartWalletAddress) => {
-            if (!smartWalletAddress) return null;
-            return (
-              <Paper key={`swa-${smartWalletAddress.chainId}`} sx={{p: 1}} variant="outlined">
-                <Typography>
-                  Chain ID: {smartWalletAddress.chainId}<br/>Chain
-                  Name: {smartWalletAddress.chainName}<br/>Address: {smartWalletAddress.address}
-                </Typography>
-              </Paper>
-            );
-          })
-        }
+        {!!etherspotPrimeAddress?.length && (
+          <Paper sx={{ p: 1 }} variant="outlined">
+            <Typography>
+              {etherspotPrimeAddress}
+            </Typography>
+          </Paper>
+        )}
       </Box>
       <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
         <Tabs value={activeTab} onChange={(event, id) => setActiveTab(id)}>
@@ -250,19 +258,35 @@ const App = () => {
                   let sentBatch: SentBatch | undefined;
 
                   estimated?.forEach((estimatedGroup) => {
-                    estimatedBatch = estimatedGroup.estimatedBatches?.find(({ id }) => id === batch.id)
+                    estimatedBatch = estimatedGroup.estimatedBatches?.find(({ id }) => id === batch.id);
                   });
 
                   sent?.forEach((sentGroup) => {
-                    sentBatch = sentGroup.sentBatches?.find(({ id }) => id === batch.id)
+                    sentBatch = sentGroup.sentBatches?.find(({ id }) => id === batch.id);
                   });
 
                   return (
                     <TreeItem nodeId={batch.treeNodeId} label={`Batch ${id2 + 1}`} key={batch.treeNodeId}>
-                      {estimatedBatch?.cost && <Typography ml={1} fontWeight={800}>Batch estimated: {ethers.utils.formatEther(estimatedBatch.cost)} MATIC</Typography>}
-                      {estimatedBatch?.errorMessage && <Typography ml={1} fontWeight={800}>Batch estimation error: {estimatedBatch.errorMessage}</Typography>}
-                      {sentBatch?.batchHash && <Typography ml={1} fontWeight={800}>Sent batch hash: {sentBatch.batchHash}</Typography>}
-                      {sentBatch?.errorMessage && <Typography ml={1} fontWeight={800}>Error on send: {sentBatch.errorMessage}</Typography>}
+                      {!!estimatedBatch?.cost && (
+                        <Typography ml={1} fontWeight={800}>
+                          Batch estimated: {ethers.utils.formatEther(estimatedBatch.cost)} MATIC
+                        </Typography>
+                      )}
+                      {!!estimatedBatch?.errorMessage && (
+                        <Typography ml={1} fontWeight={800}>
+                          Batch estimation error: {estimatedBatch.errorMessage}
+                        </Typography>
+                      )}
+                      {!!sentBatch?.userOpHash && (
+                        <Typography ml={1} fontWeight={800}>
+                          Sent user-op hash: {sentBatch.userOpHash}
+                        </Typography>
+                      )}
+                      {!!sentBatch?.errorMessage && (
+                        <Typography ml={1} fontWeight={800}>
+                          Error on send: {sentBatch.errorMessage}
+                        </Typography>
+                      )}
                       {batch.transactions?.map((transaction, id3) => {
                         let transactionValue = typeof transaction.value === 'string'
                           ? transaction.value
@@ -273,15 +297,19 @@ const App = () => {
                         }
 
                         return (
-                          <TreeItem nodeId={transaction.treeNodeId} label={`Transaction ${id3 + 1}`} key={transaction.treeNodeId}>
+                          <TreeItem
+                            nodeId={transaction.treeNodeId}
+                            label={`Transaction ${id3 + 1}`}
+                            key={transaction.treeNodeId}
+                          >
                             <Typography ml={1}>To: {transaction.to}</Typography>
                             <Typography ml={1}>Value: {transactionValue} MATIC</Typography>
                             <Typography ml={1}>Data: {transaction.data ?? 'None'}</Typography>
                           </TreeItem>
-                        )
+                        );
                       })}
                     </TreeItem>
-                  )
+                  );
                 })}
               </TreeItem>
             ))}
@@ -290,6 +318,6 @@ const App = () => {
       </Box>
     </Container>
   );
-}
+};
 
 export default App;
