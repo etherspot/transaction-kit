@@ -52,7 +52,6 @@ const useEtherspotSwaps = (chainId?: number): IEtherspotSwapsHook => {
     }
   }
 
-
   const getOffers = async (
     fromAmount: BigNumber,
     fromTokenAddress: string,
