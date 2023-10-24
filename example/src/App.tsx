@@ -219,12 +219,12 @@ const App = () => {
       </Box>
       <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
         <Tabs value={activeTab} onChange={(event, id) => setActiveTab(id)}>
-          <Tab label={'Single transaction'} value={tabs.SINGLE_TRANSACTION}/>
-          <Tab label={'Multiple transactions'} value={tabs.MULTIPLE_TRANSACTIONS}/>
+          <Tab label={'Single transaction'} value={tabs.SINGLE_TRANSACTION} />
+          <Tab label={'Multiple transactions'} value={tabs.MULTIPLE_TRANSACTIONS} />
         </Tabs>
       </Box>
       <Box>
-        <CodePreview code={exampleCode[activeTab].preview}/>
+        <CodePreview code={exampleCode[activeTab].preview} />
         <Button
           variant={'contained'}
           disabled={isEstimating}
@@ -244,8 +244,8 @@ const App = () => {
         {exampleCode[activeTab].code}
         <Box mt={4} mb={4}>
           <TreeView
-            defaultExpandIcon={<AiFillCaretRight/>}
-            defaultCollapseIcon={<AiFillCaretDown/>}
+            defaultExpandIcon={<AiFillCaretRight />}
+            defaultCollapseIcon={<AiFillCaretDown />}
             expanded={expanded}
             onNodeToggle={handleToggle}
             disableSelection
@@ -267,14 +267,26 @@ const App = () => {
 
                   return (
                     <TreeItem nodeId={batch.treeNodeId} label={`Batch ${id2 + 1}`} key={batch.treeNodeId}>
-                      {estimatedBatch?.cost && <Typography ml={1} fontWeight={800}>Batch
-                        estimated: {ethers.utils.formatEther(estimatedBatch.cost)} MATIC</Typography>}
-                      {estimatedBatch?.errorMessage && <Typography ml={1} fontWeight={800}>Batch estimation
-                        error: {estimatedBatch.errorMessage}</Typography>}
-                      {sentBatch?.userOpHash &&
-                        <Typography ml={1} fontWeight={800}>Sent user-op hash: {sentBatch.userOpHash}</Typography>}
-                      {sentBatch?.errorMessage &&
-                        <Typography ml={1} fontWeight={800}>Error on send: {sentBatch.errorMessage}</Typography>}
+                      {!!estimatedBatch?.cost && (
+                        <Typography ml={1} fontWeight={800}>
+                          Batch estimated: {ethers.utils.formatEther(estimatedBatch.cost)} MATIC
+                        </Typography>
+                      )}
+                      {!!estimatedBatch?.errorMessage && (
+                        <Typography ml={1} fontWeight={800}>
+                          Batch estimation error: {estimatedBatch.errorMessage}
+                        </Typography>
+                      )}
+                      {!!sentBatch?.userOpHash && (
+                        <Typography ml={1} fontWeight={800}>
+                          Sent user-op hash: {sentBatch.userOpHash}
+                        </Typography>
+                      )}
+                      {!!sentBatch?.errorMessage && (
+                        <Typography ml={1} fontWeight={800}>
+                          Error on send: {sentBatch.errorMessage}
+                        </Typography>
+                      )}
                       {batch.transactions?.map((transaction, id3) => {
                         let transactionValue = typeof transaction.value === 'string'
                           ? transaction.value
@@ -285,8 +297,11 @@ const App = () => {
                         }
 
                         return (
-                          <TreeItem nodeId={transaction.treeNodeId} label={`Transaction ${id3 + 1}`}
-                                    key={transaction.treeNodeId}>
+                          <TreeItem
+                            nodeId={transaction.treeNodeId}
+                            label={`Transaction ${id3 + 1}`}
+                            key={transaction.treeNodeId}
+                          >
                             <Typography ml={1}>To: {transaction.to}</Typography>
                             <Typography ml={1}>Value: {transactionValue} MATIC</Typography>
                             <Typography ml={1}>Data: {transaction.data ?? 'None'}</Typography>
