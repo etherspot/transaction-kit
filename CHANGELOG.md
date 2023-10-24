@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.6.1] - 2023-10-24
+
+### Added Changes
+- Updated `example` React code to latest changes.
+- Updated `gfet` React code to latest changes.
+
+### Breaking Changes
+- Removed `etherspot` dependency
+- Removed `@etherspot/react-etherspot` dependency
+
 ## [0.6.0] - 2023-10-18
 
 ### Breaking Changes

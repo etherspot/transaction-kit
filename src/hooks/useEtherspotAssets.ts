@@ -1,11 +1,8 @@
 import { useMemo } from 'react';
+import { TokenListToken } from '@etherspot/prime-sdk';
 
 // hooks
 import useEtherspot from './useEtherspot';
-
-interface TokenListToken {
-
-}
 
 interface IEtherspotAssetsHook {
   getAssets: () => Promise<TokenListToken[]>;

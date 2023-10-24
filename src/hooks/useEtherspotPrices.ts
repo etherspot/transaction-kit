@@ -1,15 +1,8 @@
 import { useMemo } from 'react';
+import { RateInfo } from '@etherspot/prime-sdk';
 
 // hooks
 import useEtherspot from './useEtherspot';
-
-interface RateInfo {
-  address: string;
-  eth: number;
-  eur: number;
-  gbp: number;
-  usd: number;
-}
 
 /**
  * @typedef {Object} IEtherspotPricesHook
