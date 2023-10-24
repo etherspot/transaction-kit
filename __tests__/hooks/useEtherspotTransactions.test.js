@@ -369,4 +369,59 @@ describe('useEtherspotTransactions()', () => {
     expect(estimated[1].estimatedBatches[0].cost.toString()).toBe('325000');
     expect(estimated[2].estimatedBatches[0].cost.toString()).toBe('325000');
   });
+
+  it('estimates and calls onEstimated for each batch group', async () => {
+    const onEstimated1 = jest.fn((estimated) => estimated);
+    const onEstimated2 = jest.fn((estimated) => estimated);
+
+    const wrapper = ({ children }) => (
+      <EtherspotTransactionKit provider={provider}>
+        <div>
+          test
+          <span>
+            <EtherspotBatches onEstimated={onEstimated1}>
+              <EtherspotBatch chainId={123}>
+                <EtherspotTransaction
+                  to={'0x12'}
+                  data={'0x0'}
+                  value={'0.123'}
+                />
+                <EtherspotTransaction
+                  to={'0x0'}
+                  data={'0xFFF'}
+                  value={'420'}
+                />
+                <EtherspotContractTransaction
+                  abi={['function transfer(address, uint)']}
+                  contractAddress={'0xe3818504c1b32bf1557b16c238b2e01fd3149c17'}
+                  methodName={'transfer'}
+                  params={['0x7F30B1960D5556929B03a0339814fE903c55a347', ethers.utils.parseEther('123')]}
+                />
+              </EtherspotBatch>
+            </EtherspotBatches>
+          </span>
+        </div>
+        <EtherspotBatches paymaster={{ url: 'someUrl', api_key: 'someApiKey' }} onEstimated={onEstimated2}>
+          <EtherspotBatch chainId={69}>
+            <EtherspotTransaction
+              to={'0x420'}
+              data={'0x69420'}
+              value={'69'}
+            />
+          </EtherspotBatch>
+        </EtherspotBatches>
+        <TestSingleBatchComponent />
+        {children}
+      </EtherspotTransactionKit>
+    );
+
+    const { result } = renderHook(() => useEtherspotTransactions(), { wrapper });
+
+    const estimated = await result.current.estimate();
+
+    expect(onEstimated1).toBeCalledTimes(1);
+    expect(onEstimated2).toBeCalledTimes(1);
+    expect(onEstimated1.mock.calls[0][0]).toStrictEqual(estimated[0].estimatedBatches);
+    expect(onEstimated2.mock.calls[0][0]).toStrictEqual(estimated[1].estimatedBatches);
+  });
 })
