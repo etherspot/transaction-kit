@@ -29,9 +29,7 @@ const useEtherspotAssets = (chainId?: number): IEtherspotAssetsHook => {
 
     let assets: TokenListToken[] = [];
 
-    // TODO: fix once available on Prime SDK
     try {
-      // @ts-ignore
       assets = await sdkForChainId.getTokenListTokens({
         name: 'EtherspotPopularTokens',
       });

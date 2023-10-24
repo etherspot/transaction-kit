@@ -43,8 +43,6 @@ const useEtherspotPrices = (chainId?: number): IEtherspotPricesHook => {
     const sdkForChainId = await getSdk(assetsChainId);
 
     try {
-      // TODO: fix once available on Prime SDK
-      // @ts-ignore
       const result = await sdkForChainId.fetchExchangeRates({
         chainId: assetsChainId,
         tokens: assetAddresses,
