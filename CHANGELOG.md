@@ -16,6 +16,10 @@
 - Removed `sdk` from `useEtherspot` hook, please use `getSdk` on `useEtherspot` hook
 - Removed `etherspotSessionStorage` from `<EtherspotTransactionKit />` component, session is now handled internally
 
+### Pending Changes
+- Method `getOffers` for same chain swaps on `useEtherspotSwaps` hook is not working on this release
+- Methods `getAccountTransactions` and `getAccountTransaction` on `useEtherspotHistory` hook are not working on this release
+
 ## [0.6.0] - 2023-10-18
 
 ### Breaking Changes
