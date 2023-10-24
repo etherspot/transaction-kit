@@ -1,6 +1,13 @@
 import {
-  EstimatedBatch, EtherspotBatch, EtherspotBatches, EtherspotTransaction, IEstimatedBatches, ISentBatches,
-  SentBatch, useEtherspot, useEtherspotTransactions, useWalletAddress
+  EstimatedBatch,
+  EtherspotBatch,
+  EtherspotBatches,
+  EtherspotTransaction,
+  IEstimatedBatches, ISentBatches,
+  SentBatch,
+  useEtherspot,
+  useEtherspotTransactions,
+  useWalletAddress,
 } from '@etherspot/transaction-kit';
 import TreeItem from '@mui/lab/TreeItem';
 import TreeView from '@mui/lab/TreeView';
@@ -20,7 +27,7 @@ const tabs = {
   MULTIPLE_TRANSACTIONS: 'MULTIPLE_TRANSACTIONS',
 };
 
-const CodePreview = ({code}: { code: string }) => (
+const CodePreview = ({ code }: { code: string }) => (
   <Paper>
     <pre style={{margin: '40px 0 40px', padding: '0 15px'}}>
       <code>
@@ -69,7 +76,7 @@ const exampleCode = {
 
 const App = () => {
   const [activeTab, setActiveTab] = useState(tabs.SINGLE_TRANSACTION);
-  const {batches, estimate, send} = useEtherspotTransactions();
+  const { batches, estimate, send } = useEtherspotTransactions();
   const { getSdk } = useEtherspot();
   const [balancePerAddress, setBalancePerAddress] = useState({
     [walletAddressByName.Alice]: '',
@@ -200,12 +207,12 @@ const App = () => {
       </Box>
       <Box>
         <Typography>
-          Etherspot Smart Wallet Addresses:
+          Etherspot Smart Wallet Address:
         </Typography>
         {!!etherspotPrimeAddress?.length && (
           <Paper sx={{p: 1}} variant="outlined">
             <Typography>
-              Address: {etherspotPrimeAddress}
+              {etherspotPrimeAddress}
             </Typography>
           </Paper>
         )}

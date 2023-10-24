@@ -3,12 +3,17 @@
 ## [0.6.1] - 2023-10-24
 
 ### Added Changes
-- Updated `example` React code to latest changes.
-- Updated `gfet` React code to latest changes.
+- Updated `example` React code to latest changes
+- Updated `@etherspot/prime-sdk` to version `1.3.4`
 
 ### Breaking Changes
 - Removed `etherspot` dependency
 - Removed `@etherspot/react-etherspot` dependency
+- Updated `provider` prop as required for `<EtherspotTransactionKit />` component
+- Method `getSdkForChainId` on `useEtherspot` hook replaced with `getSdk` that returns `Prime SDK` instance as `Promise`
+- Method `connect` on `useEtherspot` is no longer available and not required to start SDK session
+- Values `accountAddress` and `providerWalletAddress` are no longer on `useEtherspot` hook, please use `useWalletAddress` hook
+- Value `sdk` on `useEtherspot` hook is no longer present, please use `getSdk` on `useEtherspot` hook
 
 ## [0.6.0] - 2023-10-18
 
