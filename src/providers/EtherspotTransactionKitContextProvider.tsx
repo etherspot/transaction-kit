@@ -114,7 +114,7 @@ const EtherspotTransactionKitContextProvider = ({ children }: EtherspotTransacti
           const userOpHash = await etherspotPrimeSdk.send(estimatedBatch.userOp);
           sentBatches.push({ ...estimatedBatch, userOpHash });
         } catch (e) {
-          sentBatches.push({ ...estimatedBatch, errorMessage: (e instanceof Error && e.message) || 'Failed to estimate!' });
+          sentBatches.push({ ...estimatedBatch, errorMessage: (e instanceof Error && e.message) || 'Failed to send!' });
         }
       }
 

@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.6.3] - 2023-10-24
+
+### Added Changes
+- Added missing `useEtherspotTransactions` hook tests for `send` method
+
 ## [0.6.2] - 2023-10-24
 
 ### Added Changes

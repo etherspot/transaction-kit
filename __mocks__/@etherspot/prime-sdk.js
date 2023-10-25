@@ -7,6 +7,7 @@ const otherAccountAddress = '0xAb4C67d8D7B248B2fA6B638C645466065fE8F1F1'
 export class PrimeSdk {
   sdkChainId;
   userOps = [];
+  nonce = ethers.BigNumber.from(1);
 
   constructor (provider, config) {
     this.sdkChainId = config.chainId;
@@ -191,11 +192,16 @@ export class PrimeSdk {
     let maxFeePerGas = ethers.utils.parseUnits('1', 'gwei');
     let maxPriorityFeePerGas = ethers.utils.parseUnits('1', 'gwei');
     let callGasLimit = ethers.BigNumber.from('50000');
+    let signature = '0x004';
 
     if (paymaster?.url === 'someUrl') {
       maxFeePerGas = ethers.utils.parseUnits('2', 'gwei');
       maxPriorityFeePerGas = ethers.utils.parseUnits('3', 'gwei');
       callGasLimit = ethers.BigNumber.from('75000');
+    }
+
+    if (paymaster?.url === 'someUnstableUrl') {
+      signature = '0x0';
     }
 
     let finalGasLimit = ethers.BigNumber.from(callGasLimit);
@@ -218,7 +224,7 @@ export class PrimeSdk {
 
     return {
       sender: defaultAccountAddress,
-      nonce: ethers.BigNumber.from(1),
+      nonce: this.nonce,
       initCode: '0x001',
       callData: '0x002',
       callGasLimit: finalGasLimit,
@@ -227,12 +233,31 @@ export class PrimeSdk {
       maxFeePerGas,
       maxPriorityFeePerGas,
       paymasterAndData: '0x003',
-      signature: '0x004',
+      signature,
     }
   }
 
   totalGasEstimated({ callGasLimit, verificationGasLimit, preVerificationGas }) {
     return callGasLimit.add(verificationGasLimit).add(preVerificationGas);
+  }
+
+  async send(userOp) {
+    if (this.sdkChainId === 696969) {
+      throw new Error('Transaction reverted: chain too hot');
+    }
+
+    if (userOp.signature === '0x0') {
+      throw new Error('Transaction reverted: invalid signature');
+    }
+
+    /**
+     * provide fake userOp hash by increasing nonce on each send
+     * and add SDK chain ID to make it more unique per userOp
+     */
+    const userOpHash = this.nonce.add(this.sdkChainId).toHexString();
+    this.nonce = this.nonce.add(1);
+
+    return userOpHash;
   }
 }
 
