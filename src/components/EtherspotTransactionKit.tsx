@@ -1,15 +1,18 @@
 import React from 'react';
 import { WalletProviderLike, Factory } from '@etherspot/prime-sdk';
-import EtherspotContextProvider from '../providers/EtherspotContextProvider';
+
+// types
+import { AccountTemplate } from '../types/EtherspotTransactionKit';
 
 // providers
 import EtherspotTransactionKitContextProvider from '../providers/EtherspotTransactionKitContextProvider';
 import ProviderWalletContextProvider from '../providers/ProviderWalletContextProvider';
+import EtherspotContextProvider from '../providers/EtherspotContextProvider';
 
 interface EtherspotTransactionKitProps extends React.PropsWithChildren {
   provider: WalletProviderLike;
   chainId?: number;
-  accountTemplate?: Factory;
+  accountTemplate?: AccountTemplate;
 }
 
 const EtherspotTransactionKit = ({
