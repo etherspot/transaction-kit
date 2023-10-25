@@ -1,7 +1,7 @@
 import { Fragment, JsonFragment } from '@ethersproject/abi';
 import { BigNumber, BigNumberish, BytesLike } from 'ethers';
 import { Route } from '@lifi/types';
-import { PaymasterApi, ExchangeOffer, Factory } from '@etherspot/prime-sdk';
+import { PaymasterApi, ExchangeOffer } from '@etherspot/prime-sdk';
 
 export interface ITransaction {
   id?: string;
@@ -45,7 +45,6 @@ export interface IBatches {
   onSent?: (sent: SentBatch[]) => void;
   skip?: boolean;
   paymaster?: PaymasterApi,
-  addressTemplate?: Factory;
 }
 
 export type IEstimatedBatches = IBatches & {

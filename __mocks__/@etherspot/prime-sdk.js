@@ -1,20 +1,26 @@
 import * as EtherspotPrime from '@etherspot/prime-sdk';
 import { ethers } from 'ethers';
 
-const defaultAccountAddress = '0x7F30B1960D5556929B03a0339814fE903c55a347';
-const otherAccountAddress = '0xAb4C67d8D7B248B2fA6B638C645466065fE8F1F1'
+export const defaultAccountAddress = '0x7F30B1960D5556929B03a0339814fE903c55a347';
+export const otherFactoryDefaultAccountAddress = '0xe383724e3bDC4753746dEC781809f8CD82010914';
+export const otherAccountAddress = '0xAb4C67d8D7B248B2fA6B638C645466065fE8F1F1'
 
 export class PrimeSdk {
   sdkChainId;
   userOps = [];
   nonce = ethers.BigNumber.from(1);
+  factoryWallet;
 
   constructor (provider, config) {
     this.sdkChainId = config.chainId;
+    this.factoryWallet = config.factoryWallet;
   }
 
   getCounterFactualAddress() {
-    return defaultAccountAddress;
+    if (this.factoryWallet === Factory.ETHERSPOT) {
+      return defaultAccountAddress;
+    }
+    return otherFactoryDefaultAccountAddress;
   }
 
   getAccountBalances({ chainId, account }) {
@@ -260,7 +266,8 @@ export class PrimeSdk {
     return userOpHash;
   }
 }
-
 export const isWalletProvider = EtherspotPrime.isWalletProvider;
+
+export const Factory = EtherspotPrime.Factory;
 
 export default EtherspotPrime;

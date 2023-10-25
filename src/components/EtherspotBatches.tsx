@@ -27,7 +27,6 @@ const EtherspotBatches = (props: EtherspotBatchesProps) => {
     onSent,
     id: batchesId,
     paymaster,
-    addressTemplate
   } = props;
 
   const context = useContext(EtherspotTransactionKitContext);
@@ -57,7 +56,6 @@ const EtherspotBatches = (props: EtherspotBatchesProps) => {
       onEstimated,
       onSent,
       paymaster,
-      addressTemplate,
     };
 
     context.setGroupedBatchesPerId((current) => ({ ...current, [componentId]: groupedBatch }));
@@ -68,7 +66,7 @@ const EtherspotBatches = (props: EtherspotBatchesProps) => {
         return current;
       });
     }
-  }, [componentId, batchesPerId, skip, batchesId, paymaster, addressTemplate]);
+  }, [componentId, batchesPerId, skip, batchesId, paymaster]);
 
   return (
     <EtherspotBatchesContext.Provider value={{ setBatchesPerId }}>
