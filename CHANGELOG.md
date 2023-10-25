@@ -1,6 +1,11 @@
 # Changelog
 
-## [0.6.3] - 2023-10-24
+## [0.6.4] - 2023-10-25
+
+### Added Changes
+- Added `accountTemplate` to `<EtherspotTransactionKit />` component that allows passing custom `factoryWallet` supported by Prime SDK
+
+## [0.6.3] - 2023-10-25
 
 ### Added Changes
 - Added missing `useEtherspotTransactions` hook tests for `send` method

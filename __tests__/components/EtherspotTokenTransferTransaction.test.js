@@ -2,8 +2,6 @@ import { renderHook, render, waitFor, act } from '@testing-library/react';
 import { ethers } from 'ethers';
 
 import { useEtherspotTransactions, EtherspotTransactionKit, EtherspotBatches, EtherspotBatch, EtherspotTokenTransferTransaction } from '../../src';
-import { PrimeSdk } from '../../__mocks__/@etherspot/prime-sdk';
-import useWalletAddress from '../../src/hooks/useWalletAddress';
 
 const ethersProvider = new ethers.providers.JsonRpcProvider('http://localhost:8545', 'goerli'); // replace with your node's RPC URL
 const provider = new ethers.Wallet.createRandom().connect(ethersProvider);
