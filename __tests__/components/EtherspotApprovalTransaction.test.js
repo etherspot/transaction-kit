@@ -3,6 +3,9 @@ import { ethers } from 'ethers';
 
 import { useEtherspotTransactions, EtherspotTransactionKit, EtherspotBatches, EtherspotBatch, EtherspotApprovalTransaction } from '../../src';
 
+const ethersProvider = new ethers.providers.JsonRpcProvider('http://localhost:8545', 'goerli'); // replace with your node's RPC URL
+const provider = new ethers.Wallet.createRandom().connect(ethersProvider);
+
 describe('EtherspotApprovalTransaction', () => {
   it('throws an error if <EtherspotApprovalTransaction /> rendered without <EtherspotBatch />', () => {
     expect(() => render(
@@ -19,7 +22,7 @@ describe('EtherspotApprovalTransaction', () => {
 
   it('throws error if wrong receiver address provided', () => {
     expect(() => render(
-      <EtherspotTransactionKit provider={null}>
+      <EtherspotTransactionKit provider={provider}>
         <EtherspotBatches>
           <EtherspotBatch>
             <EtherspotApprovalTransaction
@@ -40,7 +43,7 @@ describe('EtherspotApprovalTransaction', () => {
 
   it('throws error if wrong value provided', () => {
     expect(() => render(
-      <EtherspotTransactionKit provider={null}>
+      <EtherspotTransactionKit provider={provider}>
         <EtherspotBatches>
           <EtherspotBatch>
             <EtherspotApprovalTransaction
@@ -60,7 +63,7 @@ describe('EtherspotApprovalTransaction', () => {
 
   it('builds transaction data successfully', () => {
     const wrapper = ({ children }) => (
-      <EtherspotTransactionKit provider={null}>
+      <EtherspotTransactionKit provider={provider}>
         <EtherspotBatches>
           <EtherspotBatch>
             <EtherspotApprovalTransaction

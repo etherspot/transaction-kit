@@ -1,5 +1,4 @@
 import React, { useContext, useEffect, useState } from 'react';
-import { PaymasterApi } from '@etherspot/prime-sdk';
 
 // contexts
 import EtherspotTransactionKitContext from '../contexts/EtherspotTransactionKitContext';
@@ -21,13 +20,14 @@ type EtherspotBatchesProps = IBatches & {
 }
 
 const EtherspotBatches = (props: EtherspotBatchesProps) => {
-  let paymaster: PaymasterApi | undefined;
-
-  const { children, skip, onEstimated, onSent, id: batchesId, via } = props;
-
-  if (via === 'etherspot-prime') {
-    paymaster = props.paymaster;
-  }
+  const {
+    children,
+    skip,
+    onEstimated,
+    onSent,
+    id: batchesId,
+    paymaster,
+  } = props;
 
   const context = useContext(EtherspotTransactionKitContext);
   const existingBatchesContext = useContext(EtherspotBatchesContext);
@@ -55,12 +55,8 @@ const EtherspotBatches = (props: EtherspotBatchesProps) => {
       batches: getObjectSortedByKeys(batchesPerId),
       onEstimated,
       onSent,
-      via,
+      paymaster,
     };
-
-    if (groupedBatch.via === 'etherspot-prime') {
-      groupedBatch = { ...groupedBatch, paymaster };
-    }
 
     context.setGroupedBatchesPerId((current) => ({ ...current, [componentId]: groupedBatch }));
 
@@ -70,7 +66,7 @@ const EtherspotBatches = (props: EtherspotBatchesProps) => {
         return current;
       });
     }
-  }, [componentId, batchesPerId, skip, batchesId, via, paymaster]);
+  }, [componentId, batchesPerId, skip, batchesId, paymaster]);
 
   return (
     <EtherspotBatchesContext.Provider value={{ setBatchesPerId }}>

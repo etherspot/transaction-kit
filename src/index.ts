@@ -2,8 +2,6 @@ import { Buffer as ImportedBuffer } from 'buffer';
 
 if (typeof window !== 'undefined') window.Buffer = window.Buffer ?? ImportedBuffer;
 
-import { useEtherspot } from '@etherspot/react-etherspot';
-
 export { default as EtherspotApprovalTransaction } from './components/EtherspotApprovalTransaction';
 export { default as EtherspotBatch } from './components/EtherspotBatch';
 export { default as EtherspotBatches } from './components/EtherspotBatches';
@@ -12,7 +10,6 @@ export { default as EtherspotTokenTransferTransaction } from './components/Ether
 export { default as EtherspotTransaction } from './components/EtherspotTransaction';
 export { default as EtherspotTransactionKit } from './components/EtherspotTransactionKit';
 export { default as ProviderWalletTransaction } from './components/ProviderWalletTransaction';
-export { default as useEtherspotAddresses } from './hooks/useEtherspotAddresses';
 export { default as useEtherspotBalances } from './hooks/useEtherspotBalances';
 export { default as useEtherspotAssets } from './hooks/useEtherspotAssets';
 export { default as useEtherspotHistory } from './hooks/useEtherspotHistory';
@@ -23,7 +20,7 @@ export { default as useProviderWalletTransaction } from './hooks/useProviderWall
 export { default as useEtherspotPrices } from './hooks/useEtherspotPrices';
 export { default as useEtherspotSwaps } from './hooks/useEtherspotSwaps';
 export { default as useWalletAddress } from './hooks/useWalletAddress';
+export { default as useEtherspot } from './hooks/useEtherspot';
 export * from './types/EtherspotTransactionKit';
-export { useEtherspot };
 
 

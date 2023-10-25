@@ -1,12 +1,16 @@
 import { renderHook, waitFor } from '@testing-library/react';
+import { ethers } from 'ethers';
 
 // hooks
 import { EtherspotTransactionKit, useEtherspotAssets } from '../../src';
 
+const ethersProvider = new ethers.providers.JsonRpcProvider('http://localhost:8545', 'goerli'); // replace with your node's RPC URL
+const provider = new ethers.Wallet.createRandom().connect(ethersProvider);
+
 describe('useEtherspotAssets()', () => {
   it('returns assets', async () => {
     const wrapper = ({ children }) => (
-      <EtherspotTransactionKit provider={null}>
+      <EtherspotTransactionKit provider={provider}>
         {children}
       </EtherspotTransactionKit>
     );
