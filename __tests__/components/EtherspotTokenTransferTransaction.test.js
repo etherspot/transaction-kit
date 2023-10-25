@@ -1,12 +1,15 @@
-import { renderHook, render } from '@testing-library/react';
+import { renderHook, render, waitFor, act } from '@testing-library/react';
 import { ethers } from 'ethers';
 
 import { useEtherspotTransactions, EtherspotTransactionKit, EtherspotBatches, EtherspotBatch, EtherspotTokenTransferTransaction } from '../../src';
 
+const ethersProvider = new ethers.providers.JsonRpcProvider('http://localhost:8545', 'goerli'); // replace with your node's RPC URL
+const provider = new ethers.Wallet.createRandom().connect(ethersProvider);
+
 describe('EtherspotTokenTransferTransaction', () => {
   it('throws an error if <EtherspotTokenTransferTransaction /> rendered without <EtherspotBatch />', () => {
     expect(() => render(
-      <EtherspotTransactionKit provider={null}>
+      <EtherspotTransactionKit provider={provider}>
         <EtherspotTokenTransferTransaction
           tokenAddress={'0x'}
           receiverAddress={'0x'}
@@ -19,30 +22,33 @@ describe('EtherspotTokenTransferTransaction', () => {
       .toThrow('No parent <EtherspotBatch />');
   });
 
-  it('throws error if wrong receiver address provided', () => {
-    expect(() => render(
-      <EtherspotTransactionKit provider={null}>
-        <EtherspotBatches>
-          <EtherspotBatch>
-            <EtherspotTokenTransferTransaction
-              tokenAddress={'0x'}
-              receiverAddress={'0xtransfer'}
-              value={ethers.utils.parseEther('123')}
-            />
-          </EtherspotBatch>
-        </EtherspotBatches>
-      </EtherspotTransactionKit>
-   ))
-      .toThrow(
-        'Failed to build transaction data, please check data/method formatting: invalid address'
+  it('throws error if wrong receiver address provided', async () => {
+    await expect(async () => {
+      await act(() => {
+        render(
+          <EtherspotTransactionKit provider={provider}>
+            <EtherspotBatches>
+              <EtherspotBatch>
+                <EtherspotTokenTransferTransaction
+                  tokenAddress={'0x'}
+                  receiverAddress={'0xtransfer'}
+                  value={ethers.utils.parseEther('123')}
+                />
+              </EtherspotBatch>
+            </EtherspotBatches>
+          </EtherspotTransactionKit>
+        );
+      })
+    }).rejects.toThrow(
+      'Failed to build transaction data, please check data/method formatting: invalid address'
         + ' (argument="address", value="0xtransfer", code=INVALID_ARGUMENT, version=address/5.7.0)'
         + ' (argument=\"to\", value="0xtransfer", code=INVALID_ARGUMENT, version=abi/5.7.0)'
-      );
+    );
   });
 
   it('throws error if wrong value provided', () => {
     expect(() => render(
-      <EtherspotTransactionKit provider={null}>
+      <EtherspotTransactionKit provider={provider}>
         <EtherspotBatches>
           <EtherspotBatch>
             <EtherspotTokenTransferTransaction
@@ -60,9 +66,9 @@ describe('EtherspotTokenTransferTransaction', () => {
       );
   });
 
-  it('builds transaction data successfully', () => {
+  it('builds transaction data successfully', async () => {
     const wrapper = ({ children }) => (
-      <EtherspotTransactionKit provider={null}>
+      <EtherspotTransactionKit provider={provider}>
         <EtherspotBatches>
           <EtherspotBatch>
             <EtherspotTokenTransferTransaction
@@ -76,11 +82,13 @@ describe('EtherspotTokenTransferTransaction', () => {
       </EtherspotTransactionKit>
     );
 
-    const { result: { current } } = renderHook(() => useEtherspotTransactions(), { wrapper });
+    const { result } = renderHook(() => useEtherspotTransactions(), { wrapper });
 
-    expect(current.batches[0].batches[0].transactions[0].to).toBe('0xe3818504c1b32bf1557b16c238b2e01fd3149c17');
-    expect(current.batches[0].batches[0].transactions[0].data).toBe('0x23b872dd0000000000000000000000007f30b1960d5556929b03a0339814fe903c55a3470000000000000000000000007f30b1960d5556929b03a0339814fe903c55a347000000000000000000000000000000000000000000000006aaf7c8516d0c0000');
-    expect(current.batches[0].batches[0].transactions[0].value).toBe(undefined);
+    // wait for transaction to be built into state
+    await waitFor(() => expect(result.current.batches[0].batches[0].transactions[0]).not.toBe(undefined));
+
+    expect(result.current.batches[0].batches[0].transactions[0].to).toBe('0xe3818504c1b32bf1557b16c238b2e01fd3149c17');
+    expect(result.current.batches[0].batches[0].transactions[0].data).toBe('0x23b872dd0000000000000000000000007f30b1960d5556929b03a0339814fe903c55a3470000000000000000000000007f30b1960d5556929b03a0339814fe903c55a347000000000000000000000000000000000000000000000006aaf7c8516d0c0000');
+    expect(result.current.batches[0].batches[0].transactions[0].value).toBe(undefined);
   });
-
 })

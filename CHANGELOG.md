@@ -1,5 +1,58 @@
 # Changelog
 
+## [0.6.3] - 2023-10-24
+
+### Added Changes
+- Added missing `useEtherspotTransactions` hook tests for `send` method
+
+## [0.6.2] - 2023-10-24
+
+### Added Changes
+- Added missing `useEtherspotTransactions` hook tests for `estimate` method
+- Fixed `skip` prop to ignore batch group estimations
+- Fixed batching for same chain ID SDK instance
+
+## [0.6.1] - 2023-10-24
+
+### Added Changes
+- Updated `example` React code to latest changes
+- Updated `@etherspot/prime-sdk` to version `1.3.4`
+
+### Breaking Changes
+- Removed `etherspot` dependency
+- Removed `@etherspot/react-etherspot` dependency
+- Updated `provider` prop as required for `<EtherspotTransactionKit />` component
+- Removed `getSdkForChainId` from `useEtherspot` hook, replaced with `getSdk` that returns `Prime SDK` instance as `Promise`
+- Removed `connect` from `useEtherspot` therefore it's no longer required to start SDK session
+- Removed `accountAddress` and `providerWalletAddress` from `useEtherspot` hook, please use `useWalletAddress` hook
+- Removed `sdk` from `useEtherspot` hook, please use `getSdk` on `useEtherspot` hook
+- Removed `etherspotSessionStorage` from `<EtherspotTransactionKit />` component, session is now handled internally
+
+### Pending Changes
+- Method `getOffers` for same chain swaps on `useEtherspotSwaps` hook is not working on this release
+- Methods `getAccountTransactions` and `getAccountTransaction` on `useEtherspotHistory` hook are not working on this release
+
+## [0.6.0] - 2023-10-18
+
+### Breaking Changes
+- Removed `etherspot` wallet type from `useWalletAddress` hook
+- Removed `via` prop from `<EtherspotBatches />` component
+- Default `useWalletAddress` and  `<EtherspotBatches />` provider is set to `etherspot-prime`
+- Removed `gasTokenAddress` prop from `<EtherspotBatches />` component due being unsupported in default `etherspot-prime` provider
+
+### Added
+- Added `gasCost` to `etherspot-prime` estimations
+
+## [0.5.1] - 2023-10-17
+
+### Added
+- `react` dependencies chore.
+
+## [0.5.0] - 2023-10-17
+
+### Breaking Changes
+- Downgraded `react` peer dependency to version `>=16.13.0`
+
 ## [0.4.9] - 2023-09-29
 
 ### Added

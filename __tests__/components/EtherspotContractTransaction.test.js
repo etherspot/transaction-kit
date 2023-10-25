@@ -3,6 +3,9 @@ import { ethers } from 'ethers';
 
 import { useEtherspotTransactions, EtherspotTransactionKit, EtherspotBatches, EtherspotBatch, EtherspotContractTransaction } from '../../src';
 
+const ethersProvider = new ethers.providers.JsonRpcProvider('http://localhost:8545', 'goerli'); // replace with your node's RPC URL
+const provider = new ethers.Wallet.createRandom().connect(ethersProvider);
+
 describe('EtherspotContractTransaction', () => {
   it('throws an error if <EtherspotContractTransaction /> rendered without <EtherspotBatch />', () => {
     expect(() => render(
@@ -20,7 +23,7 @@ describe('EtherspotContractTransaction', () => {
 
   it('throws error if wrong ABI provided', () => {
     expect(() => render(
-      <EtherspotTransactionKit provider={null}>
+      <EtherspotTransactionKit provider={provider}>
         <EtherspotBatches>
           <EtherspotBatch>
             <EtherspotContractTransaction
@@ -41,7 +44,7 @@ describe('EtherspotContractTransaction', () => {
 
   it('throws error if wrong method name provided', () => {
     expect(() => render(
-      <EtherspotTransactionKit provider={null}>
+      <EtherspotTransactionKit provider={provider}>
         <EtherspotBatches>
           <EtherspotBatch>
             <EtherspotContractTransaction
@@ -62,7 +65,7 @@ describe('EtherspotContractTransaction', () => {
 
   it('throws error if wrong params provided', () => {
     expect(() => render(
-      <EtherspotTransactionKit provider={null}>
+      <EtherspotTransactionKit provider={provider}>
         <EtherspotBatches>
           <EtherspotBatch>
             <EtherspotContractTransaction
@@ -83,7 +86,7 @@ describe('EtherspotContractTransaction', () => {
 
   it('builds transaction data successfully', () => {
     const wrapper = ({ children }) => (
-      <EtherspotTransactionKit provider={null}>
+      <EtherspotTransactionKit provider={provider}>
         <EtherspotBatches>
           <EtherspotBatch>
             <EtherspotContractTransaction

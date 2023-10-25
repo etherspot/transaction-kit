@@ -1,5 +1,4 @@
 import React, { useContext, useEffect, useState } from 'react';
-import { PaymasterApi } from '@etherspot/prime-sdk';
 
 // contexts
 import EtherspotTransactionKitContext from '../contexts/EtherspotTransactionKitContext';
@@ -11,7 +10,7 @@ import { IBatch, IBatches } from '../types/EtherspotTransactionKit';
 import { TypePerId } from '../types/Helper';
 
 // utils
-import { getObjectSortedByKeys, mapToEnum } from '../utils/common';
+import { getObjectSortedByKeys } from '../utils/common';
 
 // hooks
 import useId from '../hooks/useId';
@@ -21,15 +20,15 @@ type EtherspotBatchesProps = IBatches & {
 }
 
 const EtherspotBatches = (props: EtherspotBatchesProps) => {
-  let paymaster: PaymasterApi | undefined;
-  let addressTemplate: string;
-
-  const { children, skip, onEstimated, onSent, id: batchesId, via } = props;
-
-  if (via === 'etherspot-prime') {
-    paymaster = props.paymaster;
-    addressTemplate = props.addressTemplate;
-  }
+  const {
+    children,
+    skip,
+    onEstimated,
+    onSent,
+    id: batchesId,
+    paymaster,
+    addressTemplate
+  } = props;
 
   const context = useContext(EtherspotTransactionKitContext);
   const existingBatchesContext = useContext(EtherspotBatchesContext);
@@ -57,14 +56,9 @@ const EtherspotBatches = (props: EtherspotBatchesProps) => {
       batches: getObjectSortedByKeys(batchesPerId),
       onEstimated,
       onSent,
-      via,
+      paymaster,
+      addressTemplate,
     };
-
-    addressTemplate = mapToEnum(addressTemplate);
-
-    if (groupedBatch.via === 'etherspot-prime') {
-      groupedBatch = { ...groupedBatch, paymaster, addressTemplate };
-    }
 
     context.setGroupedBatchesPerId((current) => ({ ...current, [componentId]: groupedBatch }));
 
@@ -74,7 +68,7 @@ const EtherspotBatches = (props: EtherspotBatchesProps) => {
         return current;
       });
     }
-  }, [componentId, batchesPerId, skip, batchesId, via, paymaster, addressTemplate]);
+  }, [componentId, batchesPerId, skip, batchesId, paymaster, addressTemplate]);
 
   return (
     <EtherspotBatchesContext.Provider value={{ setBatchesPerId }}>

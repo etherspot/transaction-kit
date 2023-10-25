@@ -1,6 +1,8 @@
-import { useEtherspot } from '@etherspot/react-etherspot';
-import { AccountTypes, AccountBalance } from 'etherspot';
+import { AccountBalance } from '@etherspot/prime-sdk';
 import { useMemo } from 'react';
+
+// hooks
+import useEtherspot from './useEtherspot';
 
 interface IEtherspotBalancesHook {
   getAccountBalances: (accountAddress?: string) => Promise<AccountBalance[]>;
@@ -12,35 +14,33 @@ interface IEtherspotBalancesHook {
  * @returns {IEtherspotBalancesHook} - hook method to fetch Etherspot account balances
  */
 const useEtherspotBalances = (chainId?: number): IEtherspotBalancesHook => {
-  const { connect, getSdkForChainId, chainId: defaultChainId } = useEtherspot();
+  const { getSdk, chainId: defaultChainId } = useEtherspot();
 
-  const historyChainId = useMemo(() => {
+  const balancesChainId = useMemo(() => {
     if (chainId) return chainId;
     return defaultChainId;
   }, [chainId, defaultChainId]);
 
   const getAccountBalances = async (accountAddress?: string) => {
-    const sdkForChainId = getSdkForChainId(historyChainId);
-    if (!sdkForChainId) {
-      console.warn(`Unable to get SDK for chain ID ${historyChainId}`);
-      return [];
-    }
+    const sdkForChainId = await getSdk(balancesChainId);
 
-    if (sdkForChainId?.state?.account?.type !== AccountTypes.Contract) {
-      await connect(historyChainId);
+    const balancesForAccount = accountAddress ?? await sdkForChainId.getCounterFactualAddress();
+    if (!balancesForAccount) {
+      console.warn(`No account address provided!`);
+      return [];
     }
 
     try {
       const { items } = await sdkForChainId.getAccountBalances({
-        account: accountAddress ?? sdkForChainId.state.account.address,
-        chainId: historyChainId,
+        account: balancesForAccount,
+        chainId: balancesChainId,
       });
 
       return items;
     } catch (e) {
       console.warn(
         `Sorry, an error occurred whilst trying to fetch the balances`
-        + ` for ${sdkForChainId.state.account.address}. Please try again. Error:`,
+        + ` for ${balancesForAccount}. Please try again. Error:`,
         e,
       );
     }
