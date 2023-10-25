@@ -163,7 +163,11 @@ const App = () => {
         [walletAddressByName.Christie]: 'N/A',
       };
 
-      await Promise.all(Object.values(walletAddressByName).map(async (address) => {
+      if (etherspotPrimeAddress) {
+        updatedBalances[etherspotPrimeAddress] = 'N/A';
+      }
+
+      await Promise.all(Object.keys(updatedBalances).map(async (address) => {
         const balances = await sdk?.getAccountBalances({ account: address });
         const balance = balances && balances.items.find(({ token }) => token === null);
         if (balance) updatedBalances[address] = ethers.utils.formatEther(balance.balance);
@@ -179,7 +183,7 @@ const App = () => {
     return () => {
       expired = true;
     }
-  }, [getSdk]);
+  }, [getSdk, etherspotPrimeAddress]);
 
   const estimationFailed = estimated?.some((
     estimatedGroup,
@@ -191,6 +195,17 @@ const App = () => {
         <Typography mb={2}>
           <a href={'https://faucet.polygon.technology/'} target={'_blank'} rel="noreferrer">Mumbai MATIC Faucet</a>
         </Typography>
+        <Chip
+          label={
+            `My balance: ${
+              etherspotPrimeAddress && balancePerAddress[etherspotPrimeAddress]
+                ? `${balancePerAddress[etherspotPrimeAddress]} MATIC`
+                : 'Loading...'
+            }`
+          }
+          variant={'outlined'}
+          style={{ marginRight: 10, marginTop: 10 }}
+        />
         {Object.keys(walletAddressByName).map((addressName: string) => {
           const address = walletAddressByName[addressName as keyof typeof walletAddressByName];
           const balancePart = `balance: ${balancePerAddress[address] ? `${balancePerAddress[address]} MATIC` : 'Loading...'}`;

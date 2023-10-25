@@ -121,3 +121,5 @@ interface UserOp {
   paymasterAndData: EtherspotPromiseOrValue<BytesLike>;
   signature: EtherspotPromiseOrValue<BytesLike>;
 }
+
+export type AccountTemplate = 'etherspot' | 'zeroDev' | 'simpleAccount';

@@ -1,7 +1,8 @@
 import {
   PrimeSdk,
   WalletProviderLike,
-  isWalletProvider
+  isWalletProvider,
+  Factory,
 } from '@etherspot/prime-sdk';
 import React, {
   ReactNode,
@@ -14,16 +15,21 @@ import React, {
 // contexts
 import EtherspotContext from '../contexts/EtherspotContext';
 
+// types
+import { AccountTemplate } from '../types/EtherspotTransactionKit';
+
 let sdkPerChain: { [chainId: number]: PrimeSdk } = {};
 
 const EtherspotContextProvider = ({
   children,
   provider,
-  chainId = 1,
+  chainId,
+  accountTemplate,
 }: {
   children: ReactNode;
   provider: WalletProviderLike;
-  chainId?: number;
+  chainId: number;
+  accountTemplate: AccountTemplate;
 }) => {
   const context = useContext(EtherspotContext);
 
@@ -46,6 +52,7 @@ const EtherspotContextProvider = ({
     const sdkForChain = new PrimeSdk(provider, {
       chainId: sdkChainId,
       projectKey: '__ETHERSPOT_PROJECT_KEY__' || undefined,
+      factoryWallet: accountTemplate as Factory,
     });
 
     sdkPerChain = {
@@ -57,7 +64,7 @@ const EtherspotContextProvider = ({
     await sdkForChain.getCounterFactualAddress();
 
     return sdkForChain;
-  }, [provider, chainId]);
+  }, [provider, chainId, accountTemplate]);
 
   const contextData = useMemo(() => ({
     getSdk,

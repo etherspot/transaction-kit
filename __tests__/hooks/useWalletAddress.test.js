@@ -1,13 +1,17 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { ethers } from 'ethers';
+import { Factory } from '@etherspot/prime-sdk';
 
 // hooks
 import { EtherspotTransactionKit, useWalletAddress } from '../../src';
+import {
+  defaultAccountAddress,
+  otherFactoryDefaultAccountAddress,
+} from '../../__mocks__/@etherspot/prime-sdk';
 
 const ethersProvider = new ethers.providers.JsonRpcProvider('http://localhost:8545', 'goerli'); // replace with your node's RPC URL
 const provider = new ethers.Wallet.createRandom().connect(ethersProvider);
 
-const etherspotPrimeAddress = '0x7F30B1960D5556929B03a0339814fE903c55a347';
 const providerWalletAddress = provider.address;
 
 describe('useWalletAddress()', () => {
@@ -21,7 +25,7 @@ describe('useWalletAddress()', () => {
     const { result } = renderHook(() => useWalletAddress(), { wrapper });
 
     await waitFor(() => expect(result.current).not.toBe(undefined));
-    expect(result.current).toEqual(etherspotPrimeAddress);
+    expect(result.current).toEqual(defaultAccountAddress);
   });
 
   it('returns wallet address by type', async () => {
@@ -37,10 +41,10 @@ describe('useWalletAddress()', () => {
     });
 
     await waitFor(() => expect(result.current).not.toBe(undefined));
-    expect(result.current).toEqual(etherspotPrimeAddress);
+    expect(result.current).toEqual(defaultAccountAddress);
 
     rerender({ providerType: 'provider' });
-    await waitFor(() => expect(result.current).not.toBe(etherspotPrimeAddress));
+    await waitFor(() => expect(result.current).not.toBe(defaultAccountAddress));
     expect(result.current).toEqual(providerWalletAddress);
   });
 
@@ -57,9 +61,31 @@ describe('useWalletAddress()', () => {
     });
 
     await waitFor(() => expect(result.current).not.toBe(undefined));
-    expect(result.current).toEqual(etherspotPrimeAddress);
+    expect(result.current).toEqual(defaultAccountAddress);
 
     rerender({ providerType: 'whatever' });
     await waitFor(() => expect(result.current).toBe(undefined));
+  });
+
+  it('returns different wallet address when account template provided', async () => {
+    const createWrapper = ({ accountTemplate } = {}) => ({ children }) => (
+      <EtherspotTransactionKit provider={provider} accountTemplate={accountTemplate}>
+        {children}
+      </EtherspotTransactionKit>
+    );
+
+    const { result: resultNoAccountTemplate } = renderHook(() => useWalletAddress(), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => expect(resultNoAccountTemplate.current).not.toBe(undefined));
+    expect(resultNoAccountTemplate.current).toEqual(defaultAccountAddress);
+
+    const { result: resultWithAccountTemplate } = renderHook(() => useWalletAddress(), {
+      wrapper: createWrapper({ accountTemplate: Factory.SIMPLE_ACCOUNT }),
+    });
+
+    await waitFor(() => expect(resultWithAccountTemplate.current).not.toBe(undefined));
+    expect(resultWithAccountTemplate.current).toEqual(otherFactoryDefaultAccountAddress);
   });
 })
