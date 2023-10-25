@@ -1,6 +1,5 @@
 import { ethers } from 'ethers';
 import * as _ from 'lodash';
-import { Factory } from '@etherspot/prime-sdk';
 
 // types
 import { TypePerId } from '../types/Helper';
@@ -75,20 +74,4 @@ export const switchWalletProviderToChain = async (chainId: number): Promise<{ er
   }
 
   return { errorMessage: 'Failed to switch chain!' };
-};
-export const toEnumSnakeCase = (input: string): string => {
-  return input.replace(/([a-z])([A-Z])/g, '$1_$2').toUpperCase();
-};
-
-export const mapToEnum = (addressTemple: string): Factory => {
-
-  const enumName = toEnumSnakeCase(addressTemple);
-
-  // Check if the enumName exists
-  if (Factory[enumName] !== undefined) {
-    return Factory[enumName];
-  } else {
-    // If not found, default to 'etherspot'
-    return Factory.ETHERSPOT;
-  }
 };
