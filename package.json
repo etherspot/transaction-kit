@@ -1,7 +1,7 @@
 {
   "name": "@etherspot/transaction-kit",
   "description": "React Etherspot Transaction Kit",
-  "version": "0.6.4",
+  "version": "0.6.5",
   "main": "dist/cjs/index.js",
   "scripts": {
     "rollup:build": "NODE_OPTIONS=--max-old-space-size=8192 rollup -c",
@@ -22,7 +22,7 @@
   "homepage": "https://github.com/etherspot/transaction-kit#readme",
   "dependencies": {
     "@etherspot/eip1271-verification-util": "^0.1.2",
-    "@etherspot/prime-sdk": "^1.3.4",
+    "@etherspot/prime-sdk": "^1.3.8",
     "buffer": "^6.0.3",
     "ethers": "^5.6.9",
     "lodash.uniq": "^4.5.0",

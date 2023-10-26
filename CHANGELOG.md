@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.6.5] - 2023-10-26
+
+### Added Changes
+- Updated `@etherspot/prime-sdk` to version `1.3.8` with `accountTemplate` (SDK `factoryWallet`) fixes
+
 ## [0.6.4] - 2023-10-25
 
 ### Added Changes
