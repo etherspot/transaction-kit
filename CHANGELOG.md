@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.6.6] - 2023-10-27
+
+### Added Changes
+- Added accepted `provider` to `<EtherspotTransactionKit />` component that supports most of providers by Prime SDK
+
 ## [0.6.5] - 2023-10-26
 
 ### Added Changes
