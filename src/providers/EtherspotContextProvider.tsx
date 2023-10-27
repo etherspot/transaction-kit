@@ -3,6 +3,7 @@ import {
   WalletProviderLike,
   isWalletProvider,
   Factory,
+  Web3WalletProvider,
 } from '@etherspot/prime-sdk';
 import React, {
   ReactNode,
@@ -37,10 +38,6 @@ const EtherspotContextProvider = ({
     throw new Error('<EtherspotContextProvider /> has already been declared.')
   }
 
-  if (!isWalletProvider(provider)) {
-    throw new Error('Invalid provider!')
-  }
-
   useEffect(() => {
     // reset on provider change
     sdkPerChain = {};
@@ -49,7 +46,22 @@ const EtherspotContextProvider = ({
   const getSdk = useCallback(async (sdkChainId: number = chainId, forceNewInstance: boolean = false) => {
     if (sdkPerChain[sdkChainId] && !forceNewInstance) return sdkPerChain[sdkChainId];
 
-    const sdkForChain = new PrimeSdk(provider, {
+    let mappedProvider;
+    if (!isWalletProvider(provider)) {
+      try {
+        // @ts-ignore
+        mappedProvider = new Web3WalletProvider(provider);
+        await mappedProvider.refresh();
+      } catch (e) {
+        // no need to log, this is an attempt
+      }
+
+      if (!mappedProvider) {
+        throw new Error('Invalid provider!');
+      }
+    }
+
+    const sdkForChain = new PrimeSdk(mappedProvider ?? provider, {
       chainId: sdkChainId,
       projectKey: '__ETHERSPOT_PROJECT_KEY__' || undefined,
       factoryWallet: accountTemplate as Factory,
