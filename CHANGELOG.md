@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.6.7] - 2023-10-28
+
+### Added Changes
+- Fixed `<EtherspotBatches />` component `paymaster` prop issues
+
 ## [0.6.6] - 2023-10-27
 
 ### Added Changes

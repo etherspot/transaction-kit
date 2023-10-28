@@ -66,7 +66,15 @@ const EtherspotBatches = (props: EtherspotBatchesProps) => {
         return current;
       });
     }
-  }, [componentId, batchesPerId, skip, batchesId, paymaster]);
+  }, [
+    componentId,
+    batchesPerId,
+    skip,
+    batchesId,
+    paymaster?.url,
+    paymaster?.api_key,
+    paymaster?.context,
+  ]);
 
   return (
     <EtherspotBatchesContext.Provider value={{ setBatchesPerId }}>
