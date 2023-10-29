@@ -13,6 +13,7 @@ const external = [
   'ethers',
   'react',
   'buffer',
+  'lodash',
 ];
 
 export default [

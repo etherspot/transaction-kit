@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.6.8] - 2023-10-29
+
+### Added Changes
+- Fixed `<EtherspotBatches />` component `paymaster.context` issues
+
 ## [0.6.7] - 2023-10-28
 
 ### Added Changes

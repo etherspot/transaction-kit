@@ -1,5 +1,5 @@
 import { ethers } from 'ethers';
-import * as _ from 'lodash';
+import sortBy from 'lodash/sortBy';
 
 // types
 import { TypePerId } from '../types/Helper';
@@ -10,7 +10,7 @@ export async function sleep(seconds: number) {
 
 export const getObjectSortedByKeys = (
   object: TypePerId<any>,
-) => _.sortBy(Object.keys(object).map((key) => +key)).map((key) => object[key]);
+) => sortBy(Object.keys(object).map((key) => +key)).map((key) => object[key]);
 
 export const parseEtherspotErrorMessageIfAvailable = (errorMessage: string): string => {
   let etherspotErrorMessage;
