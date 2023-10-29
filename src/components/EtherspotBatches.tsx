@@ -14,6 +14,7 @@ import { getObjectSortedByKeys } from '../utils/common';
 
 // hooks
 import useId from '../hooks/useId';
+import useDeepCompare from '../hooks/useDeepCompare';
 
 type EtherspotBatchesProps = IBatches & {
   children?: React.ReactNode;
@@ -26,7 +27,7 @@ const EtherspotBatches = (props: EtherspotBatchesProps) => {
     onEstimated,
     onSent,
     id: batchesId,
-    paymaster,
+    paymaster: paymasterObject,
   } = props;
 
   const context = useContext(EtherspotTransactionKitContext);
@@ -35,6 +36,7 @@ const EtherspotBatches = (props: EtherspotBatchesProps) => {
 
   const componentId = useId();
   const [batchesPerId, setBatchesPerId] = useState<TypePerId<IBatch>>({});
+  const paymaster = useDeepCompare(paymasterObject);
 
   if (existingBatchesContext !== null) {
     throw new Error('<EtherspotBatches /> cannot be inside <EtherspotBatches />');
@@ -71,9 +73,7 @@ const EtherspotBatches = (props: EtherspotBatchesProps) => {
     batchesPerId,
     skip,
     batchesId,
-    paymaster?.url,
-    paymaster?.api_key,
-    paymaster?.context,
+    paymaster,
   ]);
 
   return (
