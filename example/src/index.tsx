@@ -14,7 +14,10 @@ const providerWallet = new ethers.Wallet(process.env.REACT_APP_DEMO_WALLET_PK as
 
 root.render(
   <React.StrictMode>
-    <EtherspotTransactionKit provider={providerWallet} chainId={+(process.env.REACT_APP_CHAIN_ID as string)}>
+    <EtherspotTransactionKit
+      provider={providerWallet}
+      chainId={+(process.env.REACT_APP_CHAIN_ID as string)}
+    >
       <App />
     </EtherspotTransactionKit>
   </React.StrictMode>

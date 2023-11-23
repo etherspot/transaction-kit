@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.11] - 2023-11-23
+
+### Added Changes
+- Removed `reflect-metadata` and `rxjs` dependencies
+- Fixed `@etherspot/eip1271-verification-util` to version `0.1.3`
+- Added Pull Request template
+
 ## [0.6.10] - 2023-11-23
 
 ### Breaking Changes
