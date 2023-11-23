@@ -2,7 +2,7 @@
 
 ## [0.6.10] - 2023-11-23
 
-### Added Changes
+### Breaking Changes
 - Updated `@etherspot/prime-sdk` to version `1.3.112` that removes `api_key` param from `paymaster` prop, now it's passed via `url` param
 
 ## [0.6.9] - 2023-11-06
