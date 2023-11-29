@@ -7,7 +7,7 @@
     "@emotion/styled": "^11.10.5",
     "@etherspot/transaction-kit": "file:./../",
     "@mui/lab": "^5.0.0-alpha.118",
-    "@mui/material": "^5.11.7",
+    "@mui/material": "^5.14.17",
     "@types/node": "^16.18.11",
     "@types/react": "^18.0.27",
     "@types/react-dom": "^18.0.10",
