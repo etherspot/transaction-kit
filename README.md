@@ -60,11 +60,11 @@ To report security issues please follow [guide](./SECURITY.md)
 
 ## 💬 Contact
 
-If you have any questions or feedback about Arka, please feel free to reach out to us.
+If you have any questions or feedback about TransactionKit, please feel free to reach out to us.
 
 - [Follow on Twitter](https://twitter.com/etherspot)
 - [Join our discord](https://discord.etherspot.io/)
 
 ## 📄 License
 
-Licensed under the [MIT License](https://github.com/etherspot/arka/blob/master/LICENSE).
+Licensed under the [MIT License](https://github.com/etherspot/transaction-kit/blob/master/LICENSE).
