@@ -47,7 +47,7 @@ cloning down an example repo and setting up a dapp in your own environment.
 ## 🔗 Important Links
 
 - [Business site](https://etherspot.io/transactionkit/)
-- [Send Native Token Code Sad](https://codesandbox.io/s/etherspot-prime-send-native-token-demo-j2h44g)
+- [Send Native Token Code](https://codesandbox.io/s/etherspot-prime-send-native-token-demo-j2h44g)
 - [Staking Example](https://codesandbox.io/p/sandbox/etherspot-prime-staking-tutorial-q2m4dw)
 
 ## 🏌️‍♂️ Contributions
