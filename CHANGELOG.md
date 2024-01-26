@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.6.12] - 2024-01-26
+
+### Added Changes
+- Added Etherspot Prime SDK `projectKey` to `<EtherspotTransactionKit />`, it allows usage of SDK data services
+
 ## [0.6.11] - 2023-11-23
 
 ### Added Changes
