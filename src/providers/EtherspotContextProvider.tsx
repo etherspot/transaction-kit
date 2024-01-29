@@ -26,11 +26,13 @@ const EtherspotContextProvider = ({
   provider,
   chainId,
   accountTemplate,
+  projectKey,
 }: {
   children: ReactNode;
   provider: WalletProviderLike;
   chainId: number;
   accountTemplate: AccountTemplate;
+  projectKey?: string;
 }) => {
   const context = useContext(EtherspotContext);
 
@@ -63,7 +65,7 @@ const EtherspotContextProvider = ({
 
     const sdkForChain = new PrimeSdk(mappedProvider ?? provider, {
       chainId: sdkChainId,
-      projectKey: '__ETHERSPOT_PROJECT_KEY__' || undefined,
+      projectKey: projectKey ?? ('__ETHERSPOT_PROJECT_KEY__' || undefined),
       factoryWallet: accountTemplate as Factory,
     });
 
