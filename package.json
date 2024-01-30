@@ -7,8 +7,7 @@
     "rollup:build": "NODE_OPTIONS=--max-old-space-size=8192 rollup -c",
     "rollup:watch": "rimraf ./node_modules/react ./node_modules/react-dom && rollup -c -w",
     "test": "jest __tests__ --silent --detectOpenHandles",
-    "test:watch": "jest --watch",
-    "test:update": "jest --silent --updateSnapshot --detectOpenHandles"
+    "test:watch": "jest --watch"
   },
   "repository": {
     "type": "git",
