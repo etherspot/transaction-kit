@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.6.13] - 2024-01-30
+## [0.7.0] - 2024-01-30
 
 ### Added Changes
 - Added `isSending`, `isEstimating`, `containsSendingError`, `containsEstimatingError` to `useEtherspotTransactions` hook
