@@ -30,13 +30,10 @@ export interface EstimatedBatch extends IBatch {
   userOp?: UserOp;
 }
 
-export interface EtherspotPrimeSentBatch extends EstimatedBatch {
+export interface SentBatch extends EstimatedBatch {
+  errorMessage?: string;
   userOpHash?: string;
 }
-
-export type SentBatch = {
-  errorMessage?: string;
-} & (EtherspotPrimeSentBatch);
 
 export interface IBatches {
   id?: string;

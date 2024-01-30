@@ -20,15 +20,24 @@ interface EtherspotTransactionKitContextProviderProps {
 const EtherspotTransactionKitContextProvider = ({ children }: EtherspotTransactionKitContextProviderProps) => {
   const { provider, chainId, getSdk } = useEtherspot();
   const [groupedBatchesPerId, setGroupedBatchesPerId] = useState<TypePerId<IBatches>>({});
+  const [isEstimating, setIsEstimating] = useState<boolean>(false);
+  const [isSending, setIsSending] = useState<boolean>(false);
+  const [containsSendingError, setContainsSendingError] = useState<boolean>(false);
+  const [containsEstimatingError, setContainsEstimatingError] = useState<boolean>(false);
 
   const estimate = async (
     batchesIds?: string[],
     forSending: boolean = false,
   ): Promise<IEstimatedBatches[]> => {
+    if (!forSending) {
+      setIsEstimating(true);
+      setContainsSendingError(false);
+    }
+
     const groupedBatchesToEstimate = Object.values<IBatches>(groupedBatchesPerId)
       .filter((groupedBatch) => (!batchesIds?.length|| batchesIds.some((batchesId) => batchesId === groupedBatch.id)));
 
-    return Promise.all(groupedBatchesToEstimate.map(async (groupedBatch): Promise<IEstimatedBatches> => {
+    const result = await Promise.all(groupedBatchesToEstimate.map(async (groupedBatch): Promise<IEstimatedBatches> => {
       const batches = (groupedBatch.batches ?? []) as IBatch[];
 
       if (groupedBatch.skip) return { ...groupedBatch, estimatedBatches: [] };
@@ -71,9 +80,20 @@ const EtherspotTransactionKitContextProvider = ({ children }: EtherspotTransacti
 
       return { ...groupedBatch, estimatedBatches };
     }));
+
+    if (!forSending) {
+      const containsError = result.some((group) => group.estimatedBatches.some((batch) => !!batch.errorMessage));
+      setContainsEstimatingError(containsError);
+      setIsEstimating(false);
+    }
+
+    return result;
   }
 
   const send = async (batchesIds?: string[]): Promise<ISentBatches[]> => {
+    setIsSending(true);
+    setContainsSendingError(false);
+
     const groupedBatchesToClean = Object.values<IBatches>(groupedBatchesPerId)
       .filter((groupedBatch) => (!batchesIds?.length|| batchesIds.some((batchesId) => batchesId === groupedBatch.id)));
 
@@ -90,7 +110,7 @@ const EtherspotTransactionKitContextProvider = ({ children }: EtherspotTransacti
 
     const estimated = await estimate(batchesIds, true);
 
-    return Promise.all(estimated.map(async (estimatedBatches): Promise<ISentBatches> => {
+    const result = await Promise.all(estimated.map(async (estimatedBatches): Promise<ISentBatches> => {
       const sentBatches: SentBatch[] = [];
 
       // send in same order as estimated
@@ -122,6 +142,16 @@ const EtherspotTransactionKitContextProvider = ({ children }: EtherspotTransacti
 
       return { ...estimatedBatches, sentBatches };
     }));
+
+    const containsError = result.some((group) => {
+      return group.estimatedBatches.some((batch) => !!batch.errorMessage) // estimate error during sending
+        || group.sentBatches.some((batch) => !!batch.errorMessage);
+    });
+
+    setContainsSendingError(containsError);
+    setIsSending(false);
+
+    return result;
   }
 
   const contextData = useMemo(() => ({
@@ -129,9 +159,17 @@ const EtherspotTransactionKitContextProvider = ({ children }: EtherspotTransacti
     estimate,
     send,
     chainId,
+    isEstimating,
+    isSending,
+    containsEstimatingError,
+    containsSendingError,
   }), [
     chainId,
     groupedBatchesPerId,
+    isEstimating,
+    isSending,
+    containsEstimatingError,
+    containsSendingError,
   ]);
 
   return (
