@@ -1,4 +1,4 @@
-import { renderHook, render } from '@testing-library/react';
+import { renderHook, render, act, waitFor } from '@testing-library/react';
 import { ethers } from 'ethers';
 
 // hooks
@@ -203,11 +203,33 @@ describe('useEtherspotTransactions()', () => {
 
     const { result } = renderHook(() => useEtherspotTransactions(), { wrapper });
 
-    const estimated = await result.current.estimate();
+    expect(result.current.isEstimating).toBe(false);
+
+    let estimatePromise;
+    act(() => {
+      estimatePromise = result.current.estimate();
+    });
+
+    await waitFor(() => expect(result.current.isEstimating).toBe(true));
+    await waitFor(() => expect(result.current.isEstimating).toBe(false));
+
+    const estimated = await estimatePromise;
+    expect(result.current.containsEstimatingError).toBe(false);
     expect(ethers.BigNumber.isBigNumber(estimated[0].estimatedBatches[0].cost)).toBe(true);
     expect(estimated[0].estimatedBatches[0].cost.toString()).toBe('350000');
 
-    const sent = await result.current.send();
+    expect(result.current.isSending).toBe(false);
+
+    let sendPromise;
+    act(() => {
+      sendPromise = result.current.send();
+    });
+
+    await waitFor(() => expect(result.current.isSending).toBe(true));
+    await waitFor(() => expect(result.current.isSending).toBe(false));
+
+    const sent = await sendPromise;
+    expect(result.current.containsSendingError).toBe(false);
     expect(sent[0].sentBatches[0].userOpHash).toBe('0x7c');
   });
 
@@ -246,7 +268,18 @@ describe('useEtherspotTransactions()', () => {
 
     const { result } = renderHook(() => useEtherspotTransactions(), { wrapper });
 
-    const sent = await result.current.send();
+    expect(result.current.isSending).toBe(false);
+
+    let sendPromise;
+    act(() => {
+      sendPromise = result.current.send();
+    });
+
+    await waitFor(() => expect(result.current.isSending).toBe(true));
+    await waitFor(() => expect(result.current.isSending).toBe(false));
+
+    const sent = await sendPromise;
+    expect(result.current.containsSendingError).toBe(false);
     expect(sent[0].estimatedBatches[0].cost.toString()).toBe('350000');
     expect(sent[0].sentBatches[0].userOpHash).toBe('0x7c');
   });
@@ -308,13 +341,35 @@ describe('useEtherspotTransactions()', () => {
 
     const { result } = renderHook(() => useEtherspotTransactions(), { wrapper });
 
-    const estimated = await result.current.estimate();
+    expect(result.current.isEstimating).toBe(false);
+
+    let estimatePromise;
+    act(() => {
+      estimatePromise = result.current.estimate();
+    });
+
+    await waitFor(() => expect(result.current.isEstimating).toBe(true));
+    await waitFor(() => expect(result.current.isEstimating).toBe(false));
+
+    const estimated = await estimatePromise;
+    expect(result.current.containsEstimatingError).toBe(false);
     expect(estimated[0].estimatedBatches[0].cost.toString()).toBe('350000');
     expect(estimated[0].estimatedBatches[1].cost.toString()).toBe('200000');
     expect(estimated[1].estimatedBatches.length).toBe(0); // has skip prop
     expect(estimated[2].estimatedBatches[0].cost.toString()).toBe('250000');
 
-    const sent = await result.current.send();
+    expect(result.current.isSending).toBe(false);
+
+    let sendPromise;
+    act(() => {
+      sendPromise = result.current.send();
+    });
+
+    await waitFor(() => expect(result.current.isSending).toBe(true));
+    await waitFor(() => expect(result.current.isSending).toBe(false));
+
+    const sent = await sendPromise;
+    expect(result.current.containsSendingError).toBe(false);
     expect(sent[0].sentBatches[0].userOpHash).toBe('0x7c');
     expect(sent[0].sentBatches[1].userOpHash).toBe('0x7d');
     expect(sent[1].sentBatches.length).toBe(0); // has skip prop
@@ -365,11 +420,33 @@ describe('useEtherspotTransactions()', () => {
 
     const { result } = renderHook(() => useEtherspotTransactions(), { wrapper });
 
-    const estimated = await result.current.estimate();
+    expect(result.current.isEstimating).toBe(false);
+
+    let estimatePromise;
+    act(() => {
+      estimatePromise = result.current.estimate();
+    });
+
+    await waitFor(() => expect(result.current.isEstimating).toBe(true));
+    await waitFor(() => expect(result.current.isEstimating).toBe(false));
+
+    const estimated = await estimatePromise;
+    expect(result.current.containsEstimatingError).toBe(false);
     expect(estimated[0].estimatedBatches[0].cost.toString()).toBe('350000');
     expect(estimated[1].estimatedBatches[0].cost.toString()).toBe('325000');
 
-    const sent = await result.current.send();
+    expect(result.current.isSending).toBe(false);
+
+    let sendPromise;
+    act(() => {
+      sendPromise = result.current.send();
+    });
+
+    await waitFor(() => expect(result.current.isSending).toBe(true));
+    await waitFor(() => expect(result.current.isSending).toBe(false));
+
+    const sent = await sendPromise;
+    expect(result.current.containsSendingError).toBe(false);
     expect(sent[0].sentBatches[0].userOpHash).toBe('0x7c');
     expect(sent[1].sentBatches[0].userOpHash).toBe('0x46');
   });
@@ -434,13 +511,35 @@ describe('useEtherspotTransactions()', () => {
 
     const { result } = renderHook(() => useEtherspotTransactions(), { wrapper });
 
-    const estimated = await result.current.estimate();
+    expect(result.current.isEstimating).toBe(false);
+
+    let estimatePromise;
+    act(() => {
+      estimatePromise = result.current.estimate();
+    });
+
+    await waitFor(() => expect(result.current.isEstimating).toBe(true));
+    await waitFor(() => expect(result.current.isEstimating).toBe(false));
+
+    const estimated = await estimatePromise;
+    expect(result.current.containsEstimatingError).toBe(false);
     expect(estimated[0].estimatedBatches[0].cost.toString()).toBe('350000');
     expect(estimated[0].estimatedBatches[1].cost.toString()).toBe('200000');
     expect(estimated[1].estimatedBatches[0].cost.toString()).toBe('325000');
     expect(estimated[2].estimatedBatches[0].cost.toString()).toBe('325000');
 
-    const sent = await result.current.send();
+    expect(result.current.isSending).toBe(false);
+
+    let sendPromise;
+    act(() => {
+      sendPromise = result.current.send();
+    });
+
+    await waitFor(() => expect(result.current.isSending).toBe(true));
+    await waitFor(() => expect(result.current.isSending).toBe(false));
+
+    const sent = await sendPromise;
+    expect(result.current.containsSendingError).toBe(false);
     expect(sent[0].sentBatches[0].userOpHash).toBe('0x7c');
     expect(sent[0].sentBatches[1].userOpHash).toBe('0x7e');
     expect(sent[1].sentBatches[0].userOpHash).toBe('0x46');
@@ -501,8 +600,18 @@ describe('useEtherspotTransactions()', () => {
 
     const { result } = renderHook(() => useEtherspotTransactions(), { wrapper });
 
-    const estimated = await result.current.estimate();
+    expect(result.current.isEstimating).toBe(false);
 
+    let estimatePromise;
+    act(() => {
+      estimatePromise = result.current.estimate();
+    });
+
+    await waitFor(() => expect(result.current.isEstimating).toBe(true));
+    await waitFor(() => expect(result.current.isEstimating).toBe(false));
+
+    const estimated = await estimatePromise;
+    expect(result.current.containsEstimatingError).toBe(false);
     expect(onEstimated1).toBeCalledTimes(1);
     expect(onEstimated2).toBeCalledTimes(1);
     expect(onEstimated1.mock.calls[0][0]).toStrictEqual(estimated[0].estimatedBatches);
@@ -563,7 +672,17 @@ describe('useEtherspotTransactions()', () => {
 
     const { result } = renderHook(() => useEtherspotTransactions(), { wrapper });
 
-    const sent = await result.current.send();
+    expect(result.current.isSending).toBe(false);
+
+    let sendPromise;
+    act(() => {
+      sendPromise = result.current.send();
+    });
+
+    await waitFor(() => expect(result.current.isSending).toBe(true));
+    await waitFor(() => expect(result.current.isSending).toBe(false));
+
+    const sent = await sendPromise;
 
     expect(onSent1).toBeCalledTimes(1);
     expect(onSent2).toBeCalledTimes(1);
@@ -618,8 +737,18 @@ describe('useEtherspotTransactions()', () => {
 
     const { result } = renderHook(() => useEtherspotTransactions(), { wrapper });
 
-    const estimated = await result.current.estimate();
+    expect(result.current.isEstimating).toBe(false);
 
+    let estimatePromise;
+    act(() => {
+      estimatePromise = result.current.estimate();
+    });
+
+    await waitFor(() => expect(result.current.isEstimating).toBe(true));
+    await waitFor(() => expect(result.current.isEstimating).toBe(false));
+
+    const estimated = await estimatePromise;
+    expect(result.current.containsEstimatingError).toBe(true);
     expect(estimated[0].estimatedBatches[0].errorMessage).toBe('Transaction reverted: chain too high');
     expect(estimated[1].estimatedBatches[0].errorMessage).toBe('Transaction reverted: invalid address');
     expect(onEstimated1.mock.calls[0][0]).toStrictEqual(estimated[0].estimatedBatches);
@@ -673,13 +802,34 @@ describe('useEtherspotTransactions()', () => {
 
     const { result } = renderHook(() => useEtherspotTransactions(), { wrapper });
 
-    const estimated = await result.current.estimate();
+    expect(result.current.isEstimating).toBe(false);
 
+    let estimatePromise;
+    act(() => {
+      estimatePromise = result.current.estimate();
+    });
+
+    await waitFor(() => expect(result.current.isEstimating).toBe(true));
+    await waitFor(() => expect(result.current.isEstimating).toBe(false));
+
+    const estimated = await estimatePromise;
+    expect(result.current.containsEstimatingError).toBe(false);
     expect(estimated[0].estimatedBatches[0].cost.toString()).toBe('350000');
     expect(estimated[1].estimatedBatches[0].cost.toString()).toBe('250000');
 
-    const sent = await result.current.send();
+    expect(result.current.isSending).toBe(false);
 
+    let sendPromise;
+    act(() => {
+      sendPromise = result.current.send();
+    });
+
+    await waitFor(() => expect(result.current.isSending).toBe(true));
+    await waitFor(() => expect(result.current.isSending).toBe(false));
+
+    const sent = await sendPromise;
+
+    expect(result.current.containsSendingError).toBe(true);
     expect(sent[0].sentBatches[0].errorMessage).toBe('Transaction reverted: chain too hot');
     expect(sent[1].sentBatches[0].errorMessage).toBe('Transaction reverted: invalid signature');
     expect(onSent1.mock.calls[0][0]).toStrictEqual(sent[0].sentBatches);
@@ -756,12 +906,31 @@ describe('useEtherspotTransactions()', () => {
 
     const { result } = renderHook(() => useEtherspotTransactions(), { wrapper });
 
-    const estimated1 = await result.current.estimate(['test-id-1']);
+    expect(result.current.isEstimating).toBe(false);
+
+    let estimatePromise;
+    act(() => {
+      estimatePromise = result.current.estimate(['test-id-1']);
+    });
+
+    await waitFor(() => expect(result.current.isEstimating).toBe(true));
+    await waitFor(() => expect(result.current.isEstimating).toBe(false));
+
+    const estimated1 = await estimatePromise;
+    expect(result.current.containsEstimatingError).toBe(true);
     expect(estimated1.length).toBe(1);
     expect(estimated1[0].estimatedBatches[0].errorMessage).toBe('Transaction reverted: chain too high');
     expect(onEstimated1.mock.calls[0][0]).toStrictEqual(estimated1[0].estimatedBatches);
 
-    const estimated2 = await result.current.estimate(['test-id-2', 'test-id-3']);
+    act(() => {
+      estimatePromise = result.current.estimate(['test-id-2', 'test-id-3']);
+    });
+
+    await waitFor(() => expect(result.current.isEstimating).toBe(true));
+    await waitFor(() => expect(result.current.isEstimating).toBe(false));
+
+    const estimated2 = await estimatePromise;
+    expect(result.current.containsEstimatingError).toBe(false);
     expect(estimated2.length).toBe(2);
     expect(estimated2[0].estimatedBatches[0].cost.toString()).toBe('325000');
     expect(estimated2[1].estimatedBatches[0].cost.toString()).toBe('200000');
@@ -839,13 +1008,32 @@ describe('useEtherspotTransactions()', () => {
 
     const { result } = renderHook(() => useEtherspotTransactions(), { wrapper });
 
-    const sent1 = await result.current.send(['test-id-1']);
+    expect(result.current.isSending).toBe(false);
+
+    let sendPromise;
+    act(() => {
+      sendPromise = result.current.send(['test-id-1']);
+    });
+
+    await waitFor(() => expect(result.current.isSending).toBe(true));
+    await waitFor(() => expect(result.current.isSending).toBe(false));
+
+    const sent1 = await sendPromise;
     expect(sent1.length).toBe(1);
+    expect(result.current.containsSendingError).toBe(true);
     expect(sent1[0].sentBatches[0].errorMessage).toBe('Transaction reverted: chain too hot');
     expect(onSent1.mock.calls[0][0]).toStrictEqual(sent1[0].sentBatches);
 
-    const sent2 = await result.current.send(['test-id-2', 'test-id-3']);
+    act(() => {
+      sendPromise = result.current.send(['test-id-2', 'test-id-3']);
+    });
+
+    await waitFor(() => expect(result.current.isSending).toBe(true));
+    await waitFor(() => expect(result.current.isSending).toBe(false));
+
+    const sent2 = await sendPromise;
     expect(sent2.length).toBe(2);
+    expect(result.current.containsSendingError).toBe(false);
     expect(sent2[0].sentBatches[0].userOpHash).toBe('0x46');
     expect(sent2[1].sentBatches[0].userOpHash).toBe('0x47');
     expect(onSent2.mock.calls[0][0]).toStrictEqual(sent2[0].sentBatches);

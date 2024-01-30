@@ -10,6 +10,10 @@ export interface IEtherspotTransactionKitContext {
     batches: IBatches[];
     estimate: (batchesIds?: string[]) => Promise<IEstimatedBatches[]>;
     send: (batchesIds?: string[]) => Promise<ISentBatches[]>;
+    isEstimating: boolean;
+    isSending: boolean;
+    containsSendingError: boolean;
+    containsEstimatingError: boolean;
   },
   setGroupedBatchesPerId: Dispatch<SetStateAction<TypePerId<IBatches>>>;
 }
