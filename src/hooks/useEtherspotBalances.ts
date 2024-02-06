@@ -14,14 +14,17 @@ interface IEtherspotBalancesHook {
  * @returns {IEtherspotBalancesHook} - hook method to fetch Etherspot account balances
  */
 const useEtherspotBalances = (chainId?: number): IEtherspotBalancesHook => {
-  const { getSdk, chainId: defaultChainId } = useEtherspot();
+  const { getSdk, chainId: etherspotChainId } = useEtherspot();
 
-  const balancesChainId = useMemo(() => {
+  const defaultChainId = useMemo(() => {
     if (chainId) return chainId;
-    return defaultChainId;
-  }, [chainId, defaultChainId]);
+    return etherspotChainId;
+  }, [chainId, etherspotChainId]);
 
-  const getAccountBalances = async (accountAddress?: string) => {
+  const getAccountBalances = async (
+    accountAddress?: string,
+    balancesChainId: number = defaultChainId,
+  ) => {
     const sdkForChainId = await getSdk(balancesChainId);
 
     const balancesForAccount = accountAddress ?? await sdkForChainId.getCounterFactualAddress();
