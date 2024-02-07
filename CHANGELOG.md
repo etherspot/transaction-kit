@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.7.1] - 2024-02-06
+
+### Added Changes
+- Added `chainId` param to `useEtherspotBalances` hook's `getBalances` method
+
 ## [0.7.0] - 2024-01-30
 
 ### Added Changes

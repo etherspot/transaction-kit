@@ -41,5 +41,10 @@ describe('useEtherspotBalances()', () => {
     const accountBalancesPolygon = await result.current.getAccountBalances();
     expect(accountBalancesPolygon.length).toEqual(1);
     expect(accountBalancesPolygon[0].balance.toString()).toEqual(ethers.utils.parseEther('0').toString());
+
+    const accountBalancesManualMainnet = await result.current.getAccountBalances('0xAb4C67d8D7B248B2fA6B638C645466065fE8F1F1', 1);
+    expect(accountBalancesManualMainnet.length).toEqual(2);
+    expect(accountBalancesManualMainnet[1].token).not.toBeNull();
+    expect(accountBalancesManualMainnet[1].balance.toString()).toEqual(ethers.utils.parseEther('69').toString());
   });
 })
