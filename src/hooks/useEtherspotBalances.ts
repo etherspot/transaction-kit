@@ -5,7 +5,7 @@ import { useMemo } from 'react';
 import useEtherspot from './useEtherspot';
 
 interface IEtherspotBalancesHook {
-  getAccountBalances: (accountAddress?: string) => Promise<AccountBalance[]>;
+  getAccountBalances: (accountAddress?: string, chainId?: number) => Promise<AccountBalance[]>;
 }
 
 /**
