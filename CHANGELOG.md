@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.7.4] - 2024-02-20
+
+### Added Changes
+- Added `chainId` param to `useEtherspotAssets` hook's `getAssets` method
+
 ## [0.7.3] - 2024-02-20
 
 ### Added Changes
