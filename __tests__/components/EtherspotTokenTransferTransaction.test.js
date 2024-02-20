@@ -88,7 +88,7 @@ describe('EtherspotTokenTransferTransaction', () => {
     await waitFor(() => expect(result.current.batches[0].batches[0].transactions[0]).not.toBe(undefined));
 
     expect(result.current.batches[0].batches[0].transactions[0].to).toBe('0xe3818504c1b32bf1557b16c238b2e01fd3149c17');
-    expect(result.current.batches[0].batches[0].transactions[0].data).toBe('0x23b872dd0000000000000000000000007f30b1960d5556929b03a0339814fe903c55a3470000000000000000000000007f30b1960d5556929b03a0339814fe903c55a347000000000000000000000000000000000000000000000006aaf7c8516d0c0000');
+    expect(result.current.batches[0].batches[0].transactions[0].data).toBe('0xa9059cbb0000000000000000000000007f30b1960d5556929b03a0339814fe903c55a347000000000000000000000000000000000000000000000006aaf7c8516d0c0000');
     expect(result.current.batches[0].batches[0].transactions[0].value).toBe(undefined);
   });
 })
