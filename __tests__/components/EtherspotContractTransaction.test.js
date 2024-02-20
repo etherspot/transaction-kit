@@ -48,9 +48,9 @@ describe('EtherspotContractTransaction', () => {
         <EtherspotBatches>
           <EtherspotBatch>
             <EtherspotContractTransaction
-              abi={['function transfer(address, uint)']}
+              abi={['function transferFrom(address, uint)']}
               contractAddress={'0x'}
-              methodName={'transferFrom'}
+              methodName={'transfer'}
               params={[0]}
             />
           </EtherspotBatch>
@@ -59,7 +59,7 @@ describe('EtherspotContractTransaction', () => {
     ))
       .toThrow(
         'Failed to build transaction data, please check data/method formatting: no matching function'
-        + ' (argument="name", value="transferFrom", code=INVALID_ARGUMENT, version=abi/5.7.0)'
+        + ' (argument="name", value="transfer", code=INVALID_ARGUMENT, version=abi/5.7.0)'
       );
   });
 

@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.7.3] - 2024-02-20
+
+### Added Changes
+- Fixed `<EtherspotTokenTransferTransaction />` component's used transfer method
+
 ## [0.7.2] - 2024-02-07
 
 ### Added Changes

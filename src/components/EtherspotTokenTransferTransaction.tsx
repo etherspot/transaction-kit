@@ -65,9 +65,9 @@ const EtherspotTokenTransferTransaction = ({
     <EtherspotContractTransaction
       id={transactionId ?? componentId}
       contractAddress={tokenAddress}
-      methodName={'transferFrom'}
-      abi={['function transferFrom(address from, address to, uint256 value)']}
-      params={[senderAddress ?? '', receiverAddress, valueBN]}
+      methodName={'transfer'}
+      abi={['function transfer(address to, uint256 value)']}
+      params={[receiverAddress, valueBN]}
     >
       {children}
     </EtherspotContractTransaction>
