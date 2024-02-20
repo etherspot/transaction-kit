@@ -14,14 +14,16 @@ interface IEtherspotAssetsHook {
  * @returns {IEtherspotAssetsHook} - hook method to fetch Etherspot supported assets
  */
 const useEtherspotAssets = (chainId?: number): IEtherspotAssetsHook => {
-  const { getSdk, chainId: defaultChainId } = useEtherspot();
+  const { getSdk, chainId: etherspotChainId } = useEtherspot();
 
-  const assetsChainId = useMemo(() => {
+  const defaultChainId = useMemo(() => {
     if (chainId) return chainId;
-    return defaultChainId;
-  }, [chainId, defaultChainId]);
+    return etherspotChainId;
+  }, [chainId, etherspotChainId]);
 
-  const getAssets = async (): Promise<TokenListToken[]> => {
+  const getAssets = async (
+    assetsChainId: number = defaultChainId,
+  ): Promise<TokenListToken[]> => {
     const sdkForChainId = await getSdk(assetsChainId);
 
     let assets: TokenListToken[] = [];
