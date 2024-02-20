@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.7.4] - 2024-02-20
+
+### Added Changes
+- Fixed `useEtherspotAssets` hook's `getAssets` accepted params type
+
 ## [0.7.3] - 2024-02-20
 
 ### Added Changes

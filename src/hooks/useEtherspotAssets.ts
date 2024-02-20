@@ -5,7 +5,7 @@ import { TokenListToken } from '@etherspot/prime-sdk';
 import useEtherspot from './useEtherspot';
 
 interface IEtherspotAssetsHook {
-  getAssets: () => Promise<TokenListToken[]>;
+  getAssets: (chainId?: number) => Promise<TokenListToken[]>;
 }
 
 /**
