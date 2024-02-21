@@ -66,6 +66,7 @@ export interface IEtherspotTokenTransferTransaction {
   value: BigNumberish;
   tokenAddress: string;
   receiverAddress: string;
+  tokenDecimals?: number;
 }
 
 export interface ISmartWalletAddress {
@@ -79,6 +80,7 @@ export interface IEtherspotApprovalTransaction {
   value: BigNumberish;
   tokenAddress: string;
   receiverAddress: string;
+  tokenDecimals?: number;
 }
 
 export interface ISameChainSwapOffers {

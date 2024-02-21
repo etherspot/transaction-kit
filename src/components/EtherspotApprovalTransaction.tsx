@@ -28,8 +28,9 @@ const EtherspotApprovalTransaction = ({
   value,
   tokenAddress,
   receiverAddress,
-  id: transactionId
-}: EtherspotApprovalTransactionProps) => {
+  id: transactionId,
+  tokenDecimals = 18,
+}: EtherspotApprovalTransactionProps): React.ReactNode => {
   const context = useContext(EtherspotBatchContext);
   const componentId = useId();
 
@@ -40,7 +41,7 @@ const EtherspotApprovalTransaction = ({
   let valueBN;
   try {
     valueBN = typeof value === 'string' && !ethers.BigNumber.isBigNumber(value)
-      ? ethers.utils.parseEther(value)
+      ? ethers.utils.parseUnits(value, tokenDecimals)
       : value;
   } catch (e) {
     if (e instanceof Error && e?.message) {

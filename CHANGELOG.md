@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.7.5] - 2024-02-21
+
+### Added Changes
+- Added missing `tokenDecimals` param to `<EtherspotTokenTransferTransaction />` and `<EtherspotApprovalTransaction />` components
+
 ## [0.7.4] - 2024-02-20
 
 ### Added Changes
