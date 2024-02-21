@@ -28,7 +28,13 @@ const useWalletAddress = (walletType: IWalletType = 'etherspot-prime', chainId?:
       const etherspotPrimeSdk = await getSdk(walletAddressChainId);
 
       try {
-        const newAccountAddress = await etherspotPrimeSdk.getCounterFactualAddress();
+        /**
+         * Currently `etherspotWallet` is marked as private on SDK, let's ignore until SDK team fixes it
+         * Reference – https://github.com/etherspot/etherspot-prime-sdk/blob/master/src/sdk/sdk.ts#L31
+         */
+          // @ts-ignore
+        const storedAddress = etherspotPrimeSdk?.etherspotWallet?.accountAddress;
+        const newAccountAddress = storedAddress ?? await etherspotPrimeSdk.getCounterFactualAddress();
         if (!shouldUpdate) return;
         setAccountAddress(newAccountAddress);
       } catch (e) {
