@@ -29,8 +29,9 @@ const EtherspotTokenTransferTransaction = ({
   value,
   tokenAddress,
   receiverAddress,
-  id: transactionId
-}: EtherspotTokenTransferTransactionProps): JSX.Element => {
+  id: transactionId,
+  tokenDecimals = 18,
+}: EtherspotTokenTransferTransactionProps): React.ReactNode => {
   const context = useContext(EtherspotBatchContext);
   const componentId = useId();
   const senderAddress = useWalletAddress('etherspot-prime', context?.chainId);
@@ -42,7 +43,7 @@ const EtherspotTokenTransferTransaction = ({
   let valueBN;
   try {
     valueBN = typeof value === 'string' && !ethers.BigNumber.isBigNumber(value)
-      ? ethers.utils.parseEther(value)
+      ? ethers.utils.parseUnits(value, tokenDecimals)
       : value;
   } catch (e) {
     if (e instanceof Error && e?.message) {

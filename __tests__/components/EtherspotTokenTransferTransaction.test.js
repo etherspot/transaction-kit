@@ -74,7 +74,13 @@ describe('EtherspotTokenTransferTransaction', () => {
             <EtherspotTokenTransferTransaction
               tokenAddress={'0xe3818504c1b32bf1557b16c238b2e01fd3149c17'}
               receiverAddress={'0x7F30B1960D5556929B03a0339814fE903c55a347'}
-              value={ethers.utils.parseEther('123')}
+              value={ethers.utils.parseUnits('123', 10)}
+            />
+            <EtherspotTokenTransferTransaction
+              tokenAddress={'0xe3818504c1b32bf1557b16c238b2e01fd3149c17'}
+              receiverAddress={'0x7F30B1960D5556929B03a0339814fE903c55a347'}
+              value={'123'}
+              tokenDecimals={10}
             />
           </EtherspotBatch>
         </EtherspotBatches>
@@ -88,7 +94,8 @@ describe('EtherspotTokenTransferTransaction', () => {
     await waitFor(() => expect(result.current.batches[0].batches[0].transactions[0]).not.toBe(undefined));
 
     expect(result.current.batches[0].batches[0].transactions[0].to).toBe('0xe3818504c1b32bf1557b16c238b2e01fd3149c17');
-    expect(result.current.batches[0].batches[0].transactions[0].data).toBe('0xa9059cbb0000000000000000000000007f30b1960d5556929b03a0339814fe903c55a347000000000000000000000000000000000000000000000006aaf7c8516d0c0000');
+    expect(result.current.batches[0].batches[0].transactions[0].data).toBe('0xa9059cbb0000000000000000000000007f30b1960d5556929b03a0339814fe903c55a3470000000000000000000000000000000000000000000000000000011e61b68c00');
     expect(result.current.batches[0].batches[0].transactions[0].value).toBe(undefined);
+    expect(result.current.batches[0].batches[0].transactions[1].data).toBe('0xa9059cbb0000000000000000000000007f30b1960d5556929b03a0339814fe903c55a3470000000000000000000000000000000000000000000000000000011e61b68c00');
   });
 })
