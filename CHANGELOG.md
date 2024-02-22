@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.7.6] - 2024-02-21
+
+### Added Changes
+- Added Etherspot Prime SDK computed account pull from SDK instance state
+
 ## [0.7.5] - 2024-02-21
 
 ### Added Changes
