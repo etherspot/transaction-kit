@@ -53,6 +53,9 @@ describe('useEtherspotNfts()', () => {
     const otherAccountNftsMainnet = await result.current.getAccountNfts('0xAb4C67d8D7B248B2fA6B638C645466065fE8F1F1');
     expect(otherAccountNftsMainnet.length).toEqual(1);
     expect(otherAccountNftsMainnet[0].contractName).toEqual('Collection Gama');
+
+    const accountNftsManualPolygon = await result.current.getAccountNfts('0xAb4C67d8D7B248B2fA6B638C645466065fE8F1F1', 137);
+    expect(accountNftsManualPolygon.length).toEqual(0);
   });
 
   it('returns account NFTs between rerenders', async () => {
@@ -79,5 +82,8 @@ describe('useEtherspotNfts()', () => {
 
     const accountNftsPolygon = await result.current.getAccountNfts();
     expect(accountNftsPolygon.length).toEqual(0);
+
+    const accountNftsManualMainnet = await result.current.getAccountNfts('0xAb4C67d8D7B248B2fA6B638C645466065fE8F1F1', 1);
+    expect(accountNftsManualMainnet.length).toEqual(1);
   });
 })

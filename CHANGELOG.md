@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.7.7] - 2024-02-22
+
+### Added Changes
+- Added `chainId` param to `useEtherspotNfts` hook's `getAccountNfts` method
+
 ## [0.7.6] - 2024-02-21
 
 ### Added Changes
