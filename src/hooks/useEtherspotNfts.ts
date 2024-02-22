@@ -5,7 +5,7 @@ import { useMemo } from 'react';
 import useEtherspot from './useEtherspot';
 
 interface IEtherspotNftsHook {
-  getAccountNfts: (accountAddress?: string) => Promise<NftCollection[]>;
+  getAccountNfts: (accountAddress?: string, chainId?: number) => Promise<NftCollection[]>;
 }
 
 /**
@@ -14,14 +14,17 @@ interface IEtherspotNftsHook {
  * @returns {IEtherspotNftsHook} - hook methods to fetch Etherspot account NFTs
  */
 const useEtherspotNfts = (chainId?: number): IEtherspotNftsHook => {
-  const { getSdk, chainId: defaultChainId } = useEtherspot();
+  const { getSdk, chainId: etherspotChainId } = useEtherspot();
 
-  const nftsChainId = useMemo(() => {
+  const defaultChainId = useMemo(() => {
     if (chainId) return chainId;
-    return defaultChainId;
-  }, [chainId, defaultChainId]);
+    return etherspotChainId;
+  }, [chainId, etherspotChainId]);
 
-  const getAccountNfts = async (accountAddress?: string) => {
+  const getAccountNfts = async (
+    accountAddress?: string,
+    nftsChainId: number = defaultChainId,
+  ) => {
     const sdkForChainId = await getSdk(nftsChainId);
 
     const nftsForAccount = accountAddress ?? await sdkForChainId.getCounterFactualAddress();
