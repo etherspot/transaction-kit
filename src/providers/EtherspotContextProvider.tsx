@@ -4,6 +4,8 @@ import {
   isWalletProvider,
   Factory,
   Web3WalletProvider,
+  DataUtils,
+  graphqlEndpoints,
 } from '@etherspot/prime-sdk';
 import React, {
   ReactNode,
@@ -20,6 +22,7 @@ import EtherspotContext from '../contexts/EtherspotContext';
 import { AccountTemplate } from '../types/EtherspotTransactionKit';
 
 let sdkPerChain: { [chainId: number]: PrimeSdk } = {};
+let dataService: DataUtils;
 
 const EtherspotContextProvider = ({
   children,
@@ -27,12 +30,14 @@ const EtherspotContextProvider = ({
   chainId,
   accountTemplate,
   projectKey,
+  useQaEnv,
 }: {
   children: ReactNode;
   provider: WalletProviderLike;
   chainId: number;
   accountTemplate: AccountTemplate;
   projectKey?: string;
+  useQaEnv?: boolean;
 }) => {
   const context = useContext(EtherspotContext);
 
@@ -78,14 +83,25 @@ const EtherspotContextProvider = ({
     await sdkForChain.getCounterFactualAddress();
 
     return sdkForChain;
-  }, [provider, chainId, accountTemplate]);
+  }, [provider, chainId, accountTemplate, projectKey]);
+
+  const getDataService = useCallback(() => {
+    if (dataService) return dataService;
+    dataService = new DataUtils(
+      projectKey ?? ('__ETHERSPOT_PROJECT_KEY__' || undefined),
+      useQaEnv ? graphqlEndpoints.QA : graphqlEndpoints.PROD
+    );
+    return dataService;
+  }, [useQaEnv, projectKey]);
 
   const contextData = useMemo(() => ({
     getSdk,
+    getDataService,
     provider,
     chainId,
   }), [
     getSdk,
+    getDataService,
     provider,
     chainId,
   ]);

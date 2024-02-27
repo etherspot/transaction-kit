@@ -14,7 +14,7 @@ interface IEtherspotNftsHook {
  * @returns {IEtherspotNftsHook} - hook methods to fetch Etherspot account NFTs
  */
 const useEtherspotNfts = (chainId?: number): IEtherspotNftsHook => {
-  const { getSdk, chainId: etherspotChainId } = useEtherspot();
+  const { getDataService, getSdk, chainId: etherspotChainId } = useEtherspot();
 
   const defaultChainId = useMemo(() => {
     if (chainId) return chainId;
@@ -34,8 +34,10 @@ const useEtherspotNfts = (chainId?: number): IEtherspotNftsHook => {
     }
 
     try {
-      const { items } = await sdkForChainId.getNftList({
+      const dataService = getDataService();
+      const { items } = await dataService.getNftList({
         account: nftsForAccount,
+        chainId: nftsChainId,
       });
 
       return items;

@@ -14,7 +14,7 @@ interface IEtherspotAssetsHook {
  * @returns {IEtherspotAssetsHook} - hook method to fetch Etherspot supported assets
  */
 const useEtherspotAssets = (chainId?: number): IEtherspotAssetsHook => {
-  const { getSdk, chainId: etherspotChainId } = useEtherspot();
+  const { getDataService, chainId: etherspotChainId } = useEtherspot();
 
   const defaultChainId = useMemo(() => {
     if (chainId) return chainId;
@@ -22,15 +22,18 @@ const useEtherspotAssets = (chainId?: number): IEtherspotAssetsHook => {
   }, [chainId, etherspotChainId]);
 
   const getAssets = async (
+    // TODO: use assetsChainId once available on Prime SDK
     assetsChainId: number = defaultChainId,
   ): Promise<TokenListToken[]> => {
-    const sdkForChainId = await getSdk(assetsChainId);
-
     let assets: TokenListToken[] = [];
 
     try {
-      assets = await sdkForChainId.getTokenListTokens({
+      const dataService = getDataService();
+      assets = await dataService.getTokenListTokens({
         name: 'EtherspotPopularTokens',
+        // TODO: remove ignore once available on Prime SDK
+        // @ts-ignore
+        chainId: assetsChainId,
       });
     } catch (e) {
       console.warn(

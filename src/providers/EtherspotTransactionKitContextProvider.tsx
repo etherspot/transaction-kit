@@ -68,7 +68,7 @@ const EtherspotTransactionKitContextProvider = ({ children }: EtherspotTransacti
             await etherspotPrimeSdk.addUserOpsToBatch(({ to, value, data }));
           }));
 
-          const userOp = await etherspotPrimeSdk.estimate(groupedBatch.paymaster);
+          const userOp = await etherspotPrimeSdk.estimate({ paymasterDetails: groupedBatch.paymaster });
           const totalGas = await etherspotPrimeSdk.totalGasEstimated(userOp);
           estimatedBatches.push({ ...batch, cost: totalGas, userOp });
         } catch (e) {
