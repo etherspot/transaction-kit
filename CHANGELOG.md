@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.8.0] - 2024-02-28
+
+### Breaking Changes
+- Updated `useEtherspotTransactions` hook's `estimate` and `send` methods to return actual gas cost on `estimated` key and nicer error messages on `errorMessage` key
+- Changed return type to `JSX.Element` for `EtherspotApprovalTransaction`, `EtherspotContractTransaction` and `EtherspotTokenTransferTransaction` components
+
 ## [0.7.7] - 2024-02-22
 
 ### Added Changes

@@ -1,4 +1,6 @@
 import React, { useMemo, useState } from 'react';
+import { BigNumber } from 'ethers';
+import { ErrorHandler } from '@etherspot/prime-sdk/dist/sdk/errorHandler/errorHandler.service';
 
 // contexts
 import EtherspotTransactionKitContext from '../contexts/EtherspotTransactionKitContext';
@@ -15,6 +17,12 @@ import { TypePerId } from '../types/Helper';
 
 interface EtherspotTransactionKitContextProviderProps {
   children?: React.ReactNode;
+}
+
+const parseEtherspotErrorMessage = (e: ErrorHandler | Error | unknown, defaultMessage: string ): string => {
+  return (e instanceof ErrorHandler && (e.possibleSolution ?? e.message))
+    || (e instanceof Error && e.message)
+    || defaultMessage;
 }
 
 const EtherspotTransactionKitContextProvider = ({ children }: EtherspotTransactionKitContextProviderProps) => {
@@ -70,9 +78,10 @@ const EtherspotTransactionKitContextProvider = ({ children }: EtherspotTransacti
 
           const userOp = await etherspotPrimeSdk.estimate(groupedBatch.paymaster);
           const totalGas = await etherspotPrimeSdk.totalGasEstimated(userOp);
-          estimatedBatches.push({ ...batch, cost: totalGas, userOp });
+          estimatedBatches.push({ ...batch, cost: totalGas.mul(userOp.maxFeePerGas as BigNumber), userOp });
         } catch (e) {
-          estimatedBatches.push({ ...batch, errorMessage: (e instanceof Error && e.message) || 'Failed to estimate!' });
+          const errorMessage = parseEtherspotErrorMessage(e, 'Failed to estimate!');
+          estimatedBatches.push({ ...batch, errorMessage });
         }
       }
 
@@ -134,7 +143,8 @@ const EtherspotTransactionKitContextProvider = ({ children }: EtherspotTransacti
           const userOpHash = await etherspotPrimeSdk.send(estimatedBatch.userOp);
           sentBatches.push({ ...estimatedBatch, userOpHash });
         } catch (e) {
-          sentBatches.push({ ...estimatedBatch, errorMessage: (e instanceof Error && e.message) || 'Failed to send!' });
+          const errorMessage = parseEtherspotErrorMessage(e, 'Failed to send!');
+          sentBatches.push({ ...estimatedBatch, errorMessage });
         }
       }
 
