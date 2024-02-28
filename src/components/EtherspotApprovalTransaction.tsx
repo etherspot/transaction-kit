@@ -21,7 +21,7 @@ interface EtherspotApprovalTransactionProps extends IEtherspotApprovalTransactio
  * @name EtherspotApprovalTransaction
  * @description Component allowing to build ERC20 token approval transactions.
  * @param {EtherspotApprovalTransactionProps} props
- * @returns {React.ReactNode}
+ * @returns {JSX.Element}
  */
 const EtherspotApprovalTransaction = ({
   children,
@@ -30,7 +30,7 @@ const EtherspotApprovalTransaction = ({
   receiverAddress,
   id: transactionId,
   tokenDecimals = 18,
-}: EtherspotApprovalTransactionProps): React.ReactNode => {
+}: EtherspotApprovalTransactionProps): JSX.Element => {
   const context = useContext(EtherspotBatchContext);
   const componentId = useId();
 
