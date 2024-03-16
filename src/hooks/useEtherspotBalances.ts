@@ -1,4 +1,4 @@
-import { AccountBalance } from '@etherspot/prime-sdk';
+import { AccountBalance } from '@etherspot/prime-sdk/dist/sdk/data';
 import { useMemo } from 'react';
 
 // hooks
@@ -14,7 +14,7 @@ interface IEtherspotBalancesHook {
  * @returns {IEtherspotBalancesHook} - hook method to fetch Etherspot account balances
  */
 const useEtherspotBalances = (chainId?: number): IEtherspotBalancesHook => {
-  const { getSdk, chainId: etherspotChainId } = useEtherspot();
+  const { getDataService, getSdk, chainId: etherspotChainId } = useEtherspot();
 
   const defaultChainId = useMemo(() => {
     if (chainId) return chainId;
@@ -34,7 +34,8 @@ const useEtherspotBalances = (chainId?: number): IEtherspotBalancesHook => {
     }
 
     try {
-      const { items } = await sdkForChainId.getAccountBalances({
+      const dataService = getDataService();
+      const { items } = await dataService.getAccountBalances({
         account: balancesForAccount,
         chainId: balancesChainId,
       });

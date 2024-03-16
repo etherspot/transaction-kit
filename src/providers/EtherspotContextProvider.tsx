@@ -4,6 +4,7 @@ import {
   isWalletProvider,
   Factory,
   Web3WalletProvider,
+  DataUtils,
 } from '@etherspot/prime-sdk';
 import React, {
   ReactNode,
@@ -20,6 +21,7 @@ import EtherspotContext from '../contexts/EtherspotContext';
 import { AccountTemplate } from '../types/EtherspotTransactionKit';
 
 let sdkPerChain: { [chainId: number]: PrimeSdk } = {};
+let dataService: DataUtils;
 
 const EtherspotContextProvider = ({
   children,
@@ -78,14 +80,22 @@ const EtherspotContextProvider = ({
     await sdkForChain.getCounterFactualAddress();
 
     return sdkForChain;
-  }, [provider, chainId, accountTemplate]);
+  }, [provider, chainId, accountTemplate, projectKey]);
+
+  const getDataService = useCallback(() => {
+    if (dataService) return dataService;
+    dataService = new DataUtils(projectKey ?? ('__ETHERSPOT_PROJECT_KEY__' || undefined));
+    return dataService;
+  }, [projectKey]);
 
   const contextData = useMemo(() => ({
     getSdk,
+    getDataService,
     provider,
     chainId,
   }), [
     getSdk,
+    getDataService,
     provider,
     chainId,
   ]);

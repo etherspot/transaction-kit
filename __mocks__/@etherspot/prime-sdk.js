@@ -23,7 +23,92 @@ export class PrimeSdk {
     return otherFactoryDefaultAccountAddress;
   }
 
+  async clearUserOpsFromBatch() {
+    this.userOps = [];
+  }
+
+  async addUserOpsToBatch(userOp) {
+    this.userOps.push(userOp);
+  }
+
+  async estimate({ paymasterDetails: paymaster }) {
+    let maxFeePerGas = ethers.utils.parseUnits('1', 'gwei');
+    let maxPriorityFeePerGas = ethers.utils.parseUnits('1', 'gwei');
+    let callGasLimit = ethers.BigNumber.from('50000');
+    let signature = '0x004';
+
+    if (paymaster?.url === 'someUrl') {
+      maxFeePerGas = ethers.utils.parseUnits('2', 'gwei');
+      maxPriorityFeePerGas = ethers.utils.parseUnits('3', 'gwei');
+      callGasLimit = ethers.BigNumber.from('75000');
+    }
+
+    if (paymaster?.url === 'someUnstableUrl') {
+      signature = '0x0';
+    }
+
+    let finalGasLimit = ethers.BigNumber.from(callGasLimit);
+
+    if (this.sdkChainId === 420) {
+      throw new Error('Transaction reverted: chain too high');
+    }
+
+    this.userOps.forEach((userOp) => {
+      if (userOp.to === '0xDEADBEEF') {
+        throw new Error('Transaction reverted: invalid address');
+      }
+      finalGasLimit = finalGasLimit.add(callGasLimit);
+      if (userOp.data
+        && userOp.data !== '0x0'
+        && userOp.data !== '0xFFF') {
+        finalGasLimit = finalGasLimit.add(callGasLimit);
+      }
+    });
+
+    return {
+      sender: defaultAccountAddress,
+      nonce: this.nonce,
+      initCode: '0x001',
+      callData: '0x002',
+      callGasLimit: finalGasLimit,
+      verificationGasLimit: ethers.BigNumber.from('25000'),
+      preVerificationGas: ethers.BigNumber.from('75000'),
+      maxFeePerGas,
+      maxPriorityFeePerGas,
+      paymasterAndData: '0x003',
+      signature,
+    }
+  }
+
+  totalGasEstimated({ callGasLimit, verificationGasLimit, preVerificationGas }) {
+    return callGasLimit.add(verificationGasLimit).add(preVerificationGas);
+  }
+
+  async send(userOp) {
+    if (this.sdkChainId === 696969) {
+      throw new Error('Transaction reverted: chain too hot');
+    }
+
+    if (userOp.signature === '0x0') {
+      throw new Error('Transaction reverted: invalid signature');
+    }
+
+    /**
+     * provide fake userOp hash by increasing nonce on each send
+     * and add SDK chain ID to make it more unique per userOp
+     */
+    const userOpHash = this.nonce.add(this.sdkChainId).toHexString();
+    this.nonce = this.nonce.add(1);
+
+    return userOpHash;
+  }
+}
+
+export class DataUtils {
+  constructor () {}
+
   getAccountBalances({ chainId, account }) {
+    console.log('getAccountBalances', chainId, account);
     const tokenBalance = ethers.utils.parseEther('420');
     const nativeAssetBalance = ethers.utils.parseEther('0');
 
@@ -45,13 +130,13 @@ export class PrimeSdk {
     return { items: [] };
   }
 
-  getTransactions({ account }) {
+  getTransactions({ account, chainId }) {
     const accountTransactions = [
       { hash: '0x1', value: '100000000000000' },
       { hash: '0x2', value: '420000000000000' },
     ];
 
-    if (this.sdkChainId !== 1) {
+    if (chainId !== 1) {
       return { items: [] };
     }
 
@@ -65,18 +150,18 @@ export class PrimeSdk {
 
     return { items: [] };
   }
-  getTransaction({ hash }) {
-    if (hash !== '0x42' || this.sdkChainId !== 1) return;
+  getTransaction({ hash, chainId }) {
+    if (hash !== '0x42' || chainId !== 1) return;
     return { hash: '0x42', value: '690000000000000' };
   }
 
-  getNftList({ account }) {
+  getNftList({ account, chainId }) {
     const accountNfts = [
       { contractName: 'Collection Alpha', contractAddress: '0x2', items: [{ tokenId: 420 }] },
       { contractName: 'Collection Beta', contractAddress: '0x1', items: [{ tokenId: 6 }, { tokenId: 9 }] },
     ];
 
-    if (this.sdkChainId !== 1) {
+    if (chainId !== 1) {
       return { items: [] };
     }
 
@@ -90,18 +175,19 @@ export class PrimeSdk {
 
     return { items: [] };
   }
-  getTokenListTokens() {
-    const token1 = { address: '0x1', chainId: this.sdkChainId, name: 'tk1', symbol: 'TK1', decimals: 18, logoURI: '' };
-    const token2 = { address: '0x2', chainId: this.sdkChainId, name: 'tk2', symbol: 'TK2', decimals: 18, logoURI: '' };
-    const token3 = { address: '0x3', chainId: this.sdkChainId, name: 'tk3', symbol: 'TK3', decimals: 18, logoURI: '' };
 
-    return this.sdkChainId === 1
+  getTokenListTokens({ name, chainId }) {
+    const token1 = { address: '0x1', chainId, name: 'tk1', symbol: 'TK1', decimals: 18, logoURI: '' };
+    const token2 = { address: '0x2', chainId, name: 'tk2', symbol: 'TK2', decimals: 18, logoURI: '' };
+    const token3 = { address: '0x3', chainId, name: 'tk3', symbol: 'TK3', decimals: 18, logoURI: '' };
+
+    return chainId === 1
       ? [token1, token2, token3]
       : [token1];
   }
 
-  getExchangeOffers({ fromTokenAddress, toTokenAddress }) {
-    if (this.sdkChainId !== 1 || fromTokenAddress !== '0x111' || toTokenAddress !== '0x222') {
+  getExchangeOffers({ fromTokenAddress, toTokenAddress, fromChainId }) {
+    if (fromChainId !== 1 || fromTokenAddress !== '0x111' || toTokenAddress !== '0x222') {
       return [];
     }
 
@@ -185,87 +271,8 @@ export class PrimeSdk {
 
     return { items: prices }
   }
-
-  async clearUserOpsFromBatch() {
-    this.userOps = [];
-  }
-
-  async addUserOpsToBatch(userOp) {
-    this.userOps.push(userOp);
-  }
-
-  async estimate(paymaster) {
-    let maxFeePerGas = ethers.utils.parseUnits('1', 'gwei');
-    let maxPriorityFeePerGas = ethers.utils.parseUnits('1', 'gwei');
-    let callGasLimit = ethers.BigNumber.from('50000');
-    let signature = '0x004';
-
-    if (paymaster?.url === 'someUrl') {
-      maxFeePerGas = ethers.utils.parseUnits('2', 'gwei');
-      maxPriorityFeePerGas = ethers.utils.parseUnits('3', 'gwei');
-      callGasLimit = ethers.BigNumber.from('75000');
-    }
-
-    if (paymaster?.url === 'someUnstableUrl') {
-      signature = '0x0';
-    }
-
-    let finalGasLimit = ethers.BigNumber.from(callGasLimit);
-
-    if (this.sdkChainId === 420) {
-      throw new Error('Transaction reverted: chain too high');
-    }
-
-    this.userOps.forEach((userOp) => {
-      if (userOp.to === '0xDEADBEEF') {
-        throw new Error('Transaction reverted: invalid address');
-      }
-      finalGasLimit = finalGasLimit.add(callGasLimit);
-      if (userOp.data
-        && userOp.data !== '0x0'
-        && userOp.data !== '0xFFF') {
-        finalGasLimit = finalGasLimit.add(callGasLimit);
-      }
-    });
-
-    return {
-      sender: defaultAccountAddress,
-      nonce: this.nonce,
-      initCode: '0x001',
-      callData: '0x002',
-      callGasLimit: finalGasLimit,
-      verificationGasLimit: ethers.BigNumber.from('25000'),
-      preVerificationGas: ethers.BigNumber.from('75000'),
-      maxFeePerGas,
-      maxPriorityFeePerGas,
-      paymasterAndData: '0x003',
-      signature,
-    }
-  }
-
-  totalGasEstimated({ callGasLimit, verificationGasLimit, preVerificationGas }) {
-    return callGasLimit.add(verificationGasLimit).add(preVerificationGas);
-  }
-
-  async send(userOp) {
-    if (this.sdkChainId === 696969) {
-      throw new Error('Transaction reverted: chain too hot');
-    }
-
-    if (userOp.signature === '0x0') {
-      throw new Error('Transaction reverted: invalid signature');
-    }
-
-    /**
-     * provide fake userOp hash by increasing nonce on each send
-     * and add SDK chain ID to make it more unique per userOp
-     */
-    const userOpHash = this.nonce.add(this.sdkChainId).toHexString();
-    this.nonce = this.nonce.add(1);
-
-    return userOpHash;
-  }
 }
+
 export const isWalletProvider = EtherspotPrime.isWalletProvider;
 
 export const Factory = EtherspotPrime.Factory;

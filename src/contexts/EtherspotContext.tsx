@@ -1,9 +1,10 @@
 import { createContext } from 'react';
-import { PrimeSdk, WalletProviderLike } from '@etherspot/prime-sdk';
+import { DataUtils, PrimeSdk, WalletProviderLike } from '@etherspot/prime-sdk';
 
 export interface EtherspotContextData {
   data: {
     getSdk: (chainId?: number, forceNewInstance?: boolean) => Promise<PrimeSdk>;
+    getDataService: () => DataUtils;
     provider: WalletProviderLike | null | undefined;
     chainId: number;
   }

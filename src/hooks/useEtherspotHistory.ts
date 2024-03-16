@@ -1,4 +1,4 @@
-import { Transaction } from '@etherspot/prime-sdk';
+import { Transaction } from '@etherspot/prime-sdk/dist/sdk/data';
 import { useMemo } from 'react';
 
 // hooks
@@ -15,7 +15,7 @@ interface IEtherspotHistoryHook {
  * @returns {IEtherspotHistoryHook} - hook methods to fetch Etherspot transactions history
  */
 const useEtherspotHistory = (chainId: number): IEtherspotHistoryHook => {
-  const { getSdk, chainId: defaultChainId } = useEtherspot();
+  const { getDataService, getSdk, chainId: defaultChainId } = useEtherspot();
 
   const historyChainId = useMemo(() => {
     if (chainId) return chainId;
@@ -34,10 +34,12 @@ const useEtherspotHistory = (chainId: number): IEtherspotHistoryHook => {
     }
 
     try {
+      const dataService = getDataService();
       // TODO: fix once available on Prime SDK
       // @ts-ignore
-      ({ items: transactions } = await sdkForChainId.getTransactions({
+      ({ items: transactions } = await dataService.getTransactions({
         account: transactionsForAccount,
+        chainId: historyChainId,
       }));
     } catch (e) {
 
@@ -52,10 +54,9 @@ const useEtherspotHistory = (chainId: number): IEtherspotHistoryHook => {
   };
 
   const getAccountTransaction = async (hash: string): Promise<Transaction | undefined> => {
-    const sdkForChainId = await getSdk(historyChainId);
-
     try {
-      return sdkForChainId.getTransaction({ hash });
+      const dataService = getDataService();
+      return dataService.getTransaction({ hash, chainId: historyChainId });
     } catch (e) {
       console.warn(
         `Sorry, an error occurred whilst trying to fetch the transaction`

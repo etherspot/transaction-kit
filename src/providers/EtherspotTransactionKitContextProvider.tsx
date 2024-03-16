@@ -1,6 +1,5 @@
 import React, { useMemo, useState } from 'react';
 import { BigNumber } from 'ethers';
-import { ErrorHandler } from '@etherspot/prime-sdk/dist/sdk/errorHandler/errorHandler.service';
 
 // contexts
 import EtherspotTransactionKitContext from '../contexts/EtherspotTransactionKitContext';
@@ -19,9 +18,8 @@ interface EtherspotTransactionKitContextProviderProps {
   children?: React.ReactNode;
 }
 
-const parseEtherspotErrorMessage = (e: ErrorHandler | Error | unknown, defaultMessage: string ): string => {
-  return (e instanceof ErrorHandler && (e.possibleSolution ?? e.message))
-    || (e instanceof Error && e.message)
+const parseEtherspotErrorMessage = (e: Error | unknown, defaultMessage: string ): string => {
+  return (e instanceof Error && e.message)
     || defaultMessage;
 }
 
@@ -76,7 +74,7 @@ const EtherspotTransactionKitContextProvider = ({ children }: EtherspotTransacti
             await etherspotPrimeSdk.addUserOpsToBatch(({ to, value, data }));
           }));
 
-          const userOp = await etherspotPrimeSdk.estimate(groupedBatch.paymaster);
+          const userOp = await etherspotPrimeSdk.estimate({ paymasterDetails: groupedBatch.paymaster });
           const totalGas = await etherspotPrimeSdk.totalGasEstimated(userOp);
           estimatedBatches.push({ ...batch, cost: totalGas.mul(userOp.maxFeePerGas as BigNumber), userOp });
         } catch (e) {

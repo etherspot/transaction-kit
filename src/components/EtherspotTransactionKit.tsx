@@ -21,7 +21,7 @@ const EtherspotTransactionKit = ({
   provider,
   chainId = 1,
   accountTemplate = Factory.ETHERSPOT,
-  projectKey
+  projectKey,
 }: EtherspotTransactionKitProps) => (
   <EtherspotContextProvider
     provider={provider}

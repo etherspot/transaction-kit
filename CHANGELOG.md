@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.9.0] - 2024-02-28
+
+### Breaking Changes
+- Updated `@etherspot/prime-sdk` to version `1.6.2` with data service changes
+- Hook `useEtherspotSwaps` temporarily unavailable for `getOffers` method
+
 ## [0.8.0] - 2024-02-28
 
 ### Breaking Changes

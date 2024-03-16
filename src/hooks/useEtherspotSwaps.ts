@@ -1,4 +1,4 @@
-import { StepTransaction } from '@etherspot/prime-sdk';
+import { StepTransaction } from '@etherspot/prime-sdk/dist/sdk/data';
 import { Route } from '@lifi/types';
 import { BigNumber } from 'ethers';
 import { useMemo } from 'react';
@@ -20,8 +20,9 @@ interface IEtherspotSwapsHook {
     fromTokenAddress: string,
     toTokenAddress: string,
     toChainId?: number,
+    fromAccountAddress?: string
   ) => Promise<ISameChainSwapOffers | ICrossChainSwapOffers | undefined>;
-  prepareCrossChainOfferTransactions: (offer: Route) => Promise<StepTransaction[] | undefined>;
+  prepareCrossChainOfferTransactions: (offer: Route, accountAddress?: string) => Promise<StepTransaction[] | undefined>;
 }
 
 /**
@@ -30,18 +31,31 @@ interface IEtherspotSwapsHook {
  * @returns {IEtherspotSwapsHook} - hook method to fetch Etherspot aggregated offers for same-chain and cross-chain swaps
  */
 const useEtherspotSwaps = (chainId?: number): IEtherspotSwapsHook => {
-  const { getSdk, chainId: defaultChainId } = useEtherspot();
+  const { getDataService, getSdk, chainId: defaultChainId } = useEtherspot();
 
   const swapsChainId = useMemo(() => {
     if (chainId) return chainId;
     return defaultChainId;
   }, [chainId, defaultChainId]);
 
-  const prepareCrossChainOfferTransactions = async (offer: Route): Promise<StepTransaction[] | undefined> => {
+  const prepareCrossChainOfferTransactions = async (
+    offer: Route,
+    accountAddress?: string
+  ): Promise<StepTransaction[] | undefined> => {
     const sdkForChainId = await getSdk(swapsChainId);
 
+    const forAccount = accountAddress ?? await sdkForChainId.getCounterFactualAddress();
+    if (!forAccount) {
+      console.warn(`No account address provided!`);
+      return [];
+    }
+
     try {
-      const { items } = await sdkForChainId.getStepTransaction({ route: offer });
+      const dataService = getDataService();
+      const { items } = await dataService.getStepTransaction({
+        route: offer,
+        account: forAccount,
+      });
       return items;
     } catch (e) {
       console.warn(
@@ -57,17 +71,27 @@ const useEtherspotSwaps = (chainId?: number): IEtherspotSwapsHook => {
     fromTokenAddress: string,
     toTokenAddress: string,
     toChainId?: number,
+    fromAccountAddress?: string,
   ): Promise<ISameChainSwapOffers | ICrossChainSwapOffers | undefined> => {
     const sdkForChainId = await getSdk(swapsChainId);
 
+    const fromAccount = fromAccountAddress ?? await sdkForChainId.getCounterFactualAddress();
+    if (!fromAccount) {
+      console.warn(`No account address provided!`);
+      return;
+    }
+
+    const dataService = getDataService();
+
     if (toChainId && toChainId !== chainId) {
       try {
-        const { items: offers } = await sdkForChainId.getAdvanceRoutesLiFi({
+        const { items: offers } = await dataService.getAdvanceRoutesLiFi({
           fromChainId: swapsChainId,
           toChainId,
           fromAmount,
           fromTokenAddress,
           toTokenAddress,
+          fromAddress: fromAccount,
         });
         return { type: 'cross-chain', offers };
       } catch (e) {
@@ -81,10 +105,13 @@ const useEtherspotSwaps = (chainId?: number): IEtherspotSwapsHook => {
     }
 
     try {
-      const offers = await sdkForChainId.getExchangeOffers({
+      // @ts-ignore
+      const offers = await dataService.getExchangeOffers({
         fromAmount,
         fromTokenAddress,
         toTokenAddress,
+        fromAddress: fromAccount,
+        fromChainId: swapsChainId,
       });
       return { type: 'same-chain', offers };
     } catch (e) {

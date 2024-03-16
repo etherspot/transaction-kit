@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { RateInfo } from '@etherspot/prime-sdk';
+import { RateInfo } from '@etherspot/prime-sdk/dist/sdk/data';
 
 // hooks
 import useEtherspot from './useEtherspot';
@@ -20,7 +20,7 @@ interface IEtherspotPricesHook {
  * @returns {IEtherspotPricesHook} - hook method to fetch prices from Etherspot
  */
 const useEtherspotPrices = (chainId?: number): IEtherspotPricesHook => {
-  const { getSdk, chainId: etherspotChainId } = useEtherspot();
+  const { getDataService, chainId: etherspotChainId } = useEtherspot();
 
   const defaultChainId = useMemo(() => {
     if (chainId) return chainId;
@@ -33,10 +33,9 @@ const useEtherspotPrices = (chainId?: number): IEtherspotPricesHook => {
   }
 
   const getPrices = async (assetAddresses: string[], assetsChainId: number = defaultChainId) => {
-    const sdkForChainId = await getSdk(assetsChainId);
-
     try {
-      const result = await sdkForChainId.fetchExchangeRates({
+      const dataService = getDataService();
+      const result = await dataService.fetchExchangeRates({
         chainId: assetsChainId,
         tokens: assetAddresses,
       });
