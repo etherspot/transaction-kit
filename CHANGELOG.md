@@ -1,6 +1,11 @@
 # Changelog
 
-## [0.9.0] - 2024-02-28
+## [0.9.1] - 2024-03-16
+
+### Breaking Changes
+- Chore on Etherspot Prime project keys
+
+## [0.9.0] - 2024-03-16
 
 ### Breaking Changes
 - Updated `@etherspot/prime-sdk` to version `1.6.2` with data service changes
