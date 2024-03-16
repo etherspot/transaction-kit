@@ -5,7 +5,6 @@ import {
   Factory,
   Web3WalletProvider,
   DataUtils,
-  graphqlEndpoints,
 } from '@etherspot/prime-sdk';
 import React, {
   ReactNode,
@@ -87,10 +86,7 @@ const EtherspotContextProvider = ({
 
   const getDataService = useCallback(() => {
     if (dataService) return dataService;
-    dataService = new DataUtils(
-      projectKey ?? ('__ETHERSPOT_PROJECT_KEY__' || undefined),
-      useQaEnv ? graphqlEndpoints.QA : graphqlEndpoints.PROD
-    );
+    dataService = new DataUtils(projectKey ?? ('__ETHERSPOT_PROJECT_KEY__' || undefined));
     return dataService;
   }, [useQaEnv, projectKey]);
 

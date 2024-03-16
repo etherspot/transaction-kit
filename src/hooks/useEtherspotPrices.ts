@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { RateInfo } from '@etherspot/prime-sdk';
+import { RateInfo } from '@etherspot/prime-sdk/dist/sdk/data';
 
 // hooks
 import useEtherspot from './useEtherspot';

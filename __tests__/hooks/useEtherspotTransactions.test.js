@@ -216,7 +216,7 @@ describe('useEtherspotTransactions()', () => {
     const estimated = await estimatePromise;
     expect(result.current.containsEstimatingError).toBe(false);
     expect(ethers.BigNumber.isBigNumber(estimated[0].estimatedBatches[0].cost)).toBe(true);
-    expect(estimated[0].estimatedBatches[0].cost.toString()).toBe('350000');
+    expect(estimated[0].estimatedBatches[0].cost.toString()).toBe('350000000000000');
 
     expect(result.current.isSending).toBe(false);
 
@@ -280,7 +280,7 @@ describe('useEtherspotTransactions()', () => {
 
     const sent = await sendPromise;
     expect(result.current.containsSendingError).toBe(false);
-    expect(sent[0].estimatedBatches[0].cost.toString()).toBe('350000');
+    expect(sent[0].estimatedBatches[0].cost.toString()).toBe('350000000000000');
     expect(sent[0].sentBatches[0].userOpHash).toBe('0x7c');
   });
 
@@ -353,10 +353,10 @@ describe('useEtherspotTransactions()', () => {
 
     const estimated = await estimatePromise;
     expect(result.current.containsEstimatingError).toBe(false);
-    expect(estimated[0].estimatedBatches[0].cost.toString()).toBe('350000');
-    expect(estimated[0].estimatedBatches[1].cost.toString()).toBe('200000');
+    expect(estimated[0].estimatedBatches[0].cost.toString()).toBe('350000000000000');
+    expect(estimated[0].estimatedBatches[1].cost.toString()).toBe('200000000000000');
     expect(estimated[1].estimatedBatches.length).toBe(0); // has skip prop
-    expect(estimated[2].estimatedBatches[0].cost.toString()).toBe('250000');
+    expect(estimated[2].estimatedBatches[0].cost.toString()).toBe('250000000000000');
 
     expect(result.current.isSending).toBe(false);
 
@@ -432,8 +432,8 @@ describe('useEtherspotTransactions()', () => {
 
     const estimated = await estimatePromise;
     expect(result.current.containsEstimatingError).toBe(false);
-    expect(estimated[0].estimatedBatches[0].cost.toString()).toBe('350000');
-    expect(estimated[1].estimatedBatches[0].cost.toString()).toBe('325000');
+    expect(estimated[0].estimatedBatches[0].cost.toString()).toBe('350000000000000');
+    expect(estimated[1].estimatedBatches[0].cost.toString()).toBe('650000000000000');
 
     expect(result.current.isSending).toBe(false);
 
@@ -523,10 +523,10 @@ describe('useEtherspotTransactions()', () => {
 
     const estimated = await estimatePromise;
     expect(result.current.containsEstimatingError).toBe(false);
-    expect(estimated[0].estimatedBatches[0].cost.toString()).toBe('350000');
-    expect(estimated[0].estimatedBatches[1].cost.toString()).toBe('200000');
-    expect(estimated[1].estimatedBatches[0].cost.toString()).toBe('325000');
-    expect(estimated[2].estimatedBatches[0].cost.toString()).toBe('325000');
+    expect(estimated[0].estimatedBatches[0].cost.toString()).toBe('350000000000000');
+    expect(estimated[0].estimatedBatches[1].cost.toString()).toBe('200000000000000');
+    expect(estimated[1].estimatedBatches[0].cost.toString()).toBe('650000000000000');
+    expect(estimated[2].estimatedBatches[0].cost.toString()).toBe('650000000000000');
 
     expect(result.current.isSending).toBe(false);
 
@@ -814,8 +814,8 @@ describe('useEtherspotTransactions()', () => {
 
     const estimated = await estimatePromise;
     expect(result.current.containsEstimatingError).toBe(false);
-    expect(estimated[0].estimatedBatches[0].cost.toString()).toBe('350000');
-    expect(estimated[1].estimatedBatches[0].cost.toString()).toBe('250000');
+    expect(estimated[0].estimatedBatches[0].cost.toString()).toBe('350000000000000');
+    expect(estimated[1].estimatedBatches[0].cost.toString()).toBe('250000000000000');
 
     expect(result.current.isSending).toBe(false);
 
@@ -932,8 +932,8 @@ describe('useEtherspotTransactions()', () => {
     const estimated2 = await estimatePromise;
     expect(result.current.containsEstimatingError).toBe(false);
     expect(estimated2.length).toBe(2);
-    expect(estimated2[0].estimatedBatches[0].cost.toString()).toBe('325000');
-    expect(estimated2[1].estimatedBatches[0].cost.toString()).toBe('200000');
+    expect(estimated2[0].estimatedBatches[0].cost.toString()).toBe('650000000000000');
+    expect(estimated2[1].estimatedBatches[0].cost.toString()).toBe('200000000000000');
     expect(onEstimated2.mock.calls[0][0]).toStrictEqual(estimated2[0].estimatedBatches);
     expect(onEstimated3.mock.calls[0][0]).toStrictEqual(estimated2[1].estimatedBatches);
   });

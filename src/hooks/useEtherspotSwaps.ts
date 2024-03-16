@@ -1,4 +1,4 @@
-import { StepTransaction } from '@etherspot/prime-sdk';
+import { StepTransaction } from '@etherspot/prime-sdk/dist/sdk/data';
 import { Route } from '@lifi/types';
 import { BigNumber } from 'ethers';
 import { useMemo } from 'react';
@@ -105,6 +105,7 @@ const useEtherspotSwaps = (chainId?: number): IEtherspotSwapsHook => {
     }
 
     try {
+      // @ts-ignore
       const offers = await dataService.getExchangeOffers({
         fromAmount,
         fromTokenAddress,

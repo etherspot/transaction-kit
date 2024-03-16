@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { TokenListToken } from '@etherspot/prime-sdk';
+import { TokenListToken } from '@etherspot/prime-sdk/dist/sdk/data';
 
 // hooks
 import useEtherspot from './useEtherspot';
@@ -31,8 +31,6 @@ const useEtherspotAssets = (chainId?: number): IEtherspotAssetsHook => {
       const dataService = getDataService();
       assets = await dataService.getTokenListTokens({
         name: 'EtherspotPopularTokens',
-        // TODO: remove ignore once available on Prime SDK
-        // @ts-ignore
         chainId: assetsChainId,
       });
     } catch (e) {

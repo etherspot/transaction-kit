@@ -1,9 +1,11 @@
 # Changelog
 
-## [0.8.0] - 2024-02-27
+## [0.9.0] - 2024-02-28
 
 ### Breaking Changes
-- Updated `@etherspot/prime-sdk` to version `1.5.2`
+- Updated `useEtherspotTransactions` hook's `estimate` and `send` methods to return actual gas cost on `estimated` key and nicer error messages on `errorMessage` key
+- Changed return type to `JSX.Element` for `EtherspotApprovalTransaction`, `EtherspotContractTransaction` and `EtherspotTokenTransferTransaction` components
+- Removed `useEtherspotSwaps` currently unavailable `getOffers` method
 
 ## [0.7.7] - 2024-02-22
 

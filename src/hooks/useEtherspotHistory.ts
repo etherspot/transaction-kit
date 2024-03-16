@@ -1,4 +1,4 @@
-import { Transaction } from '@etherspot/prime-sdk';
+import { Transaction } from '@etherspot/prime-sdk/dist/sdk/data';
 import { useMemo } from 'react';
 
 // hooks

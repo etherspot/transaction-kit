@@ -22,7 +22,7 @@ interface EtherspotTokenTransferTransactionProps extends IEtherspotTokenTransfer
  * @name EtherspotTokenTransferTransaction
  * @description Component allowing to token transfer transactions.
  * @param {EtherspotTokenTransferTransactionProps} props
- * @returns {React.ReactNode}
+ * @returns {JSX.Element}
  */
 const EtherspotTokenTransferTransaction = ({
   children,
@@ -31,7 +31,7 @@ const EtherspotTokenTransferTransaction = ({
   receiverAddress,
   id: transactionId,
   tokenDecimals = 18,
-}: EtherspotTokenTransferTransactionProps): React.ReactNode => {
+}: EtherspotTokenTransferTransactionProps): JSX.Element => {
   const context = useContext(EtherspotBatchContext);
   const componentId = useId();
   const senderAddress = useWalletAddress('etherspot-prime', context?.chainId);
