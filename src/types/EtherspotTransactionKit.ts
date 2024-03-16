@@ -1,7 +1,8 @@
 import { Fragment, JsonFragment } from '@ethersproject/abi';
 import { BigNumber, BigNumberish, BytesLike } from 'ethers';
 import { Route } from '@lifi/types';
-import { PaymasterApi, ExchangeOffer } from '@etherspot/prime-sdk';
+import { PaymasterApi } from '@etherspot/prime-sdk';
+import { ExchangeOffer } from '@etherspot/prime-sdk/dist/sdk/data';
 
 export interface ITransaction {
   id?: string;
@@ -67,12 +68,6 @@ export interface IEtherspotTokenTransferTransaction {
   tokenAddress: string;
   receiverAddress: string;
   tokenDecimals?: number;
-}
-
-export interface ISmartWalletAddress {
-  chainId: number;
-  address: string;
-  chainName: string,
 }
 
 export interface IEtherspotApprovalTransaction {
