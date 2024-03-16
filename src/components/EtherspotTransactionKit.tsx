@@ -14,7 +14,6 @@ interface EtherspotTransactionKitProps extends React.PropsWithChildren {
   chainId?: number;
   accountTemplate?: AccountTemplate;
   projectKey?: string;
-  useQaEnv?: boolean;
 }
 
 const EtherspotTransactionKit = ({
@@ -23,14 +22,12 @@ const EtherspotTransactionKit = ({
   chainId = 1,
   accountTemplate = Factory.ETHERSPOT,
   projectKey,
-  useQaEnv,
 }: EtherspotTransactionKitProps) => (
   <EtherspotContextProvider
     provider={provider}
     chainId={chainId}
     accountTemplate={accountTemplate}
     projectKey={projectKey}
-    useQaEnv={useQaEnv}
   >
     <EtherspotTransactionKitContextProvider>
       <ProviderWalletContextProvider>

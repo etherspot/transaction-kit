@@ -29,14 +29,12 @@ const EtherspotContextProvider = ({
   chainId,
   accountTemplate,
   projectKey,
-  useQaEnv,
 }: {
   children: ReactNode;
   provider: WalletProviderLike;
   chainId: number;
   accountTemplate: AccountTemplate;
   projectKey?: string;
-  useQaEnv?: boolean;
 }) => {
   const context = useContext(EtherspotContext);
 
@@ -88,7 +86,7 @@ const EtherspotContextProvider = ({
     if (dataService) return dataService;
     dataService = new DataUtils(projectKey ?? ('__ETHERSPOT_PROJECT_KEY__' || undefined));
     return dataService;
-  }, [useQaEnv, projectKey]);
+  }, [projectKey]);
 
   const contextData = useMemo(() => ({
     getSdk,

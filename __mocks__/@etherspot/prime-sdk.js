@@ -277,6 +277,4 @@ export const isWalletProvider = EtherspotPrime.isWalletProvider;
 
 export const Factory = EtherspotPrime.Factory;
 
-export const graphqlEndpoints = EtherspotPrime.graphqlEndpoints;
-
 export default EtherspotPrime;
