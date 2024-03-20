@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.9.2] - 2024-03-20
+
+### Breaking Changes
+- Cast `chainId` to number throughout the library to make it failproof for string chain IDs
+
 ## [0.9.1] - 2024-03-16
 
 ### Breaking Changes

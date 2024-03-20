@@ -25,7 +25,7 @@ const EtherspotTransactionKit = ({
 }: EtherspotTransactionKitProps) => (
   <EtherspotContextProvider
     provider={provider}
-    chainId={chainId}
+    chainId={+chainId} // cast to make it less failproof when passed as string, i.e. from env file
     accountTemplate={accountTemplate}
     projectKey={projectKey}
   >

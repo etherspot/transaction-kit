@@ -31,7 +31,7 @@ const useEtherspotAssets = (chainId?: number): IEtherspotAssetsHook => {
       const dataService = getDataService();
       assets = await dataService.getTokenListTokens({
         name: 'EtherspotPopularTokens',
-        chainId: assetsChainId,
+        chainId: +assetsChainId,
       });
     } catch (e) {
       console.warn(

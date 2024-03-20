@@ -37,7 +37,7 @@ const useEtherspotBalances = (chainId?: number): IEtherspotBalancesHook => {
       const dataService = getDataService();
       const { items } = await dataService.getAccountBalances({
         account: balancesForAccount,
-        chainId: balancesChainId,
+        chainId: +balancesChainId,
       });
 
       return items;

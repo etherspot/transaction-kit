@@ -39,7 +39,7 @@ const useEtherspotHistory = (chainId: number): IEtherspotHistoryHook => {
       // @ts-ignore
       ({ items: transactions } = await dataService.getTransactions({
         account: transactionsForAccount,
-        chainId: historyChainId,
+        chainId: +historyChainId,
       }));
     } catch (e) {
 
@@ -56,7 +56,7 @@ const useEtherspotHistory = (chainId: number): IEtherspotHistoryHook => {
   const getAccountTransaction = async (hash: string): Promise<Transaction | undefined> => {
     try {
       const dataService = getDataService();
-      return dataService.getTransaction({ hash, chainId: historyChainId });
+      return dataService.getTransaction({ hash, chainId: +historyChainId });
     } catch (e) {
       console.warn(
         `Sorry, an error occurred whilst trying to fetch the transaction`
