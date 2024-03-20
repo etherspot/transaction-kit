@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.10.0] - 2024-03-20
+
+### Breaking Changes
+- Etherspot project keys are now split as `dataApiKey` and `bundlerApiKey` to support separation of bundler and data services, however `TransactionKit` still carries embedded keys with low frequency usage API calls support
+
 ## [0.9.2] - 2024-03-20
 
 ### Breaking Changes
