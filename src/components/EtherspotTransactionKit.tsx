@@ -13,7 +13,8 @@ interface EtherspotTransactionKitProps extends React.PropsWithChildren {
   provider: WalletProviderLike;
   chainId?: number;
   accountTemplate?: AccountTemplate;
-  projectKey?: string;
+  dataApiKey?: string;
+  bundlerApiKey?: string;
 }
 
 const EtherspotTransactionKit = ({
@@ -21,13 +22,15 @@ const EtherspotTransactionKit = ({
   provider,
   chainId = 1,
   accountTemplate = Factory.ETHERSPOT,
-  projectKey,
+  dataApiKey,
+  bundlerApiKey,
 }: EtherspotTransactionKitProps) => (
   <EtherspotContextProvider
     provider={provider}
     chainId={+chainId} // cast to make it less failproof when passed as string, i.e. from env file
     accountTemplate={accountTemplate}
-    projectKey={projectKey}
+    dataApiKey={dataApiKey}
+    bundlerApiKey={bundlerApiKey}
   >
     <EtherspotTransactionKitContextProvider>
       <ProviderWalletContextProvider>

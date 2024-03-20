@@ -28,13 +28,15 @@ const EtherspotContextProvider = ({
   provider,
   chainId,
   accountTemplate,
-  projectKey,
+  dataApiKey,
+  bundlerApiKey,
 }: {
   children: ReactNode;
   provider: WalletProviderLike;
   chainId: number;
   accountTemplate: AccountTemplate;
-  projectKey?: string;
+  dataApiKey?: string;
+  bundlerApiKey?: string;
 }) => {
   const context = useContext(EtherspotContext);
 
@@ -68,7 +70,7 @@ const EtherspotContextProvider = ({
     // @ts-ignore
     const sdkForChain = new PrimeSdk(mappedProvider ?? provider, {
       chainId: +sdkChainId,
-      etherspotBundlerApiKey: projectKey ?? ('__ETHERSPOT_PROJECT_KEY__' || undefined),
+      etherspotBundlerApiKey: bundlerApiKey ?? ('__ETHERSPOT_BUNDLER_API_KEY__' || undefined),
       factoryWallet: accountTemplate as Factory,
     });
 
@@ -81,13 +83,13 @@ const EtherspotContextProvider = ({
     await sdkForChain.getCounterFactualAddress();
 
     return sdkForChain;
-  }, [provider, chainId, accountTemplate, projectKey]);
+  }, [provider, chainId, accountTemplate, bundlerApiKey]);
 
   const getDataService = useCallback(() => {
     if (dataService) return dataService;
-    dataService = new DataUtils(projectKey ?? ('__ETHERSPOT_PROJECT_KEY__' || undefined));
+    dataService = new DataUtils(dataApiKey ?? ('__ETHERSPOT_DATA_API_KEY__' || undefined));
     return dataService;
-  }, [projectKey]);
+  }, [dataApiKey]);
 
   const contextData = useMemo(() => ({
     getSdk,
