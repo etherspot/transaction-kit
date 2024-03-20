@@ -86,7 +86,7 @@ const useEtherspotSwaps = (chainId?: number): IEtherspotSwapsHook => {
     if (toChainId && toChainId !== chainId) {
       try {
         const { items: offers } = await dataService.getAdvanceRoutesLiFi({
-          fromChainId: swapsChainId,
+          fromChainId: +swapsChainId,
           toChainId,
           fromAmount,
           fromTokenAddress,
@@ -111,7 +111,7 @@ const useEtherspotSwaps = (chainId?: number): IEtherspotSwapsHook => {
         fromTokenAddress,
         toTokenAddress,
         fromAddress: fromAccount,
-        fromChainId: swapsChainId,
+        fromChainId: +swapsChainId,
       });
       return { type: 'same-chain', offers };
     } catch (e) {

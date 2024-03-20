@@ -28,7 +28,7 @@ const useEtherspotPrices = (chainId?: number): IEtherspotPricesHook => {
   }, [chainId, etherspotChainId]);
 
   const getPrice = async (assetAddress: string, assetChainId: number = defaultChainId) => {
-    const [price] = await getPrices([assetAddress], assetChainId);
+    const [price] = await getPrices([assetAddress], +assetChainId);
     return price;
   }
 
@@ -36,7 +36,7 @@ const useEtherspotPrices = (chainId?: number): IEtherspotPricesHook => {
     try {
       const dataService = getDataService();
       const result = await dataService.fetchExchangeRates({
-        chainId: assetsChainId,
+        chainId: +assetsChainId,
         tokens: assetAddresses,
       });
 

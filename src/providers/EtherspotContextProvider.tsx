@@ -67,7 +67,7 @@ const EtherspotContextProvider = ({
 
     // @ts-ignore
     const sdkForChain = new PrimeSdk(mappedProvider ?? provider, {
-      chainId: sdkChainId,
+      chainId: +sdkChainId,
       etherspotBundlerApiKey: projectKey ?? ('__ETHERSPOT_PROJECT_KEY__' || undefined),
       factoryWallet: accountTemplate as Factory,
     });

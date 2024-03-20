@@ -37,7 +37,7 @@ const useEtherspotNfts = (chainId?: number): IEtherspotNftsHook => {
       const dataService = getDataService();
       const { items } = await dataService.getNftList({
         account: nftsForAccount,
-        chainId: nftsChainId,
+        chainId: +nftsChainId,
       });
 
       return items;
