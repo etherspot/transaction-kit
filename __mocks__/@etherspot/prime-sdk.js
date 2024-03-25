@@ -277,4 +277,6 @@ export const isWalletProvider = EtherspotPrime.isWalletProvider;
 
 export const Factory = EtherspotPrime.Factory;
 
+export const EtherspotBundler = jest.fn();
+
 export default EtherspotPrime;

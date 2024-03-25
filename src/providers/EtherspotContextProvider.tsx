@@ -5,6 +5,7 @@ import {
   Factory,
   Web3WalletProvider,
   DataUtils,
+  EtherspotBundler,
 } from '@etherspot/prime-sdk';
 import React, {
   ReactNode,
@@ -13,6 +14,7 @@ import React, {
   useEffect,
   useMemo,
 } from 'react';
+import isEqual from 'lodash/isEqual';
 
 // contexts
 import EtherspotContext from '../contexts/EtherspotContext';
@@ -20,7 +22,10 @@ import EtherspotContext from '../contexts/EtherspotContext';
 // types
 import { AccountTemplate } from '../types/EtherspotTransactionKit';
 
-let sdkPerChain: { [chainId: number]: PrimeSdk } = {};
+let sdkPerChain: { [chainId: number]: PrimeSdk | Promise<PrimeSdk> } = {};
+let prevProvider: WalletProviderLike;
+let prevAccountTemplate: AccountTemplate | undefined;
+
 let dataService: DataUtils;
 
 const EtherspotContextProvider = ({
@@ -34,7 +39,7 @@ const EtherspotContextProvider = ({
   children: ReactNode;
   provider: WalletProviderLike;
   chainId: number;
-  accountTemplate: AccountTemplate;
+  accountTemplate?: AccountTemplate;
   dataApiKey?: string;
   bundlerApiKey?: string;
 }) => {
@@ -45,44 +50,53 @@ const EtherspotContextProvider = ({
   }
 
   useEffect(() => {
-    // reset on provider change
-    sdkPerChain = {};
-  }, [provider]);
+    return () => {
+      // reset on unmount
+      sdkPerChain = {};
+    }
+  }, []);
 
   const getSdk = useCallback(async (sdkChainId: number = chainId, forceNewInstance: boolean = false) => {
-    if (sdkPerChain[sdkChainId] && !forceNewInstance) return sdkPerChain[sdkChainId];
+    const accountTemplateOrProviderChanged = (prevProvider && !isEqual(prevProvider, provider))
+      || (prevAccountTemplate && prevAccountTemplate !== accountTemplate);
 
-    let mappedProvider;
-    if (!isWalletProvider(provider)) {
-      try {
-        // @ts-ignore
-        mappedProvider = new Web3WalletProvider(provider);
-        await mappedProvider.refresh();
-      } catch (e) {
-        // no need to log, this is an attempt
-      }
-
-      if (!mappedProvider) {
-        throw new Error('Invalid provider!');
-      }
+    if (sdkPerChain[sdkChainId] && !forceNewInstance && !accountTemplateOrProviderChanged) {
+      return sdkPerChain[sdkChainId];
     }
 
-    // @ts-ignore
-    const sdkForChain = new PrimeSdk(mappedProvider ?? provider, {
-      chainId: +sdkChainId,
-      etherspotBundlerApiKey: bundlerApiKey ?? ('__ETHERSPOT_BUNDLER_API_KEY__' || undefined),
-      factoryWallet: accountTemplate as Factory,
-    });
+    sdkPerChain[sdkChainId] = (async () => {
+      let mappedProvider;
 
-    sdkPerChain = {
-      ...sdkPerChain,
-      [sdkChainId]: sdkForChain,
-    }
+      if (!isWalletProvider(provider)) {
+        try {
+          // @ts-ignore
+          mappedProvider = new Web3WalletProvider(provider);
+          await mappedProvider.refresh();
+        } catch (e) {
+          // no need to log, this is an attempt
+        }
 
-    // establishes connection, requests signature
-    await sdkForChain.getCounterFactualAddress();
+        if (!mappedProvider) {
+          throw new Error('Invalid provider!');
+        }
+      }
 
-    return sdkForChain;
+      const etherspotPrimeSdk = new PrimeSdk(mappedProvider ?? provider, {
+        chainId: +sdkChainId,
+        bundlerProvider: new EtherspotBundler(+sdkChainId, bundlerApiKey ?? ('__ETHERSPOT_BUNDLER_API_KEY__' || undefined)),
+        factoryWallet: accountTemplate as Factory,
+      });
+
+      // load the address into SDK state
+      await etherspotPrimeSdk.getCounterFactualAddress();
+
+      prevProvider = provider;
+      prevAccountTemplate = accountTemplate;
+
+      return etherspotPrimeSdk;
+    })();
+
+    return sdkPerChain[sdkChainId];
   }, [provider, chainId, accountTemplate, bundlerApiKey]);
 
   const getDataService = useCallback(() => {
