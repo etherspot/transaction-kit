@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.10.1] - 2024-03-20
+
+### Added Changes
+- Fixes and optimizations on SDK initialization
+- Updated `@etherspot/prime-sdk` to version `1.6.4` with config changes
+
 ## [0.10.0] - 2024-03-20
 
 ### Breaking Changes
