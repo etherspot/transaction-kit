@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.11.0] - 2024-03-28
+
+### Added Changes
+- Added `chainId` param to `useEtherspotNfts` hook's `getTransactions` and `getTransaction` methods
+- Fixed `useEtherspotNfts` hook's `getTransactions` method returned result to match back-end changes
+
+### Breaking Changes
+- Transactions returned by `useEtherspotNfts` hook's `getTransactions` method are now different type called `UserOpTransaction`
+
 ## [0.10.1] - 2024-03-20
 
 ### Added Changes
