@@ -17,7 +17,7 @@ interface IEtherspotHistoryHook {
  * @param chainId {number | undefined} - Chain ID
  * @returns {IEtherspotHistoryHook} - hook methods to fetch Etherspot transactions history
  */
-const useEtherspotHistory = (chainId: number): IEtherspotHistoryHook => {
+const useEtherspotHistory = (chainId?: number): IEtherspotHistoryHook => {
   const { getDataService, getSdk, chainId: etherspotChainId } = useEtherspot();
 
   const defaultChainId = useMemo(() => {
