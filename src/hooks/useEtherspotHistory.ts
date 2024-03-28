@@ -4,9 +4,12 @@ import { useMemo } from 'react';
 // hooks
 import useEtherspot from './useEtherspot';
 
+// types
+import { UserOpTransaction } from '../types/EtherspotTransactionKit';
+
 interface IEtherspotHistoryHook {
-  getAccountTransactions: (accountAddress?: string) => Promise<Transaction[]>;
-  getAccountTransaction: (hash: string) => Promise<Transaction | undefined>;
+  getAccountTransactions: (accountAddress?: string, chainId?: number) => Promise<UserOpTransaction[]>;
+  getAccountTransaction: (hash: string, chainId?: number) => Promise<Transaction | undefined>;
 }
 
 /**
@@ -15,17 +18,20 @@ interface IEtherspotHistoryHook {
  * @returns {IEtherspotHistoryHook} - hook methods to fetch Etherspot transactions history
  */
 const useEtherspotHistory = (chainId: number): IEtherspotHistoryHook => {
-  const { getDataService, getSdk, chainId: defaultChainId } = useEtherspot();
+  const { getDataService, getSdk, chainId: etherspotChainId } = useEtherspot();
 
-  const historyChainId = useMemo(() => {
+  const defaultChainId = useMemo(() => {
     if (chainId) return chainId;
-    return defaultChainId;
-  }, [chainId, defaultChainId]);
+    return etherspotChainId;
+  }, [chainId, etherspotChainId]);
 
-  const getAccountTransactions = async (accountAddress?: string): Promise<Transaction[]> => {
+  const getAccountTransactions = async (
+    accountAddress?: string,
+    historyChainId: number = defaultChainId,
+  ): Promise<UserOpTransaction[]> => {
     const sdkForChainId = await getSdk(historyChainId);
 
-    let transactions: Transaction[] = [];
+    let transactions: UserOpTransaction[] = [];
 
     const transactionsForAccount = accountAddress ?? await sdkForChainId.getCounterFactualAddress();
     if (!transactionsForAccount) {
@@ -35,9 +41,7 @@ const useEtherspotHistory = (chainId: number): IEtherspotHistoryHook => {
 
     try {
       const dataService = getDataService();
-      // TODO: fix once available on Prime SDK
-      // @ts-ignore
-      ({ items: transactions } = await dataService.getTransactions({
+      ({ transactions } = await dataService.getTransactions({
         account: transactionsForAccount,
         chainId: +historyChainId,
       }));
@@ -53,7 +57,10 @@ const useEtherspotHistory = (chainId: number): IEtherspotHistoryHook => {
     return transactions;
   };
 
-  const getAccountTransaction = async (hash: string): Promise<Transaction | undefined> => {
+  const getAccountTransaction = async (
+    hash: string,
+    historyChainId: number = defaultChainId,
+  ): Promise<Transaction | undefined> => {
     try {
       const dataService = getDataService();
       return dataService.getTransaction({ hash, chainId: +historyChainId });

@@ -137,18 +137,18 @@ export class DataUtils {
     ];
 
     if (chainId !== 1) {
-      return { items: [] };
+      return { transactions: [] };
     }
 
     if (account === defaultAccountAddress) {
-      return { items: accountTransactions };
+      return { transactions: accountTransactions };
     }
 
     if (account === otherAccountAddress) {
-      return { items: [{ hash: '0x69', value: '0' }] };
+      return { transactions: [{ hash: '0x69', value: '0' }] };
     }
 
-    return { items: [] };
+    return { transactions: [] };
   }
   getTransaction({ hash, chainId }) {
     if (hash !== '0x42' || chainId !== 1) return;
