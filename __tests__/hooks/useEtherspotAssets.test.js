@@ -8,27 +8,51 @@ const ethersProvider = new ethers.providers.JsonRpcProvider('http://localhost:85
 const provider = new ethers.Wallet.createRandom().connect(ethersProvider);
 
 describe('useEtherspotAssets()', () => {
-  it('returns assets', async () => {
-    const wrapper = ({ children }) => (
-      <EtherspotTransactionKit provider={provider}>
-        {children}
-      </EtherspotTransactionKit>
-    );
+  describe('getAssets()', () => {
+    it('returns assets', async () => {
+      const wrapper = ({ children }) => (
+        <EtherspotTransactionKit provider={provider}>
+          {children}
+        </EtherspotTransactionKit>
+      );
 
-    const { result, rerender } = renderHook(({ chainId }) => useEtherspotAssets(chainId), {
-      initialProps: { chainId: 1 },
-      wrapper,
+      const { result, rerender } = renderHook(({ chainId }) => useEtherspotAssets(chainId), {
+        initialProps: { chainId: 1 },
+        wrapper,
+      });
+
+      // wait for assets to be fetched for chain ID 1
+      await waitFor(() => expect(result.current).not.toBeNull());
+      const assetsMainnet = await result.current.getAssets();
+      expect(assetsMainnet.length).toEqual(3);
+
+      // rerender with different chain ID 137
+      rerender({ chainId: 137 });
+
+      const assetsPolygon = await result.current.getAssets();
+      expect(assetsPolygon.length).toEqual(1);
     });
+  })
 
-    // wait for assets to be fetched for chain ID 1
-    await waitFor(() => expect(result.current).not.toBeNull());
-    const assetsMainnet = await result.current.getAssets();
-    expect(assetsMainnet.length).toEqual(3);
+  describe('getSupportedAssets()', () => {
+    it('returns all supported assets for chain ID 1', async () => {
+      const wrapper = ({ children }) => (
+        <EtherspotTransactionKit provider={provider}>
+          {children}
+        </EtherspotTransactionKit>
+      );
 
-    // rerender with different chain ID 137
-    rerender({ chainId: 137 });
+      const { result } = renderHook(({ chainId }) => useEtherspotAssets(chainId), {
+        initialProps: { chainId: 1 },
+        wrapper,
+      });
 
-    const assetsPolygon = await result.current.getAssets();
-    expect(assetsPolygon.length).toEqual(1);
+      // wait for assets to be fetched for chain ID 1
+      await waitFor(() => expect(result.current).not.toBeNull());
+      const assetsMainnet = await result.current.getSupportedAssets(1);
+      expect(assetsMainnet.length).toBeGreaterThanOrEqual(1);
+
+    });
   });
-})
+
+});
