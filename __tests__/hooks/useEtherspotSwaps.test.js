@@ -1,5 +1,5 @@
 import { renderHook, waitFor } from '@testing-library/react';
-import { ethers } from 'ethers';
+import { BigNumber, ethers } from 'ethers';
 
 // hooks
 import { useEtherspotSwaps, EtherspotTransactionKit } from '../../src';
@@ -140,6 +140,37 @@ describe('useEtherspotSwaps()', () => {
       expect(parsedCrossChainOfferTransactions[0].data).toEqual('0x2');
       expect(parsedCrossChainOfferTransactions[0].value).toEqual(undefined);
       expect(parsedCrossChainOfferTransactions[1].value).toEqual('100000000000000');
+    });
+  });
+  describe('getQuotes()', () => {
+    it('returns quotes cross chain', async () => {
+      const wrapper = ({ children }) => (
+        <EtherspotTransactionKit provider={provider}>
+          {children}
+        </EtherspotTransactionKit>
+      );
+
+      const { result } = renderHook(({ chainId }) => useEtherspotSwaps(chainId), {
+        initialProps: { chainId: 1 },
+        wrapper,
+      });
+
+      // wait for hook to load
+      await waitFor(() => expect(result.current).not.toBeNull());
+
+      const quote1 = {
+        fromAccountAddress: '0x3788bb31d134D96399744B7A423066A9258946A2',
+        toAddress: '0x0Eecf133F97976d71184b619da64121C3F7DeeA2',
+        fromChainId: 1,
+        toChainId: 56,
+        fromToken: '0x6B175474E89094C44Da98b954EedeAC495271d0F',
+        fromAmount: BigNumber.from("1000000000000000000"),
+        slippage: 1,
+      }
+
+      const allQuotes = await result.current.getQuotes(quote1);
+      console.log(allQuotes)
+      expect(allQuotes.length).toBe(2);
     });
   });
 })
