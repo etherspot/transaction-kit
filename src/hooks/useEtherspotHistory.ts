@@ -1,4 +1,4 @@
-import { Transaction } from '@etherspot/prime-sdk/dist/sdk/data';
+import { BridgingProvider, Transaction, TransactionStatus } from '@etherspot/prime-sdk/dist/sdk/data';
 import { useMemo } from 'react';
 
 // hooks
@@ -10,6 +10,10 @@ import { UserOpTransaction } from '../types/EtherspotTransactionKit';
 interface IEtherspotHistoryHook {
   getAccountTransactions: (accountAddress?: string, chainId?: number) => Promise<UserOpTransaction[]>;
   getAccountTransaction: (hash: string, chainId?: number) => Promise<Transaction | undefined>;
+  getAccountTransactionStatus: (fromChainId: number,
+    toChainId: number,
+    hash: string,
+    provider?: BridgingProvider) => Promise<TransactionStatus | undefined>;
 }
 
 /**
@@ -73,9 +77,30 @@ const useEtherspotHistory = (chainId?: number): IEtherspotHistoryHook => {
     }
   }
 
+  const getAccountTransactionStatus = async (
+    fromChainId: number,
+    toChainId: number,
+    hash: string,
+    provider?: BridgingProvider,
+  ): Promise<TransactionStatus | undefined> => {
+    try {
+      const dataService = getDataService();
+      return dataService.getTransactionStatus({ fromChainId, toChainId, transactionHash: hash, provider });
+    } catch (e) {
+      console.warn(
+        `Sorry, an error occurred whilst trying to fetch the transaction status`
+        + ` from chain id ${fromChainId}`
+        + ` to chain id ${toChainId}`
+        + ` for hash ${hash}. Please try again. Error:`,
+        e,
+      );
+    }
+  }
+
   return ({
     getAccountTransactions,
     getAccountTransaction,
+    getAccountTransactionStatus,
   });
 };
 

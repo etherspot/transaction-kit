@@ -6,7 +6,8 @@ import {
   IEstimatedBatches, ISentBatches,
   SentBatch,
   useEtherspot,
-  // useEtherspotAssets,
+  useEtherspotAssets,
+  useEtherspotHistory,
   useEtherspotTransactions,
   useWalletAddress,
 } from '@etherspot/transaction-kit';
@@ -91,10 +92,14 @@ const App = () => {
   const [isSending, setIsSending] = useState(false);
   const etherspotPrimeAddress = useWalletAddress();
 
-  // // TO REMOVE - for testing purposes
-  // const { getSupportedAssets } = useEtherspotAssets();
-  // const allSupportedAssets = getSupportedAssets();
-  // console.log(allSupportedAssets)
+  // TO REMOVE - for testing purposes
+  const { getSupportedAssets } = useEtherspotAssets();
+  const allSupportedAssets = getSupportedAssets();
+  console.log(allSupportedAssets)
+
+  const { getAccountTransactionStatus } = useEtherspotHistory();
+  const transactionStatus1 = getAccountTransactionStatus(100, 56, '0xfc46adedf462d3fd6cdbe0214ed11c06cba20c385b9875aa4d51c60afbd9725d')
+  console.log({ transactionStatus1 })
 
   const batchesTreeView = batches.map((batchGroup, id1) => ({
     ...batchGroup,
