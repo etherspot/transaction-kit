@@ -4,7 +4,7 @@ import { ethers } from 'ethers';
 // hooks
 import { EtherspotTransactionKit, useEtherspotHistory } from '../../src';
 
-const ethersProvider = new ethers.providers.JsonRpcProvider('http://localhost:8545', 'goerli'); // replace with your node's RPC URL
+const ethersProvider = new ethers.providers.JsonRpcProvider('http://localhost:8545', 'sepolia'); // replace with your node's RPC URL
 const provider = new ethers.Wallet.createRandom().connect(ethersProvider);
 
 describe('useEtherspotHistory()', () => {

@@ -3,7 +3,7 @@ import { ethers } from 'ethers';
 
 import { useEtherspotTransactions, EtherspotTransactionKit, EtherspotBatches, EtherspotBatch, EtherspotTokenTransferTransaction } from '../../src';
 
-const ethersProvider = new ethers.providers.JsonRpcProvider('http://localhost:8545', 'goerli'); // replace with your node's RPC URL
+const ethersProvider = new ethers.providers.JsonRpcProvider('http://localhost:8545', 'sepolia'); // replace with your node's RPC URL
 const provider = new ethers.Wallet.createRandom().connect(ethersProvider);
 
 describe('EtherspotTokenTransferTransaction', () => {
@@ -41,8 +41,8 @@ describe('EtherspotTokenTransferTransaction', () => {
       })
     }).rejects.toThrow(
       'Failed to build transaction data, please check data/method formatting: invalid address'
-        + ' (argument="address", value="0xtransfer", code=INVALID_ARGUMENT, version=address/5.7.0)'
-        + ' (argument=\"to\", value="0xtransfer", code=INVALID_ARGUMENT, version=abi/5.7.0)'
+      + ' (argument="address", value="0xtransfer", code=INVALID_ARGUMENT, version=address/5.7.0)'
+      + ' (argument=\"to\", value="0xtransfer", code=INVALID_ARGUMENT, version=abi/5.7.0)'
     );
   });
 

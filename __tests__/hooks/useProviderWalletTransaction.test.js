@@ -7,7 +7,7 @@ import {
   ProviderWalletTransaction,
 } from '../../src';
 
-const ethersProvider = new ethers.providers.JsonRpcProvider('http://localhost:8545', 'goerli'); // replace with your node's RPC URL
+const ethersProvider = new ethers.providers.JsonRpcProvider('http://localhost:8545', 'sepolia'); // replace with your node's RPC URL
 const provider = new ethers.Wallet.createRandom().connect(ethersProvider);
 
 describe('useProviderWalletTransaction()', () => {
@@ -43,7 +43,7 @@ describe('useProviderWalletTransaction()', () => {
 
     const { result, rerender } = renderHook(() => useProviderWalletTransaction(), { wrapper });
 
-    expect(result.current.transaction.value.toJSON()).toStrictEqual({"hex": "0x16c4abbebea0100000", "type": "BigNumber"});
+    expect(result.current.transaction.value.toJSON()).toStrictEqual({ "hex": "0x16c4abbebea0100000", "type": "BigNumber" });
     expect(result.current.transaction.to).toBe('0x0');
     expect(result.current.transaction.data).toBe('0xFFF');
     expect(result.current.transaction.chainId).toBe(69);
@@ -83,7 +83,7 @@ describe('useProviderWalletTransaction()', () => {
       }
     } = renderHook(() => useProviderWalletTransaction(), { wrapper });
 
-    expect(value.toJSON()).toStrictEqual({"hex": "0x16c4abbebea0100000", "type": "BigNumber"});
+    expect(value.toJSON()).toStrictEqual({ "hex": "0x16c4abbebea0100000", "type": "BigNumber" });
     expect(to).toBe('0x0');
     expect(data).toBe('0xFFF');
     expect(chainId).toBe(69);
@@ -95,14 +95,14 @@ describe('useProviderWalletTransaction()', () => {
         <div>
           test
           <span>
-          <ProviderWalletTransaction
-            to={'0x12'}
-            data={'0x0'}
-            value={'0.123'}
-          >
-            <span>test</span>
-          </ProviderWalletTransaction>
-        </span>
+            <ProviderWalletTransaction
+              to={'0x12'}
+              data={'0x0'}
+              value={'0.123'}
+            >
+              <span>test</span>
+            </ProviderWalletTransaction>
+          </span>
         </div>
         <ProviderWalletTransaction
           to={'0x0'}
@@ -126,7 +126,7 @@ describe('useProviderWalletTransaction()', () => {
         data={'0x0'}
         value={'0.123'}
       >
-          <span>test</span>
+        <span>test</span>
       </ProviderWalletTransaction>
     ))
       .toThrow('No parent <EtherspotContextProvider />');

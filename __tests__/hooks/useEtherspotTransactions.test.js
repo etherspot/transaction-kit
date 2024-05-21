@@ -4,7 +4,7 @@ import { ethers } from 'ethers';
 // hooks
 import { useEtherspotTransactions, EtherspotTransactionKit, EtherspotBatches, EtherspotBatch, EtherspotContractTransaction, EtherspotTransaction } from '../../src';
 
-const ethersProvider = new ethers.providers.JsonRpcProvider('http://localhost:8545', 'goerli'); // replace with your node's RPC URL
+const ethersProvider = new ethers.providers.JsonRpcProvider('http://localhost:8545', 'sepolia'); // replace with your node's RPC URL
 const provider = new ethers.Wallet.createRandom().connect(ethersProvider);
 
 const TestSingleBatchComponent = () => (
@@ -95,12 +95,12 @@ describe('useEtherspotTransactions()', () => {
         <div>
           test
           <span>
-          <EtherspotBatches>
             <EtherspotBatches>
-              <span>test</span>
+              <EtherspotBatches>
+                <span>test</span>
+              </EtherspotBatches>
             </EtherspotBatches>
-          </EtherspotBatches>
-        </span>
+          </span>
         </div>
         <EtherspotBatches>
           <span>test</span>
@@ -109,7 +109,7 @@ describe('useEtherspotTransactions()', () => {
       </EtherspotTransactionKit>
     );
 
-    expect(() => renderHook(() => useEtherspotTransactions(), {  wrapper }))
+    expect(() => renderHook(() => useEtherspotTransactions(), { wrapper }))
       .toThrow('<EtherspotBatches /> cannot be inside <EtherspotBatches />');
   });
 
@@ -119,14 +119,14 @@ describe('useEtherspotTransactions()', () => {
         <div>
           test
           <span>
-          <EtherspotBatches>
-            <EtherspotBatch>
+            <EtherspotBatches>
               <EtherspotBatch>
-                <span>test</span>
+                <EtherspotBatch>
+                  <span>test</span>
+                </EtherspotBatch>
               </EtherspotBatch>
-            </EtherspotBatch>
-          </EtherspotBatches>
-        </span>
+            </EtherspotBatches>
+          </span>
         </div>
         <EtherspotBatches>
           <span>test</span>
@@ -135,7 +135,7 @@ describe('useEtherspotTransactions()', () => {
       </EtherspotTransactionKit>
     );
 
-    expect(() => renderHook(() => useEtherspotTransactions(), {  wrapper }))
+    expect(() => renderHook(() => useEtherspotTransactions(), { wrapper }))
       .toThrow('<EtherspotBatch /> cannot be inside <EtherspotBatch />');
   });
 

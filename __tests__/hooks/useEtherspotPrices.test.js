@@ -4,11 +4,11 @@ import { ethers } from 'ethers';
 // hooks
 import { useEtherspotPrices, EtherspotTransactionKit } from '../../src';
 
-const ethersProvider = new ethers.providers.JsonRpcProvider('http://localhost:8545', 'goerli'); // replace with your node's RPC URL
+const ethersProvider = new ethers.providers.JsonRpcProvider('http://localhost:8545', 'sepolia'); // replace with your node's RPC URL
 const provider = new ethers.Wallet.createRandom().connect(ethersProvider);
 
 describe('useEtherspotPrices()', () => {
-  describe('getPrices()',  () => {
+  describe('getPrices()', () => {
     it('fails if wrong asset address provided', async () => {
       const wrapper = ({ children }) => (
         <EtherspotTransactionKit provider={provider}>
@@ -59,7 +59,7 @@ describe('useEtherspotPrices()', () => {
     });
   });
 
-  describe('getPrice()',  () => {
+  describe('getPrice()', () => {
     it('fails if wrong asset address provided', async () => {
       const wrapper = ({ children }) => (
         <EtherspotTransactionKit provider={provider}>

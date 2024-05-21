@@ -200,7 +200,7 @@ const App = () => {
     <Container maxWidth={'sm'}>
       <Box sx={{ pt: 3, pb: 4 }}>
         <Typography mb={2}>
-          <a href={'https://faucet.polygon.technology/'} target={'_blank'} rel="noreferrer">Mumbai MATIC Faucet</a>
+          <a href={'https://www.alchemy.com/faucets/ethereum-sepolia'} target={'_blank'} rel="noreferrer">Sepolia ETH Faucet</a>
         </Typography>
         <Chip
           label={
