@@ -1,5 +1,5 @@
 import { renderHook, waitFor } from '@testing-library/react';
-import { BigNumber, ethers } from 'ethers';
+import { ethers } from 'ethers';
 
 // hooks
 import { EtherspotTransactionKit, useEtherspotSwaps } from '../../src';

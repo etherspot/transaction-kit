@@ -1,5 +1,5 @@
 import * as EtherspotPrime from '@etherspot/prime-sdk';
-import { BigNumber, ethers } from 'ethers';
+import { ethers } from 'ethers';
 
 export const defaultAccountAddress = '0x7F30B1960D5556929B03a0339814fE903c55a347';
 export const otherFactoryDefaultAccountAddress = '0xe383724e3bDC4753746dEC781809f8CD82010914';
@@ -110,7 +110,7 @@ export class DataUtils {
       return null;
     }
 
-    if (fromAddress === '0x111' && toAddress === '0x222' && fromChainId === 1 && toChainId && fromToken == '0x123456' && fromAmount === '0x1000000' && slippage === 1) {
+    if (fromAddress === '0x111' && toAddress === '0x222' && fromChainId === 1 && toChainId === 56 && fromToken == '0x123456' && fromAmount === '0x1000000' && slippage === 1) {
       return {
         transactions: [
           {
