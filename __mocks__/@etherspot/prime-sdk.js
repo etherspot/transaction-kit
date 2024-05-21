@@ -1,5 +1,5 @@
 import * as EtherspotPrime from '@etherspot/prime-sdk';
-import { ethers } from 'ethers';
+import { BigNumber, ethers } from 'ethers';
 
 export const defaultAccountAddress = '0x7F30B1960D5556929B03a0339814fE903c55a347';
 export const otherFactoryDefaultAccountAddress = '0xe383724e3bDC4753746dEC781809f8CD82010914';
@@ -103,14 +103,65 @@ export class PrimeSdk {
 }
 
 export class DataUtils {
-  constructor() {}
+  constructor() { }
 
-  getQuotes({ fromAccountAddress, toAddress, fromChainId, toChainId, fromToken, fromAmount, slippage, provider }) {
-    return [1, 2];
+  getQuotes({ fromAddress, toAddress, fromChainId, toChainId, fromToken, fromAmount, slippage }) {
+    if (!fromAddress || !toAddress || !fromChainId || !toChainId || !fromToken || !fromAmount || !slippage) {
+      return null;
+    }
+
+    if (fromAddress === '0x111' && toAddress === '0x222' && fromChainId === 1 && toChainId && fromToken == '0x123456' && fromAmount === '0x1000000' && slippage === 1) {
+      return {
+        transactions: [
+          {
+            data: "0x111222333",
+            to: "0x123",
+            value: "0x00"
+          },
+          {
+            value: "0xb2eed2c27ce6",
+            data: "0x444555666",
+            to: "0x456",
+            chainId: 1
+          }
+        ]
+      }
+    }
+
+    return { transactions: [] };
   }
 
   getSupportedAssets({ chainId, provider: bridgingProvider }) {
-    return [1, 2, 3, 4];
+    const allSupportedAssets = [{
+      address: "0x123",
+      chainId: 1,
+      name: "USDC",
+      symbol: "USDC",
+    },
+    {
+      address: "0x456",
+      chainId: 1,
+      name: "USDC",
+      symbol: "USDC",
+    },
+    {
+      address: "0x789",
+      chainId: 137,
+      name: "USDC",
+      symbol: "USDC",
+    },
+    ];
+
+    if (!chainId) {
+      return { tokens: allSupportedAssets }
+    }
+
+    if (allSupportedAssets.some(asset => asset.chainId === chainId)) {
+      return { tokens: allSupportedAssets.filter((asset) => asset.chainId === chainId) }
+    }
+
+    return { tokens: [] }
+
   }
 
   getAccountBalances({ chainId, account }) {
@@ -157,13 +208,21 @@ export class DataUtils {
     return { transactions: [] };
   }
 
-  getTransactionStatus({ fromChainId, toChainId, hash, provider }) {
-    return {
-      connextscanUrl: 'https://connextscan.io/tx/0x123',
-      status: 'completed',
-      transactionHash: '0x123',
-      transferId: 'abc123',
-    };
+  getTransactionStatus({ fromChainId, toChainId, transactionHash, provider }) {
+    if (!fromChainId || !toChainId || !transactionHash) {
+      return null;
+    }
+
+    if (fromChainId === 1 && toChainId === 137 && transactionHash === '0x123') {
+      return {
+        connextscanUrl: 'https://connextscan.io/tx/0x123',
+        status: 'completed',
+        transactionHash: '0x123',
+        transferId: 'abc123',
+      };
+    }
+
+    return {};
   }
 
   getTransaction({ hash, chainId }) {

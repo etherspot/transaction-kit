@@ -6,16 +6,13 @@ import {
   IEstimatedBatches, ISentBatches,
   SentBatch,
   useEtherspot,
-  useEtherspotAssets,
-  useEtherspotHistory,
-  useEtherspotSwaps,
   useEtherspotTransactions,
   useWalletAddress,
 } from '@etherspot/transaction-kit';
 import TreeItem from '@mui/lab/TreeItem';
 import TreeView from '@mui/lab/TreeView';
 import { Box, Button, Chip, Container, Paper, Tab, Tabs, Typography } from '@mui/material';
-import { BigNumber, ethers } from 'ethers';
+import { ethers } from 'ethers';
 import React, { useEffect, useState } from 'react';
 import { AiFillCaretDown, AiFillCaretRight } from 'react-icons/ai';
 
@@ -93,18 +90,6 @@ const App = () => {
   const [isSending, setIsSending] = useState(false);
   const etherspotPrimeAddress = useWalletAddress();
 
-  // TO REMOVE - for testing purposes
-  const { getSupportedAssets } = useEtherspotAssets();
-  const allSupportedAssets = getSupportedAssets();
-  console.log(allSupportedAssets)
-
-  const { getAccountTransactionStatus } = useEtherspotHistory();
-  const transactionStatus1 = getAccountTransactionStatus(100, 56, '0xfc46adedf462d3fd6cdbe0214ed11c06cba20c385b9875aa4d51c60afbd9725d')
-  console.log({ transactionStatus1 })
-
-  const { getQuotes } = useEtherspotSwaps();
-  const quotes1 = getQuotes('0x3788bb31d134D96399744B7A423066A9258946A2', '0x0Eecf133F97976d71184b619da64121C3F7DeeA2', 1, 56, '0x6B175474E89094C44Da98b954EedeAC495271d0F', BigNumber.from("1000000000000000000"), 1)
-  console.log(quotes1)
 
   const batchesTreeView = batches.map((batchGroup, id1) => ({
     ...batchGroup,

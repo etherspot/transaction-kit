@@ -8,20 +8,6 @@ const ethersProvider = new ethers.providers.JsonRpcProvider('http://localhost:85
 const provider = new ethers.Wallet.createRandom().connect(ethersProvider);
 
 describe('useEtherspotHistory()', () => {
-  it('executes the testfn', async () => {
-    const wrapper = ({ children }) => <EtherspotTransactionKit provider={provider}>{children}</EtherspotTransactionKit>;
-
-    const { result, rerender } = renderHook(({ chainId }) => useEtherspotHistory(chainId), {
-      initialProps: { chainId: 1 },
-      wrapper,
-    });
-
-    // wait for history to be fetched for chain ID 1
-    await waitFor(() => expect(result.current).not.toBeNull());
-
-    const testFnResult = result.current.getTestFn();
-  });
-
   it('getAccountTransactions() returns account history', async () => {
     const wrapper = ({ children }) => <EtherspotTransactionKit provider={provider}>{children}</EtherspotTransactionKit>;
 
@@ -79,39 +65,52 @@ describe('useEtherspotHistory()', () => {
   });
 
   it('returns transaction status for a given hash', async () => {
-    const fromChainId = 1;
-    const toChainId = 137;
-    const hash = '0x123';
-    const transactionStatus1 = {
-      status: 'completed',
-      transactionHash: hash,
+    const transactionStatus = {
       connextscanUrl: 'https://connextscan.io/tx/0x123',
+      status: 'completed',
+      transactionHash: '0x123',
       transferId: 'abc123',
     };
 
     const wrapper = ({ children }) => <EtherspotTransactionKit provider={provider}>{children}</EtherspotTransactionKit>;
 
-    const { result, rerender } = renderHook(({ chainId }) => useEtherspotHistory(chainId), {
+    const { result } = renderHook(({ chainId }) => useEtherspotHistory(chainId), {
       initialProps: { chainId: 1 },
       wrapper,
     });
 
-    console.log('result.current', result.current);
-
     // wait for history to be fetched for chain ID 1
     await waitFor(() => expect(result.current).not.toBeNull());
 
-    console.log('log1', result.current);
-
-    const transactionMainnet1 = await result.current
-      .getAccountTransactionStatus(fromChainId, toChainId, hash)
+    // all correct props
+    const transaction1 = await result.current
+      .getAccountTransactionStatus(1, 137, '0x123')
       .catch((e) => {
         console.error(e);
         return e;
       });
 
-    console.log('log2', transactionMainnet1);
+    expect(transaction1).toEqual(transactionStatus);
 
-    expect(transactionMainnet1).toEqual(transactionStatus1);
+    // transaction not found or does not exist
+    const transaction2 = await result.current
+      .getAccountTransactionStatus(4, 137, '0x123')
+      .catch((e) => {
+        console.error(e);
+        return e;
+      });
+
+    expect(transaction2).toEqual({})
+
+    // missing props
+    const transaction3 = await result.current
+      .getAccountTransactionStatus(4, 137)
+      .catch((e) => {
+        console.error(e);
+        return e;
+      });
+
+    expect(transaction3).toBeNull()
+
   });
 });

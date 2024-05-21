@@ -24,8 +24,6 @@ describe('useEtherspotAssets()', () => {
       const assetsMainnet = await result.current.getAssets();
       expect(assetsMainnet.length).toEqual(3);
 
-      console.log('log1', result);
-
       // rerender with different chain ID 137
       rerender({ chainId: 137 });
 
@@ -35,62 +33,53 @@ describe('useEtherspotAssets()', () => {
   });
 
   describe('getSupportedAssets()', () => {
-    it('returns all supported assets', async () => {
+    it('returns all supported assets by Etherspot', async () => {
       const wrapper = ({ children }) => (
-        <EtherspotTransactionKit provider={provider} chainId={11155111}>
+        <EtherspotTransactionKit provider={provider}>
           {children}
         </EtherspotTransactionKit>
       );
 
-      const { result, rerender } = renderHook(({ chainId }) => useEtherspotAssets(chainId), {
-        initialProps: { chainId: 11155111 },
+      const { result } = renderHook(() => useEtherspotAssets(), {
         wrapper,
       });
 
       // wait for assets to be fetched
       await waitFor(() => expect(result.current).not.toBeNull());
 
-      const assetsMainnet = await result.current.getSupportedAssets();
-      expect(assetsMainnet.length).toBeGreaterThan(0);
+      const allSupportedAssets = await result.current.getSupportedAssets();
+      expect(allSupportedAssets).not.toBeUndefined();
+      expect(allSupportedAssets.tokens.length).toEqual(3);
+    });
 
-      // console.log('log1', result)
-      // console.log('THEPROVIDER', provider)
-      // // wait for assets to be fetched for chain ID 1
-      // await waitFor(() => expect(result.current).not.toBeNull());
-      // const assetsMainnet = await result.current.getSupportedAssets();
-      // // expect(assetsMainnet.length).toEqual(3);
+    it('returns all supported assets by Etherspot and by Chain ID', async () => {
+      const wrapper = ({ children }) => (
+        <EtherspotTransactionKit provider={provider}>
+          {children}
+        </EtherspotTransactionKit>
+      );
 
-      // console.log('log2', assetsMainnet)
+      const { result } = renderHook(() => useEtherspotAssets(), {
+        wrapper,
+      });
 
-      // // rerender with different chain ID 137
-      // rerender({ chainId: 137 });
+      // wait for assets to be fetched
+      await waitFor(() => expect(result.current).not.toBeNull());
 
-      // // const assetsPolygon = await result.current.getSupportedAssets();
-      // // expect(assetsPolygon.length).toEqual(1);
+      // chain ID 1
+      const allSupportedAssetsMainnet = await result.current.getSupportedAssets(1);
+      expect(allSupportedAssetsMainnet).not.toBeUndefined();
+      expect(allSupportedAssetsMainnet.tokens.length).toEqual(2);
+
+      // chain ID 137
+      const allSupportedAssetsPolygon = await result.current.getSupportedAssets(137);
+      expect(allSupportedAssetsPolygon).not.toBeUndefined();
+      expect(allSupportedAssetsPolygon.tokens.length).toEqual(1);
+
+      // chain ID 56
+      const allSupportedAssetsBinance = await result.current.getSupportedAssets(56);
+      expect(allSupportedAssetsBinance).not.toBeUndefined();
+      expect(allSupportedAssetsBinance.tokens.length).toEqual(0);
     });
   });
-  // describe('getSupportedAssets()', () => {
-  //   it('returns all supported assets for chain ID 1', async () => {
-  //     const wrapper = ({ children }) => (
-  //       <EtherspotTransactionKit provider={provider}>
-  //         {children}
-  //       </EtherspotTransactionKit>
-  //     );
-
-  //     const { result } = renderHook(({ chainId }) => useEtherspotAssets(chainId), {
-  //       initialProps: { chainId: 1 },
-  //       wrapper,
-  //     });
-
-  //     console.log('log3', result)
-
-  //     // wait for assets to be fetched for chain ID 1
-  //     await waitFor(() => expect(result.current).not.toBeNull());
-
-  //     console.log('log4', result)
-  //     // const assetsMainnet = await result.current.getSupportedAssets(1);
-  //     // expect(assetsMainnet.length).toBeGreaterThanOrEqual(1);
-
-  //   });
-  // });
 });

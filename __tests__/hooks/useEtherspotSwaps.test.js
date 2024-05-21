@@ -137,18 +137,35 @@ describe('useEtherspotSwaps()', () => {
       // wait for hook to load
       await waitFor(() => expect(result.current).not.toBeNull());
 
-      const quote1 = {
-        fromAccountAddress: '0x3788bb31d134D96399744B7A423066A9258946A2',
-        toAddress: '0x0Eecf133F97976d71184b619da64121C3F7DeeA2',
-        fromChainId: 1,
-        toChainId: 56,
-        fromToken: '0x6B175474E89094C44Da98b954EedeAC495271d0F',
-        fromAmount: BigNumber.from('1000000000000000000'),
-        slippage: 1,
-      };
+      const quotesResult =
+      {
+        transactions: [
+          {
+            data: "0x111222333",
+            to: "0x123",
+            value: "0x00"
+          },
+          {
+            value: "0xb2eed2c27ce6",
+            data: "0x444555666",
+            to: "0x456",
+            chainId: 1
+          }
+        ]
+      }
 
-      const allQuotes = await result.current.getQuotes(quote1);
-      expect(allQuotes.length).toBe(2);
+      // all props are correct and quotes exist
+      const quotes1 = await result.current.getQuotes('0x111', '0x222', 56, '0x123456', '0x1000000', 1);
+      expect(quotes1.transactions.length).toEqual(2);
+      expect(quotes1).toEqual(quotesResult)
+
+      // all props are correct but no quotes
+      const quote2 = await result.current.getQuotes('0x999', '0x888', 56, '0x123456', '0x1000000', 1);
+      expect(quote2.transactions.length).toEqual(0);
+
+      // not all props
+      const quote3 = await result.current.getQuotes('0x111', '0x222');
+      expect(quote3).toBeNull();
     });
   });
 });

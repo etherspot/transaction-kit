@@ -16,7 +16,6 @@ interface IEtherspotHistoryHook {
     hash: string,
     provider?: BridgingProvider
   ) => Promise<TransactionStatus | undefined>;
-  getTestFn: () => boolean;
 }
 
 /**
@@ -31,10 +30,6 @@ const useEtherspotHistory = (chainId?: number): IEtherspotHistoryHook => {
     if (chainId) return chainId;
     return etherspotChainId;
   }, [chainId, etherspotChainId]);
-
-  const getTestFn = () => {
-    return true;
-  };
 
   const getAccountTransactions = async (
     accountAddress?: string,
@@ -59,7 +54,7 @@ const useEtherspotHistory = (chainId?: number): IEtherspotHistoryHook => {
     } catch (e) {
       console.warn(
         `Sorry, an error occurred whilst trying to fetch the transactions` +
-          ` for account ${transactionsForAccount}. Please try again. Error:`,
+        ` for account ${transactionsForAccount}. Please try again. Error:`,
         e
       );
     }
@@ -78,7 +73,7 @@ const useEtherspotHistory = (chainId?: number): IEtherspotHistoryHook => {
     } catch (e) {
       console.warn(
         `Sorry, an error occurred whilst trying to fetch the transaction` +
-          ` for hash ${hash}. Please try again. Error:`,
+        ` for hash ${hash}. Please try again. Error:`,
         e
       );
     }
@@ -97,9 +92,9 @@ const useEtherspotHistory = (chainId?: number): IEtherspotHistoryHook => {
       console.error(e);
       console.warn(
         `Sorry, an error occurred whilst trying to fetch the transaction status` +
-          ` from chain id ${fromChainId}` +
-          ` to chain id ${toChainId}` +
-          ` for hash ${hash}. Please try again. Error:`,
+        ` from chain id ${fromChainId}` +
+        ` to chain id ${toChainId}` +
+        ` for hash ${hash}. Please try again. Error:`,
         e
       );
     }
@@ -109,7 +104,6 @@ const useEtherspotHistory = (chainId?: number): IEtherspotHistoryHook => {
     getAccountTransactions,
     getAccountTransaction,
     getAccountTransactionStatus,
-    getTestFn,
   };
 };
 

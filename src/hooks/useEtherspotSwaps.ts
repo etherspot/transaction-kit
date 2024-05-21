@@ -26,7 +26,6 @@ interface IEtherspotSwapsHook {
   getQuotes: (
     fromAccountAddress: string,
     toAddress: string,
-    fromChainId: number,
     toChainId: number,
     fromToken: string,
     fromAmount: BigNumber,
@@ -133,7 +132,6 @@ const useEtherspotSwaps = (chainId?: number): IEtherspotSwapsHook => {
   const getQuotes = async (
     fromAccountAddress: string,
     toAddress: string,
-    fromChainId: number,
     toChainId: number,
     fromToken: string,
     fromAmount: BigNumber,
@@ -154,7 +152,7 @@ const useEtherspotSwaps = (chainId?: number): IEtherspotSwapsHook => {
       const quotes = await dataService.getQuotes({
         fromAddress: fromAccount,
         toAddress,
-        fromChainId,
+        fromChainId: +swapsChainId,
         toChainId,
         fromToken,
         fromAmount,
