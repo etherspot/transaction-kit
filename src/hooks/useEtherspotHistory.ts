@@ -92,7 +92,6 @@ const useEtherspotHistory = (chainId?: number): IEtherspotHistoryHook => {
   ): Promise<TransactionStatus | undefined> => {
     try {
       const dataService = getDataService();
-      console.log('dataservice getTransactionStatus', dataService.getTransactionStatus);
       return dataService.getTransactionStatus({ fromChainId, toChainId, transactionHash: hash, provider });
     } catch (e) {
       console.error(e);

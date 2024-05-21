@@ -105,6 +105,14 @@ export class PrimeSdk {
 export class DataUtils {
   constructor() {}
 
+  getQuotes({ fromAccountAddress, toAddress, fromChainId, toChainId, fromToken, fromAmount, slippage, provider }) {
+    return [1, 2];
+  }
+
+  getSupportedAssets({ chainId, provider: bridgingProvider }) {
+    return [1, 2, 3, 4];
+  }
+
   getAccountBalances({ chainId, account }) {
     console.log('getAccountBalances', chainId, account);
     const tokenBalance = ethers.utils.parseEther('420');

@@ -11,9 +11,7 @@ describe('useEtherspotAssets()', () => {
   describe('getAssets()', () => {
     it('returns assets', async () => {
       const wrapper = ({ children }) => (
-        <EtherspotTransactionKit provider={provider}>
-          {children}
-        </EtherspotTransactionKit>
+        <EtherspotTransactionKit provider={provider}>{children}</EtherspotTransactionKit>
       );
 
       const { result, rerender } = renderHook(({ chainId }) => useEtherspotAssets(chainId), {
@@ -26,7 +24,7 @@ describe('useEtherspotAssets()', () => {
       const assetsMainnet = await result.current.getAssets();
       expect(assetsMainnet.length).toEqual(3);
 
-      console.log('log1', result)
+      console.log('log1', result);
 
       // rerender with different chain ID 137
       rerender({ chainId: 137 });
@@ -34,7 +32,7 @@ describe('useEtherspotAssets()', () => {
       const assetsPolygon = await result.current.getAssets();
       expect(assetsPolygon.length).toEqual(1);
     });
-  })
+  });
 
   describe('getSupportedAssets()', () => {
     it('returns all supported assets', async () => {
@@ -53,11 +51,7 @@ describe('useEtherspotAssets()', () => {
       await waitFor(() => expect(result.current).not.toBeNull());
 
       const assetsMainnet = await result.current.getSupportedAssets();
-      console.log('log', assetsMainnet);
       expect(assetsMainnet.length).toBeGreaterThan(0);
-
-
-
 
       // console.log('log1', result)
       // console.log('THEPROVIDER', provider)
@@ -74,7 +68,7 @@ describe('useEtherspotAssets()', () => {
       // // const assetsPolygon = await result.current.getSupportedAssets();
       // // expect(assetsPolygon.length).toEqual(1);
     });
-  })
+  });
   // describe('getSupportedAssets()', () => {
   //   it('returns all supported assets for chain ID 1', async () => {
   //     const wrapper = ({ children }) => (
@@ -99,5 +93,4 @@ describe('useEtherspotAssets()', () => {
 
   //   });
   // });
-
 });
