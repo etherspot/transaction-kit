@@ -10,10 +10,13 @@ import { UserOpTransaction } from '../types/EtherspotTransactionKit';
 interface IEtherspotHistoryHook {
   getAccountTransactions: (accountAddress?: string, chainId?: number) => Promise<UserOpTransaction[]>;
   getAccountTransaction: (hash: string, chainId?: number) => Promise<Transaction | undefined>;
-  getAccountTransactionStatus: (fromChainId: number,
+  getAccountTransactionStatus: (
+    fromChainId: number,
     toChainId: number,
     hash: string,
-    provider?: BridgingProvider) => Promise<TransactionStatus | undefined>;
+    provider?: BridgingProvider
+  ) => Promise<TransactionStatus | undefined>;
+  getTestFn: () => boolean;
 }
 
 /**
@@ -29,15 +32,19 @@ const useEtherspotHistory = (chainId?: number): IEtherspotHistoryHook => {
     return etherspotChainId;
   }, [chainId, etherspotChainId]);
 
+  const getTestFn = () => {
+    return true;
+  };
+
   const getAccountTransactions = async (
     accountAddress?: string,
-    historyChainId: number = defaultChainId,
+    historyChainId: number = defaultChainId
   ): Promise<UserOpTransaction[]> => {
     const sdkForChainId = await getSdk(historyChainId);
 
     let transactions: UserOpTransaction[] = [];
 
-    const transactionsForAccount = accountAddress ?? await sdkForChainId.getCounterFactualAddress();
+    const transactionsForAccount = accountAddress ?? (await sdkForChainId.getCounterFactualAddress());
     if (!transactionsForAccount) {
       console.warn(`No account address provided!`);
       return [];
@@ -50,11 +57,10 @@ const useEtherspotHistory = (chainId?: number): IEtherspotHistoryHook => {
         chainId: +historyChainId,
       }));
     } catch (e) {
-
       console.warn(
-        `Sorry, an error occurred whilst trying to fetch the transactions`
-        + ` for account ${transactionsForAccount}. Please try again. Error:`,
-        e,
+        `Sorry, an error occurred whilst trying to fetch the transactions` +
+          ` for account ${transactionsForAccount}. Please try again. Error:`,
+        e
       );
     }
 
@@ -63,45 +69,49 @@ const useEtherspotHistory = (chainId?: number): IEtherspotHistoryHook => {
 
   const getAccountTransaction = async (
     hash: string,
-    historyChainId: number = defaultChainId,
+    historyChainId: number = defaultChainId
   ): Promise<Transaction | undefined> => {
     try {
       const dataService = getDataService();
+      console.log('dataservice getAccountTransaction', dataService);
       return dataService.getTransaction({ hash, chainId: +historyChainId });
     } catch (e) {
       console.warn(
-        `Sorry, an error occurred whilst trying to fetch the transaction`
-        + ` for hash ${hash}. Please try again. Error:`,
-        e,
+        `Sorry, an error occurred whilst trying to fetch the transaction` +
+          ` for hash ${hash}. Please try again. Error:`,
+        e
       );
     }
-  }
+  };
 
   const getAccountTransactionStatus = async (
     fromChainId: number,
     toChainId: number,
     hash: string,
-    provider?: BridgingProvider,
+    provider?: BridgingProvider
   ): Promise<TransactionStatus | undefined> => {
     try {
       const dataService = getDataService();
+      console.log('dataservice getTransactionStatus', dataService.getTransactionStatus);
       return dataService.getTransactionStatus({ fromChainId, toChainId, transactionHash: hash, provider });
     } catch (e) {
+      console.error(e);
       console.warn(
-        `Sorry, an error occurred whilst trying to fetch the transaction status`
-        + ` from chain id ${fromChainId}`
-        + ` to chain id ${toChainId}`
-        + ` for hash ${hash}. Please try again. Error:`,
-        e,
+        `Sorry, an error occurred whilst trying to fetch the transaction status` +
+          ` from chain id ${fromChainId}` +
+          ` to chain id ${toChainId}` +
+          ` for hash ${hash}. Please try again. Error:`,
+        e
       );
     }
-  }
+  };
 
-  return ({
+  return {
     getAccountTransactions,
     getAccountTransaction,
     getAccountTransactionStatus,
-  });
+    getTestFn,
+  };
 };
 
 export default useEtherspotHistory;

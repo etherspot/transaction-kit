@@ -2,18 +2,28 @@ import { renderHook, waitFor } from '@testing-library/react';
 import { ethers } from 'ethers';
 
 // hooks
-import { useEtherspotHistory, EtherspotTransactionKit } from '../../src';
+import { EtherspotTransactionKit, useEtherspotHistory } from '../../src';
 
 const ethersProvider = new ethers.providers.JsonRpcProvider('http://localhost:8545', 'goerli'); // replace with your node's RPC URL
 const provider = new ethers.Wallet.createRandom().connect(ethersProvider);
 
 describe('useEtherspotHistory()', () => {
+  it('executes the testfn', async () => {
+    const wrapper = ({ children }) => <EtherspotTransactionKit provider={provider}>{children}</EtherspotTransactionKit>;
+
+    const { result, rerender } = renderHook(({ chainId }) => useEtherspotHistory(chainId), {
+      initialProps: { chainId: 1 },
+      wrapper,
+    });
+
+    // wait for history to be fetched for chain ID 1
+    await waitFor(() => expect(result.current).not.toBeNull());
+
+    const testFnResult = result.current.getTestFn();
+  });
+
   it('getAccountTransactions() returns account history', async () => {
-    const wrapper = ({ children }) => (
-      <EtherspotTransactionKit provider={provider}>
-        {children}
-      </EtherspotTransactionKit>
-    );
+    const wrapper = ({ children }) => <EtherspotTransactionKit provider={provider}>{children}</EtherspotTransactionKit>;
 
     const { result, rerender } = renderHook(({ chainId }) => useEtherspotHistory(chainId), {
       initialProps: { chainId: 1 },
@@ -43,11 +53,7 @@ describe('useEtherspotHistory()', () => {
     expect(accountTransactionsPolygon.length).toEqual(0);
   });
   it('getAccountTransaction() returns transaction by existing hash', async () => {
-    const wrapper = ({ children }) => (
-      <EtherspotTransactionKit provider={provider}>
-        {children}
-      </EtherspotTransactionKit>
-    );
+    const wrapper = ({ children }) => <EtherspotTransactionKit provider={provider}>{children}</EtherspotTransactionKit>;
 
     const { result, rerender } = renderHook(({ chainId }) => useEtherspotHistory(chainId), {
       initialProps: { chainId: 1 },
@@ -83,28 +89,29 @@ describe('useEtherspotHistory()', () => {
       transferId: 'abc123',
     };
 
-    const wrapper = ({ children }) => (
-      <EtherspotTransactionKit provider={provider}>
-        {children}
-      </EtherspotTransactionKit>
-    );
+    const wrapper = ({ children }) => <EtherspotTransactionKit provider={provider}>{children}</EtherspotTransactionKit>;
 
     const { result, rerender } = renderHook(({ chainId }) => useEtherspotHistory(chainId), {
       initialProps: { chainId: 1 },
       wrapper,
     });
 
+    console.log('result.current', result.current);
 
     // wait for history to be fetched for chain ID 1
     await waitFor(() => expect(result.current).not.toBeNull());
 
-    console.log('log1', result.current)
+    console.log('log1', result.current);
 
-    const transactionMainnet1 = await result.current.getAccountTransactionStatus(fromChainId, toChainId, hash);
+    const transactionMainnet1 = await result.current
+      .getAccountTransactionStatus(fromChainId, toChainId, hash)
+      .catch((e) => {
+        console.error(e);
+        return e;
+      });
 
-    console.log('log2', transactionMainnet1)
+    console.log('log2', transactionMainnet1);
 
     expect(transactionMainnet1).toEqual(transactionStatus1);
   });
-
-})
+});

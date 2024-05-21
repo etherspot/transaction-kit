@@ -3,7 +3,7 @@ import { ethers } from 'ethers';
 
 export const defaultAccountAddress = '0x7F30B1960D5556929B03a0339814fE903c55a347';
 export const otherFactoryDefaultAccountAddress = '0xe383724e3bDC4753746dEC781809f8CD82010914';
-export const otherAccountAddress = '0xAb4C67d8D7B248B2fA6B638C645466065fE8F1F1'
+export const otherAccountAddress = '0xAb4C67d8D7B248B2fA6B638C645466065fE8F1F1';
 
 export class PrimeSdk {
   sdkChainId;
@@ -11,7 +11,7 @@ export class PrimeSdk {
   nonce = ethers.BigNumber.from(1);
   factoryWallet;
 
-  constructor (provider, config) {
+  constructor(provider, config) {
     this.sdkChainId = config.chainId;
     this.factoryWallet = config.factoryWallet;
   }
@@ -58,9 +58,7 @@ export class PrimeSdk {
         throw new Error('Transaction reverted: invalid address');
       }
       finalGasLimit = finalGasLimit.add(callGasLimit);
-      if (userOp.data
-        && userOp.data !== '0x0'
-        && userOp.data !== '0xFFF') {
+      if (userOp.data && userOp.data !== '0x0' && userOp.data !== '0xFFF') {
         finalGasLimit = finalGasLimit.add(callGasLimit);
       }
     });
@@ -77,7 +75,7 @@ export class PrimeSdk {
       maxPriorityFeePerGas,
       paymasterAndData: '0x003',
       signature,
-    }
+    };
   }
 
   totalGasEstimated({ callGasLimit, verificationGasLimit, preVerificationGas }) {
@@ -105,7 +103,7 @@ export class PrimeSdk {
 }
 
 export class DataUtils {
-  constructor () {}
+  constructor() {}
 
   getAccountBalances({ chainId, account }) {
     console.log('getAccountBalances', chainId, account);
@@ -150,6 +148,16 @@ export class DataUtils {
 
     return { transactions: [] };
   }
+
+  getTransactionStatus({ fromChainId, toChainId, hash, provider }) {
+    return {
+      connextscanUrl: 'https://connextscan.io/tx/0x123',
+      status: 'completed',
+      transactionHash: '0x123',
+      transferId: 'abc123',
+    };
+  }
+
   getTransaction({ hash, chainId }) {
     if (hash !== '0x42' || chainId !== 1) return;
     return { hash: '0x42', value: '690000000000000' };
@@ -181,9 +189,7 @@ export class DataUtils {
     const token2 = { address: '0x2', chainId, name: 'tk2', symbol: 'TK2', decimals: 18, logoURI: '' };
     const token3 = { address: '0x3', chainId, name: 'tk3', symbol: 'TK3', decimals: 18, logoURI: '' };
 
-    return chainId === 1
-      ? [token1, token2, token3]
-      : [token1];
+    return chainId === 1 ? [token1, token2, token3] : [token1];
   }
 
   getExchangeOffers({ fromTokenAddress, toTokenAddress, fromChainId }) {
@@ -195,28 +201,19 @@ export class DataUtils {
       provider: 'abc-swap',
       receiveAmount: ethers.utils.parseEther('0.1'),
       transactions: ['0x1', '0x2'],
-    }
+    };
 
     const offer2 = {
       provider: 'def-swap',
       receiveAmount: ethers.utils.parseEther('0.11'),
       transactions: ['0x1'],
-    }
+    };
 
     return [offer1, offer2];
   }
 
-  getAdvanceRoutesLiFi({
-    fromAmount,
-    fromChainId,
-    toChainId,
-    fromTokenAddress,
-    toTokenAddress,
-  }) {
-    if (fromChainId !== 1
-      || toChainId !== 137
-      || fromTokenAddress !== '0x111'
-      || toTokenAddress !== '0x222') {
+  getAdvanceRoutesLiFi({ fromAmount, fromChainId, toChainId, fromTokenAddress, toTokenAddress }) {
+    if (fromChainId !== 1 || toChainId !== 137 || fromTokenAddress !== '0x111' || toTokenAddress !== '0x222') {
       return { items: [] };
     }
 
@@ -227,7 +224,7 @@ export class DataUtils {
       fromAmount,
       toAmount: ethers.utils.parseEther('0.1'),
       steps: ['0x1', '0x2'],
-    }
+    };
 
     const offer2 = {
       id: 'abc-bridge-offer-2',
@@ -236,7 +233,7 @@ export class DataUtils {
       fromAmount,
       toAmount: ethers.utils.parseEther('0.12'),
       steps: ['0x1', '0x2'],
-    }
+    };
 
     return { items: [offer1, offer2] };
   }
@@ -269,7 +266,7 @@ export class DataUtils {
       usd: 1800 * (1 + index * 0.1),
     }));
 
-    return { items: prices }
+    return { items: prices };
   }
 }
 
