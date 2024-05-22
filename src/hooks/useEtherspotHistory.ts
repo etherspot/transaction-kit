@@ -68,7 +68,6 @@ const useEtherspotHistory = (chainId?: number): IEtherspotHistoryHook => {
   ): Promise<Transaction | undefined> => {
     try {
       const dataService = getDataService();
-      console.log('dataservice getAccountTransaction', dataService);
       return dataService.getTransaction({ hash, chainId: +historyChainId });
     } catch (e) {
       console.warn(
@@ -89,7 +88,6 @@ const useEtherspotHistory = (chainId?: number): IEtherspotHistoryHook => {
       const dataService = getDataService();
       return dataService.getTransactionStatus({ fromChainId, toChainId, transactionHash: hash, provider });
     } catch (e) {
-      console.error(e);
       console.warn(
         `Sorry, an error occurred whilst trying to fetch the transaction status` +
         ` from chain id ${fromChainId}` +

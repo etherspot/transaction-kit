@@ -107,10 +107,10 @@ export class DataUtils {
 
   getQuotes({ fromAddress, toAddress, fromChainId, toChainId, fromToken, fromAmount, slippage }) {
     if (!fromAddress || !toAddress || !fromChainId || !toChainId || !fromToken || !fromAmount || !slippage) {
-      return null;
+      return 'getQuotes: missing required props';
     }
 
-    if (fromAddress === '0x111' && toAddress === '0x222' && fromChainId === 1 && toChainId === 56 && fromToken == '0x123456' && fromAmount === '0x1000000' && slippage === 1) {
+    if (fromAddress === '0x111' && toAddress === '0x222' && fromChainId === 1 && toChainId === 56 && fromToken == '0x123456' && fromAmount === '0x10000000000' && slippage === 1) {
       return {
         transactions: [
           {
@@ -210,7 +210,7 @@ export class DataUtils {
 
   getTransactionStatus({ fromChainId, toChainId, transactionHash, provider }) {
     if (!fromChainId || !toChainId || !transactionHash) {
-      return null;
+      return 'getTransactionStatus: missing required props'
     }
 
     if (fromChainId === 1 && toChainId === 137 && transactionHash === '0x123') {

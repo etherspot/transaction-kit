@@ -103,14 +103,12 @@ describe('useEtherspotHistory()', () => {
     expect(transaction2).toEqual({})
 
     // missing props
-    const transaction3 = await result.current
-      .getAccountTransactionStatus(4, 137)
+    const transaction3 = await result.current.getAccountTransactionStatus(4, 137)
       .catch((e) => {
         console.error(e);
         return e;
       });
 
-    expect(transaction3).toBeNull()
-
+    expect(transaction3).toBe('getTransactionStatus: missing required props')
   });
 });

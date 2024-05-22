@@ -155,17 +155,17 @@ describe('useEtherspotSwaps()', () => {
       }
 
       // all props are correct and quotes exist
-      const quotes1 = await result.current.getQuotes('0x111', '0x222', 56, '0x123456', '0x1000000', 1);
+      const quotes1 = await result.current.getQuotes('0x222', 56, '0x123456', '0x10000000000', 1, '0x111');
       expect(quotes1.transactions.length).toEqual(2);
       expect(quotes1).toEqual(quotesResult)
 
       // all props are correct but no quotes
-      const quote2 = await result.current.getQuotes('0x999', '0x888', 56, '0x123456', '0x1000000', 1);
+      const quote2 = await result.current.getQuotes('0x999', 56, '0x123456', '0x10000000000', 1, '0x888');
       expect(quote2.transactions.length).toEqual(0);
 
       // not all props
-      const quote3 = await result.current.getQuotes('0x111', '0x222');
-      expect(quote3).toBeNull();
+      const quote3 = await result.current.getQuotes('0x222', 56);
+      expect(quote3).toBe('getQuotes: missing required props')
     });
   });
 });

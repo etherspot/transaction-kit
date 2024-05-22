@@ -39,3 +39,10 @@ export const switchWalletProviderToChain = async (chainId: number): Promise<{ er
 
   return { errorMessage: 'Failed to switch chain!' };
 };
+
+export const getTokenDecimals = async (tokenAddress: string, provider: ethers.Wallet): Promise<number> => {
+  const abi = ["function decimals() view returns (uint8)"];
+  const contract = new ethers.Contract(tokenAddress, abi, provider);
+  const decimals = await contract.decimals();
+  return decimals;
+};

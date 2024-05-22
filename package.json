@@ -6,7 +6,7 @@
   "scripts": {
     "rollup:build": "NODE_OPTIONS=--max-old-space-size=8192 rollup -c",
     "rollup:watch": "rimraf ./node_modules/react ./node_modules/react-dom && rollup -c -w",
-    "test": "jest __tests__ --detectOpenHandles",
+    "test": "jest __tests__ --silent --detectOpenHandles",
     "test:watch": "jest --watch"
   },
   "repository": {
@@ -22,7 +22,7 @@
   "homepage": "https://github.com/etherspot/transaction-kit#readme",
   "dependencies": {
     "@etherspot/eip1271-verification-util": "0.1.2",
-    "@etherspot/prime-sdk": "^1.8.1",
+    "@etherspot/prime-sdk": "1.8.1",
     "buffer": "^6.0.3",
     "ethers": "^5.6.9",
     "lodash": "^4.17.21"

@@ -6,7 +6,7 @@ import { useMemo } from 'react';
 // types
 import { ICrossChainSwapOffers, ISameChainSwapOffers } from '../types/EtherspotTransactionKit';
 
-// hopoks
+// hooks
 import useEtherspot from './useEtherspot';
 
 /**
@@ -24,12 +24,12 @@ interface IEtherspotSwapsHook {
   ) => Promise<ISameChainSwapOffers | ICrossChainSwapOffers | undefined>;
   prepareCrossChainOfferTransactions: (offer: Route, accountAddress?: string) => Promise<StepTransaction[] | undefined>;
   getQuotes: (
-    fromAccountAddress: string,
     toAddress: string,
     toChainId: number,
     fromToken: string,
     fromAmount: BigNumber,
     slippage: number,
+    fromAccountAddress?: string,
     provider?: BridgingProvider
   ) => Promise<Quote[] | undefined>;
 }
@@ -130,12 +130,12 @@ const useEtherspotSwaps = (chainId?: number): IEtherspotSwapsHook => {
   };
 
   const getQuotes = async (
-    fromAccountAddress: string,
     toAddress: string,
     toChainId: number,
     fromToken: string,
     fromAmount: BigNumber,
     slippage: number,
+    fromAccountAddress?: string,
     provider?: BridgingProvider
   ): Promise<Quote[] | undefined> => {
     const sdkForChainId = await getSdk(swapsChainId);
