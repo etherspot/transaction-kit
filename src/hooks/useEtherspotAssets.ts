@@ -1,11 +1,12 @@
 import { useMemo } from 'react';
-import { TokenListToken } from '@etherspot/prime-sdk/dist/sdk/data';
+import { BridgingProvider, Token, TokenListToken } from '@etherspot/prime-sdk/dist/sdk/data';
 
 // hooks
 import useEtherspot from './useEtherspot';
 
 interface IEtherspotAssetsHook {
   getAssets: (chainId?: number) => Promise<TokenListToken[]>;
+  getSupportedAssets: (chainId?: number, bridgingProvider?: BridgingProvider) => Promise<Token[]>
 }
 
 /**
@@ -44,8 +45,26 @@ const useEtherspotAssets = (chainId?: number): IEtherspotAssetsHook => {
     return assets;
   };
 
+  const getSupportedAssets = async (chainId?: number, bridgingProvider?: BridgingProvider): Promise<Token[]> => {
+    let supportedAssets: Token[] = [];
+
+    try {
+      const dataService = getDataService();
+      supportedAssets = await dataService.getSupportedAssets({ chainId, provider: bridgingProvider });
+    } catch (e) {
+      console.warn(
+        `Sorry, an error occurred whilst trying to fetch supported Etherspot assets.`
+        + ` Please try again. Error:`,
+        e,
+      );
+    }
+
+    return supportedAssets;
+  };
+
   return ({
     getAssets,
+    getSupportedAssets,
   });
 };
 

@@ -77,7 +77,8 @@ const exampleCode = {
 const App = () => {
   const [activeTab, setActiveTab] = useState(tabs.SINGLE_TRANSACTION);
   const { batches, estimate, send } = useEtherspotTransactions();
-  const { getSdk } = useEtherspot();
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { getDataService, chainId: etherspotChainId } = useEtherspot();
   const [balancePerAddress, setBalancePerAddress] = useState({
     [walletAddressByName.Alice]: '',
     [walletAddressByName.Bob]: '',
@@ -88,6 +89,7 @@ const App = () => {
   const [isEstimating, setIsEstimating] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const etherspotPrimeAddress = useWalletAddress();
+
 
   const batchesTreeView = batches.map((batchGroup, id1) => ({
     ...batchGroup,
@@ -119,6 +121,7 @@ const App = () => {
 
   useEffect(() => {
     setExpanded(batchesTreeViewExpandedIds);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [batches]);
 
   const handleToggle = (event: React.SyntheticEvent, nodeIds: string[]) => setExpanded(nodeIds);
@@ -155,7 +158,7 @@ const App = () => {
     let expired = false;
 
     const refreshBalances = async () => {
-      const sdk = await getSdk(+(process.env.REACT_APP_CHAIN_ID as string));
+      const dataServices = getDataService()
 
       const updatedBalances = {
         [walletAddressByName.Alice]: 'N/A',
@@ -168,7 +171,10 @@ const App = () => {
       }
 
       await Promise.all(Object.keys(updatedBalances).map(async (address) => {
-        const balances = await sdk?.getAccountBalances({ account: address });
+        const balances = await dataServices.getAccountBalances({
+          account: address,
+          chainId: +(process.env.REACT_APP_CHAIN_ID as string)
+        });
         const balance = balances && balances.items.find(({ token }) => token === null);
         if (balance) updatedBalances[address] = ethers.utils.formatEther(balance.balance);
       }));
@@ -183,7 +189,8 @@ const App = () => {
     return () => {
       expired = true;
     }
-  }, [getSdk, etherspotPrimeAddress]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [etherspotPrimeAddress]);
 
   const estimationFailed = estimated?.some((
     estimatedGroup,
@@ -193,14 +200,13 @@ const App = () => {
     <Container maxWidth={'sm'}>
       <Box sx={{ pt: 3, pb: 4 }}>
         <Typography mb={2}>
-          <a href={'https://faucet.polygon.technology/'} target={'_blank'} rel="noreferrer">Mumbai MATIC Faucet</a>
+          <a href={'https://www.alchemy.com/faucets/ethereum-sepolia'} target={'_blank'} rel="noreferrer">Sepolia ETH Faucet</a>
         </Typography>
         <Chip
           label={
-            `My balance: ${
-              etherspotPrimeAddress && balancePerAddress[etherspotPrimeAddress]
-                ? `${balancePerAddress[etherspotPrimeAddress]} MATIC`
-                : 'Loading...'
+            `My balance: ${etherspotPrimeAddress && balancePerAddress[etherspotPrimeAddress]
+              ? `${Number(balancePerAddress[etherspotPrimeAddress]).toFixed(4)} ETH`
+              : 'Loading...'
             }`
           }
           variant={'outlined'}
@@ -208,7 +214,7 @@ const App = () => {
         />
         {Object.keys(walletAddressByName).map((addressName: string) => {
           const address = walletAddressByName[addressName as keyof typeof walletAddressByName];
-          const balancePart = `balance: ${balancePerAddress[address] ? `${balancePerAddress[address]} MATIC` : 'Loading...'}`;
+          const balancePart = `balance: ${balancePerAddress[address] ? `${Number(balancePerAddress[address]).toFixed(4)} ETH` : 'Loading...'}`;
           const chipLabel = `${addressName} ${balancePart}`;
           return (
             <Chip

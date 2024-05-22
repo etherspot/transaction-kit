@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.12.0] - 2024-03-28
+
+### Added Changes
+- Added Etherspot Prime SDK `getSupportedAssets` to hook `useEtherspotAssets`
+- Added Etherspot Prime SDK `getQuotes` to hook `useEtherspotSwaps`
+- Added Etherspot Prime SDK `getTransactionStatus` to hook `useEtherspotHistory`
+- Default bridging provider for all above new functions is `Connext`
+- Updated `@etherspot/prime-sdk` to version `1.8.1`
+
 ## [0.11.0] - 2024-03-28
 
 ### Added Changes

@@ -39,3 +39,4 @@ export const switchWalletProviderToChain = async (chainId: number): Promise<{ er
 
   return { errorMessage: 'Failed to switch chain!' };
 };
+

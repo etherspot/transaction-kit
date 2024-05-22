@@ -2,18 +2,16 @@ import { renderHook, waitFor } from '@testing-library/react';
 import { ethers } from 'ethers';
 
 // hooks
-import { useEtherspotSwaps, EtherspotTransactionKit } from '../../src';
+import { EtherspotTransactionKit, useEtherspotSwaps } from '../../src';
 
-const ethersProvider = new ethers.providers.JsonRpcProvider('http://localhost:8545', 'goerli'); // replace with your node's RPC URL
+const ethersProvider = new ethers.providers.JsonRpcProvider('http://localhost:8545', 'sepolia'); // replace with your node's RPC URL
 const provider = new ethers.Wallet.createRandom().connect(ethersProvider);
 
 describe('useEtherspotSwaps()', () => {
   describe('getOffers()', () => {
     it('returns offers for same chain swaps', async () => {
       const wrapper = ({ children }) => (
-        <EtherspotTransactionKit provider={provider}>
-          {children}
-        </EtherspotTransactionKit>
+        <EtherspotTransactionKit provider={provider}>{children}</EtherspotTransactionKit>
       );
 
       const { result, rerender } = renderHook(({ chainId }) => useEtherspotSwaps(chainId), {
@@ -24,11 +22,7 @@ describe('useEtherspotSwaps()', () => {
       // wait for hook to load
       await waitFor(() => expect(result.current).not.toBeNull());
 
-      const offersMainnet = await result.current.getOffers(
-        ethers.utils.parseEther('1'),
-        '0x111',
-        '0x222',
-      );
+      const offersMainnet = await result.current.getOffers(ethers.utils.parseEther('1'), '0x111', '0x222');
       expect(offersMainnet).not.toBe(undefined);
       expect(offersMainnet.offers.length).toEqual(2);
       expect(offersMainnet.offers[0].provider).toEqual('abc-swap');
@@ -39,20 +33,14 @@ describe('useEtherspotSwaps()', () => {
       // rerender with different chain ID 137
       rerender({ chainId: 137 });
 
-      const offersPolygon = await result.current.getOffers(
-        ethers.utils.parseEther('1'),
-        '0x111',
-        '0x222',
-      );
+      const offersPolygon = await result.current.getOffers(ethers.utils.parseEther('1'), '0x111', '0x222');
       expect(offersPolygon).not.toBe(undefined);
       expect(offersPolygon.offers?.length).toEqual(0);
     });
 
     it('returns offers for cross chain swaps', async () => {
       const wrapper = ({ children }) => (
-        <EtherspotTransactionKit provider={provider}>
-          {children}
-        </EtherspotTransactionKit>
+        <EtherspotTransactionKit provider={provider}>{children}</EtherspotTransactionKit>
       );
 
       const { result, rerender } = renderHook(({ chainId }) => useEtherspotSwaps(chainId), {
@@ -82,12 +70,7 @@ describe('useEtherspotSwaps()', () => {
       // rerender with different chain ID 137
       rerender({ chainId: 137 });
 
-      const offersPolygonToMainnet = await result.current.getOffers(
-        ethers.utils.parseEther('1'),
-        '0x111',
-        '0x222',
-        1
-      );
+      const offersPolygonToMainnet = await result.current.getOffers(ethers.utils.parseEther('1'), '0x111', '0x222', 1);
       expect(offersPolygonToMainnet).not.toBe(undefined);
       expect(offersPolygonToMainnet.offers?.length).toEqual(0);
     });
@@ -95,9 +78,7 @@ describe('useEtherspotSwaps()', () => {
   describe('prepareCrossChainOfferTransactions()', () => {
     it('returns parsed transactions for cross chain offer', async () => {
       const wrapper = ({ children }) => (
-        <EtherspotTransactionKit provider={provider}>
-          {children}
-        </EtherspotTransactionKit>
+        <EtherspotTransactionKit provider={provider}>{children}</EtherspotTransactionKit>
       );
 
       const { result } = renderHook(({ chainId }) => useEtherspotSwaps(chainId), {
@@ -118,7 +99,7 @@ describe('useEtherspotSwaps()', () => {
           symbol: 'ABC',
           decimals: 18,
           chainId: 1,
-          name: 'Token ABC'
+          name: 'Token ABC',
         },
         toChainId: 137,
         toAmount: ethers.utils.parseEther('0.1').toString(),
@@ -128,10 +109,10 @@ describe('useEtherspotSwaps()', () => {
           symbol: 'DEF',
           decimals: 18,
           chainId: 137,
-          name: 'Token DEF'
+          name: 'Token DEF',
         },
         steps: ['0x1', '0x2'],
-      }
+      };
 
       const parsedCrossChainOfferTransactions = await result.current.prepareCrossChainOfferTransactions(offer);
       expect(parsedCrossChainOfferTransactions).not.toBe(undefined);
@@ -142,4 +123,49 @@ describe('useEtherspotSwaps()', () => {
       expect(parsedCrossChainOfferTransactions[1].value).toEqual('100000000000000');
     });
   });
-})
+  describe('getQuotes()', () => {
+    it('returns quotes cross chain', async () => {
+      const wrapper = ({ children }) => (
+        <EtherspotTransactionKit provider={provider}>{children}</EtherspotTransactionKit>
+      );
+
+      const { result } = renderHook(({ chainId }) => useEtherspotSwaps(chainId), {
+        initialProps: { chainId: 1 },
+        wrapper,
+      });
+
+      // wait for hook to load
+      await waitFor(() => expect(result.current).not.toBeNull());
+
+      const quotesResult =
+      {
+        transactions: [
+          {
+            data: "0x111222333",
+            to: "0x123",
+            value: "0x00"
+          },
+          {
+            value: "0xb2eed2c27ce6",
+            data: "0x444555666",
+            to: "0x456",
+            chainId: 1
+          }
+        ]
+      }
+
+      // all props are correct and quotes exist
+      const quotes1 = await result.current.getQuotes('0x222', 56, '0x123456', '0x10000000000', 1, '0x111');
+      expect(quotes1.transactions.length).toEqual(2);
+      expect(quotes1).toEqual(quotesResult)
+
+      // all props are correct but no quotes
+      const quote2 = await result.current.getQuotes('0x999', 56, '0x123456', '0x10000000000', 1, '0x888');
+      expect(quote2.transactions.length).toEqual(0);
+
+      // not all props
+      const quote3 = await result.current.getQuotes('0x222', 56);
+      expect(quote3).toBe('getQuotes: missing required props')
+    });
+  });
+});

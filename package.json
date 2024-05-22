@@ -1,7 +1,7 @@
 {
   "name": "@etherspot/transaction-kit",
   "description": "React Etherspot Transaction Kit",
-  "version": "0.11.0",
+  "version": "0.12.0",
   "main": "dist/cjs/index.js",
   "scripts": {
     "rollup:build": "NODE_OPTIONS=--max-old-space-size=8192 rollup -c",
@@ -22,7 +22,7 @@
   "homepage": "https://github.com/etherspot/transaction-kit#readme",
   "dependencies": {
     "@etherspot/eip1271-verification-util": "0.1.2",
-    "@etherspot/prime-sdk": "1.6.4",
+    "@etherspot/prime-sdk": "1.8.1",
     "buffer": "^6.0.3",
     "ethers": "^5.6.9",
     "lodash": "^4.17.21"
@@ -42,21 +42,21 @@
     "@lifi/types": "^9.2.0",
     "@rollup/plugin-replace": "^5.0.2",
     "@rollup/plugin-typescript": "^8.3.3",
-    "@testing-library/react": "^14.0.0",
+    "@testing-library/react": "^14.3.1",
     "@types/jest": "^29.2.5",
     "@types/lodash.uniq": "^4.5.7",
-    "@types/react": "^18.0.15",
+    "@types/react": "^18.3.2",
     "babel-jest": "^29.3.1",
     "babel-loader": "^8.2.5",
     "dotenv": "^16.0.3",
-    "jest": "^29.3.1",
+    "jest": "^29.7.0",
     "jest-environment-jsdom": "^29.3.1",
     "react": "^18.2.0",
     "react-test-renderer": "^18.2.0",
     "rimraf": "^5.0.1",
-    "rollup": "^2.76.0",
+    "rollup": "^2.79.1",
     "rollup-plugin-dts": "^4.2.3",
-    "typescript": "^4.7.4"
+    "typescript": "^4.9.5"
   },
   "peerDependencies": {
     "react": ">=16.13.0"
