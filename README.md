@@ -21,7 +21,7 @@
 
 ## 🧰 TransactionKit
 
-TransactionKit is a React Library which let's devs, no matter how experienced get going with web3 development with ease.
+TransactionKit is a React Library that lets developers, no matter how experienced, get going with web3 development with ease.
 
 It simplifies working with Account Abstraction so developers can focus on building a great User Experience and easily interact with their Smart Contracts 
 on a [large number of EVM based chains](https://etherspot.fyi/prime-sdk/chains-supported).
@@ -34,15 +34,15 @@ You can either get started by installing the packages yourself here:
 npm i @etherspot/transaction-kit
 ```
 
-Or follow our introductory guide on our docs [here](https://etherspot.fyi/transaction-kit/introduction-to-transaction-kit) which walk you through 
+Or follow our introductory guide on our docs [here](https://etherspot.fyi/transaction-kit/intro) which walk you through 
 cloning down an example repo and setting up a dapp in your own environment. 
 
 ## 📖 Documentation
 
-- [Quick Start](https://etherspot.fyi/transaction-kit/introduction-to-transaction-kit)
+- [Quick Start](https://etherspot.fyi/transaction-kit/intro)
 - [Send Native Token](https://etherspot.fyi/transaction-kit/send-native-token)
-- [React Hooks](https://docs.etherspot.dev/transaction-kit/react-hooks)
-- [React Components](https://docs.etherspot.dev/transaction-kit/react-components)
+- [React Hooks](https://etherspot.fyi/transaction-kit/hooks)
+- [React Components](https://etherspot.fyi/transaction-kit/components)
 
 ## 🔗 Important Links
 

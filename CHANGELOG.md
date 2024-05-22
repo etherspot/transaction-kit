@@ -1,6 +1,11 @@
 # Changelog
 
-## [0.12.0] - 2024-03-28
+## [0.12.1] - 2024-05-22
+
+### Added Changes
+- Links updated on README file
+
+## [0.12.0] - 2024-05-21
 
 ### Added Changes
 - Added Etherspot Prime SDK `getSupportedAssets` to hook `useEtherspotAssets`
