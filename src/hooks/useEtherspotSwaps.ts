@@ -166,6 +166,7 @@ const useEtherspotSwaps = (chainId?: number): IEtherspotSwapsHook => {
         `Sorry, an error occurred whilst trying to fetch cross-chain quotes.` + ` Please try again. Error:`,
         e
       );
+      return [];
     }
   };
 
