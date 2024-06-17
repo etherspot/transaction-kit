@@ -7,7 +7,6 @@
 - Added Etherspot Modular SDK `installModule` and `uninstallModule` to hook `useEtherspotModules`
 - `EtherspotContextProvider` updated with choice of instantiatiating the Prime SDK or Modular SDK
 - Added `isModular` to context `EtherspotContextProvider`
-- 
 
 ### Breaking Changes
 - Etherspot Modular SDK implemented to Transaction Kit as the default SDK

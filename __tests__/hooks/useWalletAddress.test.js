@@ -1,6 +1,5 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { ethers } from 'ethers';
-import { Factory as ModularFactory } from '@etherspot/modular-sdk';
 import { Factory } from '@etherspot/prime-sdk';
 
 // hooks
