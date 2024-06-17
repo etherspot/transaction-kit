@@ -39,7 +39,7 @@ interface IEtherspotSwapsHook {
  * @param chainId {number | undefined} - Source Chain ID
  * @returns {IEtherspotSwapsHook} - hook method to fetch Etherspot aggregated offers for same-chain and cross-chain swaps
  */
-const useEtherspotSwaps = (chainId?: number): IEtherspotSwapsHook => {
+const useEtherspotSwaps = (chainId?: number, modular: boolean = true): IEtherspotSwapsHook => {
   const { getDataService, getSdk, chainId: defaultChainId } = useEtherspot();
 
   const swapsChainId = useMemo(() => {
@@ -51,7 +51,7 @@ const useEtherspotSwaps = (chainId?: number): IEtherspotSwapsHook => {
     offer: Route,
     accountAddress?: string
   ): Promise<StepTransaction[] | undefined> => {
-    const sdkForChainId = await getSdk(swapsChainId);
+    const sdkForChainId = await getSdk(modular, swapsChainId);
 
     const forAccount = accountAddress ?? (await sdkForChainId.getCounterFactualAddress());
     if (!forAccount) {
@@ -81,7 +81,7 @@ const useEtherspotSwaps = (chainId?: number): IEtherspotSwapsHook => {
     toChainId?: number,
     fromAccountAddress?: string
   ): Promise<ISameChainSwapOffers | ICrossChainSwapOffers | undefined> => {
-    const sdkForChainId = await getSdk(swapsChainId);
+    const sdkForChainId = await getSdk(modular, swapsChainId);
 
     const fromAccount = fromAccountAddress ?? (await sdkForChainId.getCounterFactualAddress());
     if (!fromAccount) {
@@ -138,7 +138,7 @@ const useEtherspotSwaps = (chainId?: number): IEtherspotSwapsHook => {
     fromAccountAddress?: string,
     provider?: BridgingProvider
   ): Promise<Quote[] | undefined> => {
-    const sdkForChainId = await getSdk(swapsChainId);
+    const sdkForChainId = await getSdk(modular, swapsChainId);
 
     const fromAccount = fromAccountAddress ?? (await sdkForChainId.getCounterFactualAddress());
     if (!fromAccount) {

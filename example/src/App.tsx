@@ -1,3 +1,4 @@
+import { MODULE_TYPE } from '@etherspot/modular-sdk/dist/sdk/common';
 import {
   EstimatedBatch,
   EtherspotBatch,
@@ -8,6 +9,7 @@ import {
   useEtherspot,
   useEtherspotTransactions,
   useWalletAddress,
+  useEtherspotModules,
 } from '@etherspot/transaction-kit';
 import TreeItem from '@mui/lab/TreeItem';
 import TreeView from '@mui/lab/TreeView';
@@ -79,6 +81,7 @@ const App = () => {
   const { batches, estimate, send } = useEtherspotTransactions();
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { getDataService, chainId: etherspotChainId } = useEtherspot();
+  const { installModule, uninstallModule } = useEtherspotModules();
   const [balancePerAddress, setBalancePerAddress] = useState({
     [walletAddressByName.Alice]: '',
     [walletAddressByName.Bob]: '',
@@ -153,6 +156,19 @@ const App = () => {
     setIsSending(false);
     setExpanded(batchesTreeViewExpandedIds);
   };
+
+  const deInitData = ethers.utils.defaultAbiCoder.encode(
+    ["address", "bytes"],
+    ['0x0000000000000000000000000000000000000001', '0x00']
+  );
+
+  const onInstallModuleClick = async () => {
+    await installModule(MODULE_TYPE.VALIDATOR, '0x6a00da4DEEf677Ad854B7c14F17Ed9312c2B5fDf');
+  }
+
+  const onUninstallModuleClick = async () => {
+    await uninstallModule(MODULE_TYPE.VALIDATOR, '0x6a00da4DEEf677Ad854B7c14F17Ed9312c2B5fDf', deInitData)
+  }
 
   useEffect(() => {
     let expired = false;
@@ -237,6 +253,8 @@ const App = () => {
             </Typography>
           </Paper>
         )}
+        <button onClick={() => onInstallModuleClick()}>Install a module</button>
+        <button onClick={() => onUninstallModuleClick()}>Uninstall a module</button>
       </Box>
       <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
         <Tabs value={activeTab} onChange={(event, id) => setActiveTab(id)}>
@@ -290,7 +308,7 @@ const App = () => {
                     <TreeItem nodeId={batch.treeNodeId} label={`Batch ${id2 + 1}`} key={batch.treeNodeId}>
                       {!!estimatedBatch?.cost && (
                         <Typography ml={1} fontWeight={800}>
-                          Batch estimated: {ethers.utils.formatEther(estimatedBatch.cost)} MATIC
+                          Batch estimated: {ethers.utils.formatEther(estimatedBatch.cost)} ETH
                         </Typography>
                       )}
                       {!!estimatedBatch?.errorMessage && (
@@ -324,7 +342,7 @@ const App = () => {
                             key={transaction.treeNodeId}
                           >
                             <Typography ml={1}>To: {transaction.to}</Typography>
-                            <Typography ml={1}>Value: {transactionValue} MATIC</Typography>
+                            <Typography ml={1}>Value: {transactionValue} ETH</Typography>
                             <Typography ml={1}>Data: {transaction.data ?? 'None'}</Typography>
                           </TreeItem>
                         );

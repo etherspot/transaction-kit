@@ -33,6 +33,7 @@ const EtherspotTransactionKitContextProvider = ({ children }: EtherspotTransacti
 
   const estimate = async (
     batchesIds?: string[],
+    modular: boolean = true,
     forSending: boolean = false,
   ): Promise<IEstimatedBatches[]> => {
     if (!forSending) {
@@ -65,17 +66,17 @@ const EtherspotTransactionKitContextProvider = ({ children }: EtherspotTransacti
         }
 
         // force new instance for each batch to not mix up user ops added to SDK state batch
-        const etherspotPrimeSdk = await getSdk(batchChainId, true);
+        const etherspotModularOrPrimeSdk = await getSdk(modular, batchChainId, true);
 
         try {
-          if (!forSending) await etherspotPrimeSdk.clearUserOpsFromBatch();
+          if (!forSending) await etherspotModularOrPrimeSdk.clearUserOpsFromBatch();
 
           await Promise.all(batch.transactions.map(async ({ to, value, data }) => {
-            await etherspotPrimeSdk.addUserOpsToBatch(({ to, value, data }));
+            await etherspotModularOrPrimeSdk.addUserOpsToBatch(({ to, value, data }));
           }));
 
-          const userOp = await etherspotPrimeSdk.estimate({ paymasterDetails: groupedBatch.paymaster });
-          const totalGas = await etherspotPrimeSdk.totalGasEstimated(userOp);
+          const userOp = await etherspotModularOrPrimeSdk.estimate({ paymasterDetails: groupedBatch.paymaster });
+          const totalGas = await etherspotModularOrPrimeSdk.totalGasEstimated(userOp);
           estimatedBatches.push({ ...batch, cost: totalGas.mul(userOp.maxFeePerGas as BigNumber), userOp });
         } catch (e) {
           const errorMessage = parseEtherspotErrorMessage(e, 'Failed to estimate!');
@@ -97,7 +98,7 @@ const EtherspotTransactionKitContextProvider = ({ children }: EtherspotTransacti
     return result;
   }
 
-  const send = async (batchesIds?: string[]): Promise<ISentBatches[]> => {
+  const send = async (batchesIds?: string[], modular: boolean = true): Promise<ISentBatches[]> => {
     setIsSending(true);
     setContainsSendingError(false);
 
@@ -110,9 +111,9 @@ const EtherspotTransactionKitContextProvider = ({ children }: EtherspotTransacti
     }) => Promise.all(batches.map(async (batch) => {
       const batchChainId = batch.chainId ?? chainId;
 
-      const etherspotPrimeSdk = await getSdk(batchChainId);
+      const etherspotModularOrPrimeSdk = await getSdk(modular, batchChainId);
 
-      await etherspotPrimeSdk.clearUserOpsFromBatch();
+      await etherspotModularOrPrimeSdk.clearUserOpsFromBatch();
     }))));
 
     const estimated = await estimate(batchesIds, true);
@@ -130,7 +131,7 @@ const EtherspotTransactionKitContextProvider = ({ children }: EtherspotTransacti
           continue;
         }
 
-        const etherspotPrimeSdk = await getSdk(batchChainId);
+        const etherspotModularOrPrimeSdk = await getSdk(modular, batchChainId);
 
         if (!estimatedBatch.userOp) {
           sentBatches.push({ ...estimatedBatch, errorMessage: 'Failed to get estimated UserOp!' });
@@ -138,7 +139,7 @@ const EtherspotTransactionKitContextProvider = ({ children }: EtherspotTransacti
         }
 
         try {
-          const userOpHash = await etherspotPrimeSdk.send(estimatedBatch.userOp);
+          const userOpHash = await etherspotModularOrPrimeSdk.send(estimatedBatch.userOp);
           sentBatches.push({ ...estimatedBatch, userOpHash });
         } catch (e) {
           const errorMessage = parseEtherspotErrorMessage(e, 'Failed to send!');

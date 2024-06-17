@@ -1,4 +1,5 @@
-import { renderHook, render, act, waitFor } from '@testing-library/react';
+import { renderHook, render, waitFor } from '@testing-library/react';
+import { act } from 'react';
 import { ethers } from 'ethers';
 
 // hooks

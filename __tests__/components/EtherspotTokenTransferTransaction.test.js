@@ -1,4 +1,5 @@
-import { renderHook, render, waitFor, act } from '@testing-library/react';
+import { renderHook, render, waitFor } from '@testing-library/react';
+import { act } from 'react';
 import { ethers } from 'ethers';
 
 import { useEtherspotTransactions, EtherspotTransactionKit, EtherspotBatches, EtherspotBatch, EtherspotTokenTransferTransaction } from '../../src';
@@ -24,7 +25,7 @@ describe('EtherspotTokenTransferTransaction', () => {
 
   it('throws error if wrong receiver address provided', async () => {
     await expect(async () => {
-      await act(() => {
+     await act(() => {
         render(
           <EtherspotTransactionKit provider={provider}>
             <EtherspotBatches>

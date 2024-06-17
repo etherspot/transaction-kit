@@ -10,6 +10,7 @@ const packageJson = require('./package.json');
 const external = [
   'etherspot',
   '@etherspot/prime-sdk',
+  '@etherspot/modular-sdk',
   'ethers',
   'react',
   'buffer',
