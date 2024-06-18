@@ -35,11 +35,20 @@ describe('useEtherspotModules()', () => {
     // wait for balances to be fetched for chain ID 1
     await waitFor(() => expect(result.current).not.toBeNull());
 
-    const installOneModuleProps = await result.current.installModule(MODULE_TYPE.VALIDATOR);
-    expect(installOneModuleProps).toBe('installModule props missing')
+    const installModuleMissingProps = await result.current.installModule(MODULE_TYPE.VALIDATOR)
+    .catch((e) => {
+      console.error(e);
+      return `${e}`
+    })
+    expect(installModuleMissingProps).toBe('Error: Failed to install module: Error: installModule props missing');
 
-    const installOneModuleAlreadyInstalled = await result.current.installModule(MODULE_TYPE.VALIDATOR, '0x222');
-    expect(installOneModuleAlreadyInstalled).toBe('module is already installed')
+    const installModuleAlreadyInstalled = await result.current.installModule(MODULE_TYPE.VALIDATOR, '0x222')
+    .catch((e) => {
+      console.error(e);
+      return `${e}`
+    })
+
+    expect(installModuleAlreadyInstalled).toBe('Error: Failed to install module: Error: module is already installed');
 
     const installOneModule = await result.current.installModule(MODULE_TYPE.VALIDATOR, moduleAddress, initData);
     expect(installOneModule).toBe('0x123')
@@ -60,15 +69,25 @@ describe('useEtherspotModules()', () => {
     // wait for balances to be fetched for chain ID 1
     await waitFor(() => expect(result.current).not.toBeNull());
 
-    const uninstallOneModuleNotInstalled = await result.current.uninstallModule(MODULE_TYPE.VALIDATOR, '0x222', deInitData);
-    expect(uninstallOneModuleNotInstalled).toBe('module is not installed');
+    const uninstallModuleNotInstalled = await result.current.uninstallModule(MODULE_TYPE.VALIDATOR, '0x222', deInitData)
+    .catch((e) => {
+      console.error(e);
+      return `${e}`
+    })
+
+    expect(uninstallModuleNotInstalled).toBe('Error: Failed to uninstall module: Error: module is not installed');
 
     const installOneModule = await result.current.installModule(MODULE_TYPE.VALIDATOR, moduleAddress, initData);
     expect(installOneModule).toBe('0x123');
 
-    const uninstallOneModuleProps = await result.current.uninstallModule(moduleAddress);
-    expect(uninstallOneModuleProps).toBe('uninstallModule props missing');
-
+    const uninstallModulePropsMissing = await result.current.uninstallModule(moduleAddress)
+    .catch((e) => {
+      console.error(e);
+      return `${e}`
+    })
+    expect(uninstallModulePropsMissing).toBe('Error: Failed to uninstall module: Error: uninstallModule props missing');
+    
+    
     const uninstallOneModule = await result.current.uninstallModule(MODULE_TYPE.VALIDATOR, moduleAddress, deInitData);
     expect(uninstallOneModule).toBe('0x456');
 

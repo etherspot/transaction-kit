@@ -5,7 +5,7 @@ import { Factory } from '@etherspot/prime-sdk';
 // hooks
 import { EtherspotTransactionKit, useWalletAddress } from '../../src';
 import {
-  defaultAccountAddress as modularDefaultAccountAddress,
+  defaultAccountAddressModular,
 } from '../../__mocks__/@etherspot/modular-sdk';
 import {
   defaultAccountAddress,
@@ -20,7 +20,7 @@ const providerWalletAddress = provider.address;
 describe('useWalletAddress()', () => {
   it('returns default type wallet address if no provided type', async () => {
     const wrapper = ({ children }) => (
-      <EtherspotTransactionKit provider={provider} modular={false}>
+      <EtherspotTransactionKit provider={provider} accountTemplate='etherspot'>
         {children}
       </EtherspotTransactionKit>
     );
@@ -44,10 +44,10 @@ describe('useWalletAddress()', () => {
     });
 
     await waitFor(() => expect(result.current).not.toBe(undefined));
-    expect(result.current).toEqual(modularDefaultAccountAddress);
+    expect(result.current).toEqual(defaultAccountAddressModular);
 
     rerender({ providerType: 'provider' });
-    await waitFor(() => expect(result.current).not.toBe(modularDefaultAccountAddress));
+    await waitFor(() => expect(result.current).not.toBe(defaultAccountAddressModular));
     expect(result.current).toEqual(providerWalletAddress);
   });
 
@@ -64,7 +64,7 @@ describe('useWalletAddress()', () => {
     });
 
     await waitFor(() => expect(result.current).not.toBe(undefined));
-    expect(result.current).toEqual(modularDefaultAccountAddress);
+    expect(result.current).toEqual(defaultAccountAddressModular);
 
     rerender({ providerType: 'whatever' });
     await waitFor(() => expect(result.current).toBe(undefined));
@@ -72,19 +72,19 @@ describe('useWalletAddress()', () => {
 
   it('returns different wallet address when account template provided', async () => {
     const createWrapper = ({ accountTemplate } = {}) => ({ children }) => (
-      <EtherspotTransactionKit provider={provider} accountTemplate={accountTemplate} modular={false}>
+      <EtherspotTransactionKit provider={provider} accountTemplate={accountTemplate}>
         {children}
       </EtherspotTransactionKit>
     );
 
-    const { result: resultNoAccountTemplate } = renderHook(() => useWalletAddress(undefined, undefined, false), {
+    const { result: resultNoAccountTemplate } = renderHook(() => useWalletAddress(), {
       wrapper: createWrapper(),
     });
 
     await waitFor(() => expect(resultNoAccountTemplate.current).not.toBe(undefined));
-    expect(resultNoAccountTemplate.current).toEqual(defaultAccountAddress);
+    expect(resultNoAccountTemplate.current).toEqual(defaultAccountAddressModular);
 
-    const { result: resultWithAccountTemplate } = renderHook(() => useWalletAddress(undefined, undefined, false), {
+    const { result: resultWithAccountTemplate } = renderHook(() => useWalletAddress(), {
       wrapper: createWrapper({ accountTemplate: Factory.SIMPLE_ACCOUNT }),
     });
 

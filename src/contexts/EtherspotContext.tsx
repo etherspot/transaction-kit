@@ -4,7 +4,7 @@ import { ModularSdk, WalletProviderLike as WalletProviderLikeModular } from '@et
 
 export interface EtherspotContextData {
   data: {
-    getSdk: (modular?: boolean, chainId?: number, forceNewInstance?: boolean) => Promise<ModularSdk | PrimeSdk>;
+    getSdk: (chainId?: number, forceNewInstance?: boolean) => Promise<ModularSdk | PrimeSdk>;
     getDataService: () => DataUtils;
     provider: WalletProviderLike | WalletProviderLikeModular | null | undefined;
     chainId: number;

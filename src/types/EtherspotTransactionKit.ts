@@ -183,4 +183,4 @@ export interface UserOpTransaction {
   nftTransfers?: EtherspotNftTransfersEntity[];
 }
 
-export type AccountTemplate = 'etherspot' | 'zeroDev' | 'simpleAccount';
+export type AccountTemplate = 'etherspot' | 'etherspotModular' | 'zeroDev' | 'simpleAccount';

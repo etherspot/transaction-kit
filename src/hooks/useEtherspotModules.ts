@@ -34,29 +34,27 @@ const useEtherspotModules = (chainId?: number): IEtherspotModulesHook => {
   ) => {
     // this hook can only be used is the sdk is using the modular functionality
     if (!isModular) {
-      console.warn(`The <EtherspotTransactionKit /> component is not using the modular functionality. Please make sure to use the modular functionality to install and uninstall modules.`);
-      return '';
+      throw new Error(`The <EtherspotTransactionKit /> component is not using the modular functionality. Please make sure to use the modular functionality to install and uninstall modules.`);
     }
 
-    const sdkForChainId = await getSdk(isModular, modulesChainId) as ModularSdk;
+    const sdkForChainId = await getSdk(modulesChainId) as ModularSdk;
 
     const modulesForAccount = accountAddress ?? await sdkForChainId.getCounterFactualAddress();
     if (!modulesForAccount) {
-      console.warn(`No account address provided!`);
-      return '';
+      throw new Error(`No account address provided!`);
     }
 
     try {
         const getInstallModule = await sdkForChainId.installModule(moduleType, module, initData)
         return getInstallModule;
     } catch (e) {
-      console.warn(
+      console.error(
         `Sorry, an error occurred whilst trying to install the new module`
         + ` ${module}`
         + ` for ${modulesForAccount}. Please try again. Error:`,
         e,
       );
-      return '';
+      throw new Error(`Failed to install module: ${e}`)
     }
   }
 
@@ -69,29 +67,27 @@ const useEtherspotModules = (chainId?: number): IEtherspotModulesHook => {
   ) => {
     // this hook can only be used is the sdk is using the modular functionality
     if (!isModular) {
-      console.warn(`The <EtherspotTransactionKit /> component is not using the modular functionality. Please make sure to use the modular functionality to install and uninstall modules.`);
-      return '';
+      throw new Error(`The <EtherspotTransactionKit /> component is not using the modular functionality. Please make sure to use the modular functionality to install and uninstall modules.`);
     }
 
-    const sdkForChainId = await getSdk(isModular, modulesChainId) as ModularSdk;
+    const sdkForChainId = await getSdk(modulesChainId) as ModularSdk;
 
     const modulesForAccount = accountAddress ?? await sdkForChainId.getCounterFactualAddress();
     if (!modulesForAccount) {
-      console.warn(`No account address provided!`);
-      return '';
+      throw new Error(`No account address provided!`);
     }
 
     try {
         const getUninstallModule = await sdkForChainId.uninstallModule(moduleType, module, deinitData);
         return getUninstallModule;
     } catch (e) {
-      console.warn(
+      console.error(
         `Sorry, an error occurred whilst trying to uninstall the module`
         + ` ${module}`
         + ` for ${modulesForAccount}. Please try again. Error:`,
         e,
       );
-      return '';
+      throw new Error(`Failed to uninstall module: ${e}`)
     }
   }
 

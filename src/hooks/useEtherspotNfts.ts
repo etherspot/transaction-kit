@@ -13,7 +13,7 @@ interface IEtherspotNftsHook {
  * @param chainId {number | undefined} - Chain ID
  * @returns {IEtherspotNftsHook} - hook methods to fetch Etherspot account NFTs
  */
-const useEtherspotNfts = (chainId?: number, modular: boolean = true): IEtherspotNftsHook => {
+const useEtherspotNfts = (chainId?: number): IEtherspotNftsHook => {
   const { getDataService, getSdk, chainId: etherspotChainId } = useEtherspot();
 
   const defaultChainId = useMemo(() => {
@@ -25,7 +25,7 @@ const useEtherspotNfts = (chainId?: number, modular: boolean = true): IEtherspot
     accountAddress?: string,
     nftsChainId: number = defaultChainId,
   ) => {
-    const sdkForChainId = await getSdk(modular, nftsChainId);
+    const sdkForChainId = await getSdk(nftsChainId);
 
     const nftsForAccount = accountAddress ?? await sdkForChainId.getCounterFactualAddress();
     if (!nftsForAccount) {

@@ -12,7 +12,7 @@ import useEtherspot from './useEtherspot';
  * @param chainId {number} - Chain ID
  * @returns {string | undefined} - wallet address by its type
  */
-const useWalletAddress = (walletType: IWalletType = 'etherspot-prime', chainId?: number, modular: boolean = true): string | undefined => {
+const useWalletAddress = (walletType: IWalletType = 'etherspot-prime', chainId?: number): string | undefined => {
   const [accountAddress, setAccountAddress] = useState<(string | undefined)>(undefined);
   const { getSdk, chainId: defaultChainId, provider } = useEtherspot();
 
@@ -25,7 +25,7 @@ const useWalletAddress = (walletType: IWalletType = 'etherspot-prime', chainId?:
     let shouldUpdate = true;
 
     const updateAccountAddress = async () => {
-      const etherspotModularOrPrimeSdk = await getSdk(modular, walletAddressChainId);
+      const etherspotModularOrPrimeSdk = await getSdk(walletAddressChainId);
 
       let newAccountAddress;
 

@@ -29,6 +29,8 @@ const tabs = {
   MULTIPLE_TRANSACTIONS: 'MULTIPLE_TRANSACTIONS',
 };
 
+const testModuleSepoliaTestnet = '0x6a00da4DEEf677Ad854B7c14F17Ed9312c2B5fDf';
+
 const CodePreview = ({ code }: { code: string }) => (
   <Paper>
     <pre style={{ margin: '40px 0 40px', padding: '0 15px' }}>
@@ -163,11 +165,11 @@ const App = () => {
   );
 
   const onInstallModuleClick = async () => {
-    await installModule(MODULE_TYPE.VALIDATOR, '0x6a00da4DEEf677Ad854B7c14F17Ed9312c2B5fDf');
+    await installModule(MODULE_TYPE.VALIDATOR, testModuleSepoliaTestnet);
   }
 
   const onUninstallModuleClick = async () => {
-    await uninstallModule(MODULE_TYPE.VALIDATOR, '0x6a00da4DEEf677Ad854B7c14F17Ed9312c2B5fDf', deInitData)
+    await uninstallModule(MODULE_TYPE.VALIDATOR, testModuleSepoliaTestnet, deInitData)
   }
 
   useEffect(() => {

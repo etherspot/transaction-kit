@@ -15,7 +15,7 @@ import React, {
   useMemo,
 } from 'react';
 import isEqual from 'lodash/isEqual';
-import { ModularSdk, WalletProviderLike as WalletProviderLikeModular, isWalletProvider as isWalletProviderModular, Web3WalletProvider as Web3WalletModularProvider, EtherspotBundler as EtherspotBundlerModular, Factory as FactoryModular } from '@etherspot/modular-sdk';
+import { ModularSdk, WalletProviderLike as WalletProviderLikeModular, isWalletProvider as isWalletProviderModular, Web3WalletProvider as Web3WalletModularProvider, EtherspotBundler as EtherspotBundlerModular, Factory as ModularFactory } from '@etherspot/modular-sdk';
 
 // contexts
 import EtherspotContext from '../contexts/EtherspotContext';
@@ -63,18 +63,16 @@ const EtherspotContextProvider = ({
     }
   }, []);
 
-  const getSdk = useCallback(async (modular: boolean = isModular, sdkChainId: number = chainId, forceNewInstance: boolean = false) => {
-    if (modular) {
+  console.log('PROUT', accountTemplate)
+
+  const getSdk = useCallback(async (sdkChainId: number = chainId, forceNewInstance: boolean = false) => {
+    if (isModular) {
 
       const accountTemplateOrProviderChanged = (prevProvider && !isEqual(prevProviderModular, provider as WalletProviderLikeModular))
       || (prevAccountTemplate && prevAccountTemplate !== accountTemplate);
       
       if (sdkPerChainModular[sdkChainId] && !forceNewInstance && !accountTemplateOrProviderChanged) {
         return sdkPerChainModular[sdkChainId];
-      }
-
-      if (accountTemplate !== 'etherspot') {
-        throw new Error('Invalid account template: to use the modular functionality you must use the etherspot account template');
       }
 
       sdkPerChainModular[sdkChainId] = (async () => {
@@ -97,7 +95,7 @@ const EtherspotContextProvider = ({
       const etherspotModularSdk = new ModularSdk(mappedProvider as Web3WalletModularProvider ?? provider as WalletProviderLikeModular, {
         chainId: +sdkChainId,
         bundlerProvider: new EtherspotBundlerModular(+sdkChainId, bundlerApiKey ?? ('__ETHERSPOT_BUNDLER_API_KEY__' || undefined)),
-        factoryWallet: accountTemplate as FactoryModular,
+        factoryWallet: accountTemplate as ModularFactory,
       });
 
       // load the address into SDK state

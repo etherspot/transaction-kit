@@ -33,7 +33,6 @@ const EtherspotTransactionKitContextProvider = ({ children }: EtherspotTransacti
 
   const estimate = async (
     batchesIds?: string[],
-    modular: boolean = true,
     forSending: boolean = false,
   ): Promise<IEstimatedBatches[]> => {
     if (!forSending) {
@@ -66,7 +65,7 @@ const EtherspotTransactionKitContextProvider = ({ children }: EtherspotTransacti
         }
 
         // force new instance for each batch to not mix up user ops added to SDK state batch
-        const etherspotModularOrPrimeSdk = await getSdk(modular, batchChainId, true);
+        const etherspotModularOrPrimeSdk = await getSdk(batchChainId, true);
 
         try {
           if (!forSending) await etherspotModularOrPrimeSdk.clearUserOpsFromBatch();
@@ -98,7 +97,7 @@ const EtherspotTransactionKitContextProvider = ({ children }: EtherspotTransacti
     return result;
   }
 
-  const send = async (batchesIds?: string[], modular: boolean = true): Promise<ISentBatches[]> => {
+  const send = async (batchesIds?: string[]): Promise<ISentBatches[]> => {
     setIsSending(true);
     setContainsSendingError(false);
 
@@ -111,7 +110,7 @@ const EtherspotTransactionKitContextProvider = ({ children }: EtherspotTransacti
     }) => Promise.all(batches.map(async (batch) => {
       const batchChainId = batch.chainId ?? chainId;
 
-      const etherspotModularOrPrimeSdk = await getSdk(modular, batchChainId);
+      const etherspotModularOrPrimeSdk = await getSdk(batchChainId);
 
       await etherspotModularOrPrimeSdk.clearUserOpsFromBatch();
     }))));
@@ -131,7 +130,7 @@ const EtherspotTransactionKitContextProvider = ({ children }: EtherspotTransacti
           continue;
         }
 
-        const etherspotModularOrPrimeSdk = await getSdk(modular, batchChainId);
+        const etherspotModularOrPrimeSdk = await getSdk(batchChainId);
 
         if (!estimatedBatch.userOp) {
           sentBatches.push({ ...estimatedBatch, errorMessage: 'Failed to get estimated UserOp!' });

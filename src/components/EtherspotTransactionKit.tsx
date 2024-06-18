@@ -1,6 +1,6 @@
 import React from 'react';
-import { WalletProviderLike, Factory } from '@etherspot/prime-sdk';
-import { WalletProviderLike as WalletProviderLikeModular, Factory as ModularFactory } from '@etherspot/modular-sdk';
+import { WalletProviderLike } from '@etherspot/prime-sdk';
+import { WalletProviderLike as WalletProviderLikeModular} from '@etherspot/modular-sdk';
 
 // types
 import { AccountTemplate } from '../types/EtherspotTransactionKit';
@@ -9,14 +9,12 @@ import { AccountTemplate } from '../types/EtherspotTransactionKit';
 import EtherspotTransactionKitContextProvider from '../providers/EtherspotTransactionKitContextProvider';
 import ProviderWalletContextProvider from '../providers/ProviderWalletContextProvider';
 import EtherspotContextProvider from '../providers/EtherspotContextProvider';
-
 interface EtherspotTransactionKitProps extends React.PropsWithChildren {
   provider: WalletProviderLike | WalletProviderLikeModular;
   chainId?: number;
   accountTemplate?: AccountTemplate;
   dataApiKey?: string;
   bundlerApiKey?: string;
-  modular?: boolean;
 }
 
 const EtherspotTransactionKit = ({
@@ -26,36 +24,27 @@ const EtherspotTransactionKit = ({
   accountTemplate,
   dataApiKey,
   bundlerApiKey,
-  modular = true,
 }: EtherspotTransactionKitProps) => {
-  let accountTemp;
+  let accountTemp: AccountTemplate;
 
-  if (accountTemplate) {
-    switch (accountTemplate) {
-      case 'zeroDev':
-        if (!modular) {
-          accountTemp = Factory.ZERO_DEV;
-        } else {
-          console.warn('You cannot use a ZeroDev Account template with the modular functionality.');
-        }
-        break;
-      case 'simpleAccount':
-        if (!modular) {
-          accountTemp = Factory.SIMPLE_ACCOUNT;
-        } else {
-          console.warn('You cannot use a Simple Account template with the modular functionality.');
-        }
-        break;
-      case 'etherspot':
-        accountTemp = modular ? ModularFactory.ETHERSPOT : Factory.ETHERSPOT;
-        break;
-      default:
-        console.warn('This account template cannot be used:', accountTemplate);
-    }
-  } else {
-    accountTemp = modular ? ModularFactory.ETHERSPOT : Factory.ETHERSPOT;
+  switch (accountTemplate) {
+    case 'etherspotModular':
+      accountTemp = 'etherspotModular';
+      break;
+    case 'etherspot':
+      accountTemp = 'etherspot';
+      break;
+    case 'simpleAccount':
+      accountTemp = 'simpleAccount';
+      break;
+    case 'zeroDev':
+      accountTemp = 'zeroDev';
+      break;
+    default:
+      accountTemp = 'etherspotModular';
+      break;
   }
-  
+
   return (
   <EtherspotContextProvider
     provider={provider}
@@ -63,7 +52,7 @@ const EtherspotTransactionKit = ({
     accountTemplate={accountTemp}
     dataApiKey={dataApiKey}
     bundlerApiKey={bundlerApiKey}
-    isModular={modular}
+    isModular={accountTemp === 'etherspotModular' && true}
   >
     <EtherspotTransactionKitContextProvider>
       <ProviderWalletContextProvider>
