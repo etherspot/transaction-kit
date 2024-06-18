@@ -4,6 +4,7 @@ import { Route } from '@lifi/types';
 import { PaymasterApi } from '@etherspot/prime-sdk';
 import { ExchangeOffer } from '@etherspot/prime-sdk/dist/sdk/data';
 import { TransactionStatuses } from '@etherspot/prime-sdk/dist/sdk/data/constants';
+import { PaymasterApi as PaymasterApiModular } from '@etherspot/modular-sdk';
 
 export interface ITransaction {
   id?: string;
@@ -43,7 +44,7 @@ export interface IBatches {
   onEstimated?: (estimated: EstimatedBatch[]) => void;
   onSent?: (sent: SentBatch[]) => void;
   skip?: boolean;
-  paymaster?: PaymasterApi,
+  paymaster?: PaymasterApi | PaymasterApiModular,
 }
 
 export type IEstimatedBatches = IBatches & {
@@ -99,7 +100,7 @@ export interface IProviderWalletTransactionSent {
   errorMessage?: string;
 }
 
-export type IWalletType = 'provider' | 'etherspot-prime';
+export type IWalletType = 'provider' | 'etherspot';
 
 type EtherspotPromiseOrValue<T> = T | Promise<T>;
 
@@ -182,4 +183,4 @@ export interface UserOpTransaction {
   nftTransfers?: EtherspotNftTransfersEntity[];
 }
 
-export type AccountTemplate = 'etherspot' | 'zeroDev' | 'simpleAccount';
+export type AccountTemplate = 'etherspot' | 'etherspotModular' | 'zeroDev' | 'simpleAccount';

@@ -12,7 +12,7 @@ import useEtherspot from './useEtherspot';
  * @param chainId {number} - Chain ID
  * @returns {string | undefined} - wallet address by its type
  */
-const useWalletAddress = (walletType: IWalletType = 'etherspot-prime', chainId?: number): string | undefined => {
+const useWalletAddress = (walletType: IWalletType = 'etherspot', chainId?: number): string | undefined => {
   const [accountAddress, setAccountAddress] = useState<(string | undefined)>(undefined);
   const { getSdk, chainId: defaultChainId, provider } = useEtherspot();
 
@@ -25,7 +25,7 @@ const useWalletAddress = (walletType: IWalletType = 'etherspot-prime', chainId?:
     let shouldUpdate = true;
 
     const updateAccountAddress = async () => {
-      const etherspotPrimeSdk = await getSdk(walletAddressChainId);
+      const etherspotModularOrPrimeSdk = await getSdk(walletAddressChainId);
 
       let newAccountAddress;
 
@@ -35,17 +35,17 @@ const useWalletAddress = (walletType: IWalletType = 'etherspot-prime', chainId?:
          * Reference – https://github.com/etherspot/etherspot-prime-sdk/blob/master/src/sdk/sdk.ts#L31
          */
         // @ts-ignore
-        newAccountAddress = etherspotPrimeSdk?.etherspotWallet?.accountAddress;
+        newAccountAddress = etherspotModularOrPrimeSdk?.etherspotWallet?.accountAddress;
       } catch (e) {
-        console.warn(`Unable to get wallet address from SDK state for etherspot-prime type for chainId ID ${walletAddressChainId}.`, e);
+        console.warn(`Unable to get wallet address from SDK state for etherspot type for chainId ID ${walletAddressChainId}.`, e);
       }
 
       // if were unable to get wallet address from SDK state, try to get using getCounterFactualAddress
       if (!newAccountAddress) {
         try {
-          newAccountAddress = await etherspotPrimeSdk.getCounterFactualAddress();
+          newAccountAddress = await etherspotModularOrPrimeSdk.getCounterFactualAddress();
         } catch (e) {
-          console.warn(`Unable to get wallet address for etherspot-prime type for chainId ID ${walletAddressChainId}.`, e);
+          console.warn(`Unable to get wallet address for etherspot type for chainId ID ${walletAddressChainId}.`, e);
         }
       }
 
@@ -60,7 +60,7 @@ const useWalletAddress = (walletType: IWalletType = 'etherspot-prime', chainId?:
   }, [getSdk, walletAddressChainId]);
 
   return useMemo(() => {
-    if (walletType === 'etherspot-prime') {
+    if (walletType === 'etherspot') {
       return accountAddress;
     }
 

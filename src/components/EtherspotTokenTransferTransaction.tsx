@@ -34,7 +34,7 @@ const EtherspotTokenTransferTransaction = ({
 }: EtherspotTokenTransferTransactionProps): JSX.Element => {
   const context = useContext(EtherspotBatchContext);
   const componentId = useId();
-  const senderAddress = useWalletAddress('etherspot-prime', context?.chainId);
+  const senderAddress = useWalletAddress('etherspot', context?.chainId);
 
   if (context === null) {
     throw new Error('No parent <EtherspotBatch />');

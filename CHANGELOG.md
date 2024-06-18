@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.13.0] - 2024-06-17
+
+### Added Changes
+- `getSDK` include a param to choose to instantiate the Prime SDK instead of the Modular SDK
+- Added Etherspot Modular SDK `installModule` and `uninstallModule` to hook `useEtherspotModules`
+- Added `isModular` to context `EtherspotContextProvider`
+
+### Breaking Changes
+- Etherspot Modular SDK implemented to TransactionKit as the default `accountTemplate`
+- Changed the `etherspot-prime` wallet type to `etherspot` wallet type
+
 ## [0.12.1] - 2024-05-22
 
 ### Added Changes

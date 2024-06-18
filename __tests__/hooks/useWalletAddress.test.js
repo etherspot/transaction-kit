@@ -5,6 +5,9 @@ import { Factory } from '@etherspot/prime-sdk';
 // hooks
 import { EtherspotTransactionKit, useWalletAddress } from '../../src';
 import {
+  defaultAccountAddressModular,
+} from '../../__mocks__/@etherspot/modular-sdk';
+import {
   defaultAccountAddress,
   otherFactoryDefaultAccountAddress,
 } from '../../__mocks__/@etherspot/prime-sdk';
@@ -17,7 +20,7 @@ const providerWalletAddress = provider.address;
 describe('useWalletAddress()', () => {
   it('returns default type wallet address if no provided type', async () => {
     const wrapper = ({ children }) => (
-      <EtherspotTransactionKit provider={provider}>
+      <EtherspotTransactionKit provider={provider} accountTemplate='etherspot'>
         {children}
       </EtherspotTransactionKit>
     );
@@ -36,15 +39,15 @@ describe('useWalletAddress()', () => {
     );
 
     const { result, rerender } = renderHook(({ providerType }) => useWalletAddress(providerType), {
-      initialProps: { providerType: 'etherspot-prime' },
+      initialProps: { providerType: 'etherspot' },
       wrapper,
     });
 
     await waitFor(() => expect(result.current).not.toBe(undefined));
-    expect(result.current).toEqual(defaultAccountAddress);
+    expect(result.current).toEqual(defaultAccountAddressModular);
 
     rerender({ providerType: 'provider' });
-    await waitFor(() => expect(result.current).not.toBe(defaultAccountAddress));
+    await waitFor(() => expect(result.current).not.toBe(defaultAccountAddressModular));
     expect(result.current).toEqual(providerWalletAddress);
   });
 
@@ -56,12 +59,12 @@ describe('useWalletAddress()', () => {
     );
 
     const { result, rerender } = renderHook(({ providerType }) => useWalletAddress(providerType), {
-      initialProps: { providerType: 'etherspot-prime' },
+      initialProps: { providerType: 'etherspot' },
       wrapper,
     });
 
     await waitFor(() => expect(result.current).not.toBe(undefined));
-    expect(result.current).toEqual(defaultAccountAddress);
+    expect(result.current).toEqual(defaultAccountAddressModular);
 
     rerender({ providerType: 'whatever' });
     await waitFor(() => expect(result.current).toBe(undefined));
@@ -79,7 +82,7 @@ describe('useWalletAddress()', () => {
     });
 
     await waitFor(() => expect(resultNoAccountTemplate.current).not.toBe(undefined));
-    expect(resultNoAccountTemplate.current).toEqual(defaultAccountAddress);
+    expect(resultNoAccountTemplate.current).toEqual(defaultAccountAddressModular);
 
     const { result: resultWithAccountTemplate } = renderHook(() => useWalletAddress(), {
       wrapper: createWrapper({ accountTemplate: Factory.SIMPLE_ACCOUNT }),

@@ -15,6 +15,7 @@ import React, {
   useMemo,
 } from 'react';
 import isEqual from 'lodash/isEqual';
+import { ModularSdk, WalletProviderLike as WalletProviderLikeModular, isWalletProvider as isWalletProviderModular, Web3WalletProvider as Web3WalletModularProvider, EtherspotBundler as EtherspotBundlerModular, Factory as ModularFactory } from '@etherspot/modular-sdk';
 
 // contexts
 import EtherspotContext from '../contexts/EtherspotContext';
@@ -28,6 +29,9 @@ let prevAccountTemplate: AccountTemplate | undefined;
 
 let dataService: DataUtils;
 
+let sdkPerChainModular: { [chainId: number]: ModularSdk | Promise<ModularSdk> } = {};
+let prevProviderModular: WalletProviderLikeModular;
+
 const EtherspotContextProvider = ({
   children,
   provider,
@@ -35,13 +39,15 @@ const EtherspotContextProvider = ({
   accountTemplate,
   dataApiKey,
   bundlerApiKey,
+  isModular,
 }: {
   children: ReactNode;
-  provider: WalletProviderLike;
+  provider: WalletProviderLike | WalletProviderLikeModular;
   chainId: number;
   accountTemplate?: AccountTemplate;
   dataApiKey?: string;
   bundlerApiKey?: string;
+  isModular: boolean;
 }) => {
   const context = useContext(EtherspotContext);
 
@@ -53,24 +59,27 @@ const EtherspotContextProvider = ({
     return () => {
       // reset on unmount
       sdkPerChain = {};
+      sdkPerChainModular = {};
     }
   }, []);
 
   const getSdk = useCallback(async (sdkChainId: number = chainId, forceNewInstance: boolean = false) => {
-    const accountTemplateOrProviderChanged = (prevProvider && !isEqual(prevProvider, provider))
+    if (isModular) {
+
+      const accountTemplateOrProviderChanged = (prevProvider && !isEqual(prevProviderModular, provider as WalletProviderLikeModular))
       || (prevAccountTemplate && prevAccountTemplate !== accountTemplate);
+      
+      if (sdkPerChainModular[sdkChainId] && !forceNewInstance && !accountTemplateOrProviderChanged) {
+        return sdkPerChainModular[sdkChainId];
+      }
 
-    if (sdkPerChain[sdkChainId] && !forceNewInstance && !accountTemplateOrProviderChanged) {
-      return sdkPerChain[sdkChainId];
-    }
-
-    sdkPerChain[sdkChainId] = (async () => {
+      sdkPerChainModular[sdkChainId] = (async () => {
       let mappedProvider;
 
-      if (!isWalletProvider(provider)) {
+      if (!isWalletProviderModular(provider as WalletProviderLikeModular)) {
         try {
           // @ts-ignore
-          mappedProvider = new Web3WalletProvider(provider);
+          mappedProvider = new Web3WalletModularProvider(provider as WalletProviderLikeModular);
           await mappedProvider.refresh();
         } catch (e) {
           // no need to log, this is an attempt
@@ -81,7 +90,50 @@ const EtherspotContextProvider = ({
         }
       }
 
-      const etherspotPrimeSdk = new PrimeSdk(mappedProvider ?? provider, {
+      const etherspotModularSdk = new ModularSdk(mappedProvider as Web3WalletModularProvider ?? provider as WalletProviderLikeModular, {
+        chainId: +sdkChainId,
+        bundlerProvider: new EtherspotBundlerModular(+sdkChainId, bundlerApiKey ?? ('__ETHERSPOT_BUNDLER_API_KEY__' || undefined)),
+        factoryWallet: accountTemplate as ModularFactory,
+      });
+
+      // load the address into SDK state
+      await etherspotModularSdk.getCounterFactualAddress();
+
+      prevProviderModular = provider as WalletProviderLikeModular;
+      prevAccountTemplate = accountTemplate;
+
+      return etherspotModularSdk;
+    })();
+
+    return sdkPerChainModular[sdkChainId];
+
+    } else {
+
+      const accountTemplateOrProviderChanged = (prevProvider && !isEqual(prevProvider, provider as WalletProviderLike))
+      || (prevAccountTemplate && prevAccountTemplate !== accountTemplate);
+
+      if (sdkPerChain[sdkChainId] && !forceNewInstance && !accountTemplateOrProviderChanged) {
+        return sdkPerChain[sdkChainId];
+      }
+
+      sdkPerChain[sdkChainId] = (async () => {
+      let mappedProvider;
+
+      if (!isWalletProvider(provider as WalletProviderLike)) {
+        try {
+          // @ts-ignore
+          mappedProvider = new Web3WalletProvider(provider as WalletProviderLike);
+          await mappedProvider.refresh();
+        } catch (e) {
+          // no need to log, this is an attempt
+        }
+
+        if (!mappedProvider) {
+          throw new Error('Invalid provider!');
+        }
+      }
+
+      const etherspotPrimeSdk = new PrimeSdk(mappedProvider as Web3WalletProvider ?? provider as WalletProviderLike, {
         chainId: +sdkChainId,
         bundlerProvider: new EtherspotBundler(+sdkChainId, bundlerApiKey ?? ('__ETHERSPOT_BUNDLER_API_KEY__' || undefined)),
         factoryWallet: accountTemplate as Factory,
@@ -90,13 +142,14 @@ const EtherspotContextProvider = ({
       // load the address into SDK state
       await etherspotPrimeSdk.getCounterFactualAddress();
 
-      prevProvider = provider;
+      prevProvider = provider as WalletProviderLike;
       prevAccountTemplate = accountTemplate;
 
       return etherspotPrimeSdk;
     })();
 
     return sdkPerChain[sdkChainId];
+    }
   }, [provider, chainId, accountTemplate, bundlerApiKey]);
 
   const getDataService = useCallback(() => {
@@ -110,11 +163,13 @@ const EtherspotContextProvider = ({
     getDataService,
     provider,
     chainId,
+    isModular,
   }), [
     getSdk,
     getDataService,
     provider,
     chainId,
+    isModular,
   ]);
 
   return (
