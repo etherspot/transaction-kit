@@ -63,8 +63,6 @@ const EtherspotContextProvider = ({
     }
   }, []);
 
-  console.log('PROUT', accountTemplate)
-
   const getSdk = useCallback(async (sdkChainId: number = chainId, forceNewInstance: boolean = false) => {
     if (isModular) {
 

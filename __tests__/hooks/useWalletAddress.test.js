@@ -39,7 +39,7 @@ describe('useWalletAddress()', () => {
     );
 
     const { result, rerender } = renderHook(({ providerType }) => useWalletAddress(providerType), {
-      initialProps: { providerType: 'etherspot-prime' },
+      initialProps: { providerType: 'etherspot' },
       wrapper,
     });
 
@@ -59,7 +59,7 @@ describe('useWalletAddress()', () => {
     );
 
     const { result, rerender } = renderHook(({ providerType }) => useWalletAddress(providerType), {
-      initialProps: { providerType: 'etherspot-prime' },
+      initialProps: { providerType: 'etherspot' },
       wrapper,
     });
 

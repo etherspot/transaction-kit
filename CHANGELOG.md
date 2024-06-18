@@ -10,6 +10,7 @@
 ### Breaking Changes
 - Etherspot Modular SDK implemented to Transaction Kit as the default `accountTemplate`
 - The account template in the `EtherspotTransactionKit` component, can only be 'etherspot' if `moddular` is true.
+- Changed the `etherspot-prime` wallet type to `etherpot` wallet type
 
 ## [0.12.1] - 2024-05-22
 

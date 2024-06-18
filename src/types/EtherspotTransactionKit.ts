@@ -100,7 +100,7 @@ export interface IProviderWalletTransactionSent {
   errorMessage?: string;
 }
 
-export type IWalletType = 'provider' | 'etherspot-prime';
+export type IWalletType = 'provider' | 'etherspot';
 
 type EtherspotPromiseOrValue<T> = T | Promise<T>;
 

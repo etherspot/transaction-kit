@@ -52,7 +52,7 @@ const EtherspotTransactionKit = ({
     accountTemplate={accountTemp}
     dataApiKey={dataApiKey}
     bundlerApiKey={bundlerApiKey}
-    isModular={accountTemp === 'etherspotModular' && true}
+    isModular={accountTemp === 'etherspotModular'}
   >
     <EtherspotTransactionKitContextProvider>
       <ProviderWalletContextProvider>
