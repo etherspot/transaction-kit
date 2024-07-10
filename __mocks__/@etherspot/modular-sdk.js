@@ -142,10 +142,6 @@ export class ModularSdk {
   }
 
   async getAllModules(pageSize, accountAddress) {
-    if (!pageSize) {
-      pageSize = 50
-     }
-
     if (!accountAddress && !defaultAccountAddressModular) {
       throw new Error('No account address provided!')
     }

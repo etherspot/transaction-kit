@@ -13,7 +13,6 @@ const initData = ethers.utils.defaultAbiCoder.encode(
     ["address", "bytes"],
     ['0x0000000000000000000000000000000000000001', '0x00']
   );
-  const deInitData = '0x00'
 
 describe('useEtherspotModules()', () => {
   it('install one module', async () => {
