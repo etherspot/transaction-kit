@@ -5,7 +5,7 @@ import { BridgingProvider, Token, TokenListToken } from '@etherspot/prime-sdk/di
 import useEtherspot from './useEtherspot';
 
 interface IEtherspotAssetsHook {
-  getAssets: (chainId?: number) => Promise<TokenListToken[]>;
+  getAssets: (chainId?: number, name?: string) => Promise<TokenListToken[]>;
   getSupportedAssets: (chainId?: number, bridgingProvider?: BridgingProvider) => Promise<Token[]>
 }
 
@@ -23,16 +23,18 @@ const useEtherspotAssets = (chainId?: number): IEtherspotAssetsHook => {
   }, [chainId, etherspotChainId]);
 
   const getAssets = async (
-    // TODO: use assetsChainId once available on Prime SDK
-    assetsChainId: number = defaultChainId,
+    chainId?: number,
+    name?: string,
   ): Promise<TokenListToken[]> => {
     let assets: TokenListToken[] = [];
+
+    const assetsChainId = chainId ?? defaultChainId;
 
     try {
       const dataService = getDataService();
       assets = await dataService.getTokenListTokens({
-        name: 'EtherspotPopularTokens',
         chainId: +assetsChainId,
+        name,
       });
     } catch (e) {
       console.warn(

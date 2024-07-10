@@ -74,6 +74,7 @@ const useEtherspotSwaps = (chainId?: number): IEtherspotSwapsHook => {
     }
   };
 
+  // getOffers is to get different tokens & same/cross-chain offers
   const getOffers = async (
     fromAmount: BigNumber,
     fromTokenAddress: string,
@@ -129,6 +130,7 @@ const useEtherspotSwaps = (chainId?: number): IEtherspotSwapsHook => {
     }
   };
 
+  // getQuotes is to get same tokens & cross-chain offers only
   const getQuotes = async (
     toAddress: string,
     toChainId: number,

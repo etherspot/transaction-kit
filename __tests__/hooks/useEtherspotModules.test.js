@@ -13,10 +13,7 @@ const initData = ethers.utils.defaultAbiCoder.encode(
     ["address", "bytes"],
     ['0x0000000000000000000000000000000000000001', '0x00']
   );
-  const deInitData = ethers.utils.defaultAbiCoder.encode(
-    ["address", "bytes"],
-    ['0x0000000000000000000000000000000000000001', '0x00']
-  );
+  const deInitData = '0x00'
 
 describe('useEtherspotModules()', () => {
   it('install one module', async () => {
@@ -30,7 +27,6 @@ describe('useEtherspotModules()', () => {
       initialProps: { chainId: 1 },
       wrapper,
     });
-
 
     // wait for balances to be fetched for chain ID 1
     await waitFor(() => expect(result.current).not.toBeNull());
@@ -69,7 +65,7 @@ describe('useEtherspotModules()', () => {
     // wait for balances to be fetched for chain ID 1
     await waitFor(() => expect(result.current).not.toBeNull());
 
-    const uninstallModuleNotInstalled = await result.current.uninstallModule(MODULE_TYPE.VALIDATOR, '0x222', deInitData)
+    const uninstallModuleNotInstalled = await result.current.uninstallModule(MODULE_TYPE.VALIDATOR, '0x222')
     .catch((e) => {
       console.error(e);
       return `${e}`
@@ -88,8 +84,56 @@ describe('useEtherspotModules()', () => {
     expect(uninstallModulePropsMissing).toBe('Error: Failed to uninstall module: Error: uninstallModule props missing');
     
     
-    const uninstallOneModule = await result.current.uninstallModule(MODULE_TYPE.VALIDATOR, moduleAddress, deInitData);
+    const uninstallOneModule = await result.current.uninstallModule(MODULE_TYPE.VALIDATOR, moduleAddress);
     expect(uninstallOneModule).toBe('0x456');
 
+  });
+
+  it('list of modules for one wallet', async () => {
+    const wrapper = ({ children }) => (
+      <EtherspotTransactionKit provider={provider}>
+        {children}
+      </EtherspotTransactionKit>
+    );
+
+    const { result } = renderHook(({ chainId }) => useEtherspotModules(chainId), {
+      initialProps: { chainId: 1 },
+      wrapper,
+    });
+
+    // wait for balances to be fetched for chain ID 1
+    await waitFor(() => expect(result.current).not.toBeNull());
+
+    const installOneModule = await result.current.installModule(MODULE_TYPE.VALIDATOR, moduleAddress, initData);
+    expect(installOneModule).toBe('0x123')
+
+    const listOfModules = await result.current.listModules();
+    expect(listOfModules.validators).toContain('0x111');
+    expect(listOfModules.validators).not.toContain('0x123');
+  });
+
+  it('isModule installed', async () => {
+    const wrapper = ({ children }) => (
+      <EtherspotTransactionKit provider={provider}>
+        {children}
+      </EtherspotTransactionKit>
+    );
+
+    const { result } = renderHook(({ chainId }) => useEtherspotModules(chainId), {
+      initialProps: { chainId: 1 },
+      wrapper,
+    });
+
+    // wait for balances to be fetched for chain ID 1
+    await waitFor(() => expect(result.current).not.toBeNull());
+
+    const installOneModule = await result.current.installModule(MODULE_TYPE.VALIDATOR, moduleAddress, initData);
+    expect(installOneModule).toBe('0x123')
+
+    const isModuleOneInstalled = await result.current.isModuleInstalled(MODULE_TYPE.VALIDATOR, moduleAddress);
+    expect(isModuleOneInstalled).toBe(true);
+
+    const isModuleTowInstalled = await result.current.isModuleInstalled(MODULE_TYPE.VALIDATOR, '0x222');
+    expect(isModuleTowInstalled).toBe(false);
   });
 })
