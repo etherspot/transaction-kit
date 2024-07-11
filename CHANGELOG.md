@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.14.0] - 2024-07-10
+
+### Added Changes
+- Version update of `etherspot-modular`
+- Added Etherspot Modular SDK `getAllModules` and `isModuleInstalled` to hook `useEtherspotModules`
+- Updated `uninstallModule` with Etherspot Modular SDK `generateModuleDeInitData` to hook `useEtherspotModules` which allows to install and uninstall several modules
+
+### Breaking Changes
+- Updated `getAssets` which accepts optional props `chainId` and `name`
+
 ## [0.13.0] - 2024-06-17
 
 ### Added Changes

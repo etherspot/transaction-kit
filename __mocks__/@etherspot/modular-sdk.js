@@ -101,6 +101,14 @@ export class ModularSdk {
     return userOpHash;
   }
 
+  async generateModuleDeInitData() {
+    const deInitData = ethers.utils.defaultAbiCoder.encode(
+      ["address", "bytes"],
+      ['0x0000000000000000000000000000000000000001', '0x00']
+    );
+    return deInitData;
+  }
+
   async installModule(moduleType, module, initData, accountAddress) {
     if (!accountAddress && !defaultAccountAddressModular) {
       throw new Error('No account address provided!')
@@ -131,6 +139,34 @@ export class ModularSdk {
     }
 
     return '0x456';
+  }
+
+  async getAllModules(pageSize, accountAddress) {
+    if (!accountAddress && !defaultAccountAddressModular) {
+      throw new Error('No account address provided!')
+    }
+
+    return {
+      validators: ['0x000', '0x111', '0x222']
+    };
+  }
+
+  async isModuleInstalled(moduleType, module, accountAddress) {
+    if (!accountAddress && !defaultAccountAddressModular) {
+      throw new Error('No account address provided!')
+    }
+
+    if (!moduleType || !module) {
+      throw new Error('uninstallModule props missing')
+    }
+
+    if (module === '0x111') {
+      return true;
+    }
+
+    if (module === '0x222') {
+      return false;
+    }
   }
 }
 

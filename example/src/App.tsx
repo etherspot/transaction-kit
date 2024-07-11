@@ -1,10 +1,12 @@
+import { ModuleInfo } from '@etherspot/modular-sdk/dist/sdk/base/EtherspotWalletAPI';
 import { MODULE_TYPE } from '@etherspot/modular-sdk/dist/sdk/common';
 import {
   EstimatedBatch,
   EtherspotBatch,
   EtherspotBatches,
   EtherspotTransaction,
-  IEstimatedBatches, ISentBatches,
+  IEstimatedBatches,
+  ISentBatches,
   SentBatch,
   useEtherspot,
   useEtherspotTransactions,
@@ -34,9 +36,7 @@ const testModuleSepoliaTestnet = '0x6a00da4DEEf677Ad854B7c14F17Ed9312c2B5fDf';
 const CodePreview = ({ code }: { code: string }) => (
   <Paper>
     <pre style={{ margin: '40px 0 40px', padding: '0 15px' }}>
-      <code>
-        {code.replaceAll('\n      ', '\n')}
-      </code>
+      <code>{code.replaceAll('\n      ', '\n')}</code>
     </pre>
   </Paper>
 );
@@ -56,14 +56,14 @@ const exampleCode = {
           <EtherspotTransaction to={walletAddressByName.Bob} value={'0.01'} />
         </EtherspotBatch>
       </EtherspotBatches>
-    )
+    ),
   },
   [tabs.MULTIPLE_TRANSACTIONS]: {
     preview: `
       <EtherspotBatches>
         <EtherspotBatch>
-        <EtherspotTransaction to={bobAddress} value={'0.01'} />
-        <EtherspotTransaction to={christieAddress} value={'0.01'} />
+          <EtherspotTransaction to={bobAddress} value={'0.01'} />
+          <EtherspotTransaction to={christieAddress} value={'0.01'} />
         </EtherspotBatch>
       </EtherspotBatches>
     `,
@@ -74,7 +74,7 @@ const exampleCode = {
           <EtherspotTransaction to={walletAddressByName.Christie} value={'0.01'} />
         </EtherspotBatch>
       </EtherspotBatches>
-    )
+    ),
   },
 };
 
@@ -83,7 +83,8 @@ const App = () => {
   const { batches, estimate, send } = useEtherspotTransactions();
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { getDataService, chainId: etherspotChainId } = useEtherspot();
-  const { installModule, uninstallModule } = useEtherspotModules();
+  const { installModule, uninstallModule, listModules } = useEtherspotModules();
+  const etherspotPrimeOrModularAddress = useWalletAddress();
   const [balancePerAddress, setBalancePerAddress] = useState({
     [walletAddressByName.Alice]: '',
     [walletAddressByName.Bob]: '',
@@ -93,8 +94,7 @@ const App = () => {
   const [sent, setSent] = useState<ISentBatches[] | null>(null);
   const [isEstimating, setIsEstimating] = useState(false);
   const [isSending, setIsSending] = useState(false);
-  const etherspotPrimeAddress = useWalletAddress();
-
+  const [modulesList, setModulesList] = useState<ModuleInfo | null>();
 
   const batchesTreeView = batches.map((batchGroup, id1) => ({
     ...batchGroup,
@@ -104,7 +104,7 @@ const App = () => {
       treeNodeId: `batch-${batch.id ?? id2}`,
       transactions: batch.transactions?.map((transaction, id3) => ({
         treeNodeId: `transaction-${transaction.id ?? id3}`,
-        ...transaction
+        ...transaction,
       })),
     })),
   }));
@@ -160,23 +160,25 @@ const App = () => {
   };
 
   const deInitData = ethers.utils.defaultAbiCoder.encode(
-    ["address", "bytes"],
+    ['address', 'bytes'],
     ['0x0000000000000000000000000000000000000001', '0x00']
   );
 
   const onInstallModuleClick = async () => {
     await installModule(MODULE_TYPE.VALIDATOR, testModuleSepoliaTestnet);
-  }
+    await listModules().then((list) => setModulesList(list));
+  };
 
   const onUninstallModuleClick = async () => {
-    await uninstallModule(MODULE_TYPE.VALIDATOR, testModuleSepoliaTestnet, deInitData)
-  }
+    await uninstallModule(MODULE_TYPE.VALIDATOR, testModuleSepoliaTestnet, deInitData);
+    await listModules().then((list) => setModulesList(list));
+  };
 
   useEffect(() => {
     let expired = false;
 
     const refreshBalances = async () => {
-      const dataServices = getDataService()
+      const dataServices = getDataService();
 
       const updatedBalances = {
         [walletAddressByName.Alice]: 'N/A',
@@ -184,55 +186,61 @@ const App = () => {
         [walletAddressByName.Christie]: 'N/A',
       };
 
-      if (etherspotPrimeAddress) {
-        updatedBalances[etherspotPrimeAddress] = 'N/A';
+      if (etherspotPrimeOrModularAddress) {
+        updatedBalances[etherspotPrimeOrModularAddress] = 'N/A';
       }
 
-      await Promise.all(Object.keys(updatedBalances).map(async (address) => {
-        const balances = await dataServices.getAccountBalances({
-          account: address,
-          chainId: +(process.env.REACT_APP_CHAIN_ID as string)
-        });
-        const balance = balances && balances.items.find(({ token }) => token === null);
-        if (balance) updatedBalances[address] = ethers.utils.formatEther(balance.balance);
-      }));
+      await Promise.all(
+        Object.keys(updatedBalances).map(async (address) => {
+          const balances = await dataServices.getAccountBalances({
+            account: address,
+            chainId: +(process.env.REACT_APP_CHAIN_ID as string),
+          });
+          const balance = balances && balances.items.find(({ token }) => token === null);
+          if (balance) updatedBalances[address] = ethers.utils.formatEther(balance.balance);
+        })
+      );
 
       if (expired) return;
 
       setBalancePerAddress(updatedBalances);
+      await listModules().then((list) => setModulesList(list));
     };
 
     refreshBalances();
 
     return () => {
       expired = true;
-    }
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [etherspotPrimeAddress]);
+  }, [etherspotPrimeOrModularAddress]);
 
-  const estimationFailed = estimated?.some((
-    estimatedGroup,
-  ) => estimatedGroup.estimatedBatches?.some((estimatedBatch) => estimatedBatch.errorMessage));
+  const estimationFailed = estimated?.some((estimatedGroup) =>
+    estimatedGroup.estimatedBatches?.some((estimatedBatch) => estimatedBatch.errorMessage)
+  );
 
   return (
     <Container maxWidth={'sm'}>
       <Box sx={{ pt: 3, pb: 4 }}>
         <Typography mb={2}>
-          <a href={'https://www.alchemy.com/faucets/ethereum-sepolia'} target={'_blank'} rel="noreferrer">Sepolia ETH Faucet</a>
+          <a href={'https://www.alchemy.com/faucets/ethereum-sepolia'} target={'_blank'} rel="noreferrer">
+            Sepolia ETH Faucet
+          </a>
         </Typography>
         <Chip
-          label={
-            `My balance: ${etherspotPrimeAddress && balancePerAddress[etherspotPrimeAddress]
-              ? `${Number(balancePerAddress[etherspotPrimeAddress]).toFixed(4)} ETH`
+          label={`My balance: ${
+            etherspotPrimeOrModularAddress && balancePerAddress[etherspotPrimeOrModularAddress]
+              ? `${Number(balancePerAddress[etherspotPrimeOrModularAddress]).toFixed(4)} ETH`
               : 'Loading...'
-            }`
-          }
+          }`}
           variant={'outlined'}
           style={{ marginRight: 10, marginTop: 10 }}
         />
         {Object.keys(walletAddressByName).map((addressName: string) => {
           const address = walletAddressByName[addressName as keyof typeof walletAddressByName];
-          const balancePart = `balance: ${balancePerAddress[address] ? `${Number(balancePerAddress[address]).toFixed(4)} ETH` : 'Loading...'}`;
+          const balancePart = `balance: ${
+            balancePerAddress[address] ? `${Number(balancePerAddress[address]).toFixed(4)} ETH` : 'Loading...'
+          }`;
           const chipLabel = `${addressName} ${balancePart}`;
           return (
             <Chip
@@ -245,18 +253,28 @@ const App = () => {
         })}
       </Box>
       <Box>
-        <Typography>
-          Etherspot Smart Wallet Address:
-        </Typography>
-        {!!etherspotPrimeAddress?.length && (
+        <Typography>Etherspot Smart Wallet Address:</Typography>
+        {!!etherspotPrimeOrModularAddress?.length && (
           <Paper sx={{ p: 1 }} variant="outlined">
-            <Typography>
-              {etherspotPrimeAddress}
-            </Typography>
+            <Typography>{etherspotPrimeOrModularAddress}</Typography>
           </Paper>
         )}
-        <button onClick={() => onInstallModuleClick()}>Install a module</button>
-        <button onClick={() => onUninstallModuleClick()}>Uninstall a module</button>
+        <Box sx={{ borderBottom: 1, borderTop: 1, borderColor: 'divider' }} mt={4} py={4}>
+          {modulesList && (
+            <div>
+              <Typography>Modules installed:</Typography>
+              <ul>
+                {modulesList.validators?.map((module, i) => (
+                  <li key={i}>
+                    <Typography fontSize={14}>{module}</Typography>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          <button onClick={onInstallModuleClick}>Install a module</button>
+          <button onClick={onUninstallModuleClick}>Uninstall a module</button>
+        </Box>
       </Box>
       <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
         <Tabs value={activeTab} onChange={(event, id) => setActiveTab(id)}>
@@ -266,12 +284,7 @@ const App = () => {
       </Box>
       <Box>
         <CodePreview code={exampleCode[activeTab].preview} />
-        <Button
-          variant={'contained'}
-          disabled={isEstimating}
-          style={{ marginRight: 5 }}
-          onClick={onEstimateClick}
-        >
+        <Button variant={'contained'} disabled={isEstimating} style={{ marginRight: 5 }} onClick={onEstimateClick}>
           {isEstimating ? 'Estimating...' : 'Estimate'}
         </Button>
         <Button
@@ -329,9 +342,8 @@ const App = () => {
                         </Typography>
                       )}
                       {batch.transactions?.map((transaction, id3) => {
-                        let transactionValue = typeof transaction.value === 'string'
-                          ? transaction.value
-                          : '0.0';
+                        let transactionValue =
+                          typeof transaction.value === 'string' ? transaction.value : '0.0';
 
                         if (ethers.BigNumber.isBigNumber(transaction.value)) {
                           transactionValue = ethers.utils.formatEther(transaction.value);
