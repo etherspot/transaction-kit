@@ -184,3 +184,22 @@ export interface UserOpTransaction {
 }
 
 export type AccountTemplate = 'etherspot' | 'etherspotModular' | 'zeroDev' | 'simpleAccount';
+
+export enum MODULE_TYPE {
+  VALIDATOR = "0x01",
+  EXECUTOR = "0x02",
+  FALLBACK = "0x03",
+  HOOK = "0x04"
+}
+
+export type ModuleInfo = {
+  validators?: string[];
+  executors?: string[];
+  hook?: string;
+  fallbacks?: FallbackInfo[];
+};
+
+export type FallbackInfo = {
+  selector: string;
+  handlerAddress: string;
+};
