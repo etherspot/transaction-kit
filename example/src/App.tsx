@@ -1,5 +1,3 @@
-import { ModuleInfo } from '@etherspot/modular-sdk/dist/sdk/base/EtherspotWalletAPI';
-import { MODULE_TYPE } from '@etherspot/modular-sdk/dist/sdk/common';
 import {
   EstimatedBatch,
   EtherspotBatch,
@@ -12,6 +10,8 @@ import {
   useEtherspotTransactions,
   useWalletAddress,
   useEtherspotModules,
+  ModuleInfo,
+  MODULE_TYPE,
 } from '@etherspot/transaction-kit';
 import TreeItem from '@mui/lab/TreeItem';
 import TreeView from '@mui/lab/TreeView';

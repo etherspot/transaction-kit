@@ -1,9 +1,7 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { ethers } from 'ethers';
+import { useEtherspotModules, EtherspotTransactionKit, MODULE_TYPE } from '../../src';
 
-// hooks
-import { useEtherspotModules, EtherspotTransactionKit } from '../../src';
-import { MODULE_TYPE } from '@etherspot/modular-sdk/dist/sdk/common';
 
 const ethersProvider = new ethers.providers.JsonRpcProvider('http://localhost:8545', 'sepolia'); // replace with your node's RPC URL
 const provider = new ethers.Wallet.createRandom().connect(ethersProvider);

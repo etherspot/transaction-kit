@@ -1,12 +1,11 @@
 import { useMemo } from 'react';
+import { ModularSdk } from '@etherspot/modular-sdk';
 
 // hooks
 import useEtherspot from './useEtherspot';
 
 // types
-import { MODULE_TYPE } from '@etherspot/modular-sdk/dist/sdk/common';
-import { ModularSdk } from '@etherspot/modular-sdk';
-import { ModuleInfo } from '@etherspot/modular-sdk/dist/sdk/base/EtherspotWalletAPI';
+import { MODULE_TYPE, ModuleInfo } from '../types/EtherspotTransactionKit';
 
 interface IEtherspotModulesHook {
     installModule: (moduleType: MODULE_TYPE, module: string, initData?: string, accountAddress?: string, modulesChainId?: number) => Promise<string>;
