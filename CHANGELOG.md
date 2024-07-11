@@ -3,7 +3,7 @@
 ## [0.14.1] - 2024-07-11
 
 ### Added Changes
-- Added `MODULE_TYPE` enume and `ModuleInfo` type from `etherspot-modular`
+- Added `MODULE_TYPE` enum and `ModuleInfo` type from `etherspot-modular`
 
 ## [0.14.0] - 2024-07-10
 
