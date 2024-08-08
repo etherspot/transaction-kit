@@ -3,7 +3,7 @@
 ## [0.15.0] - 2024-08-08
 
 ### Breaking Changes
-- Updated `@etherspot/prime-sdk` with new wallet factory contract address
+- Updated `@modular/prime-sdk` with new wallet factory contract address
 
 ## [0.14.1] - 2024-07-11
 
