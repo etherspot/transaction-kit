@@ -204,7 +204,7 @@ const App = () => {
       if (expired) return;
 
       setBalancePerAddress(updatedBalances);
-      await listModules().then((list) => setModulesList(list));
+      await listModules().then((list) => setModulesList(list)).catch((e) => setModulesList(undefined));
     };
 
     refreshBalances();
@@ -259,22 +259,22 @@ const App = () => {
             <Typography>{etherspotPrimeOrModularAddress}</Typography>
           </Paper>
         )}
-        <Box sx={{ borderBottom: 1, borderTop: 1, borderColor: 'divider' }} mt={4} py={4}>
           {modulesList && (
-            <div>
-              <Typography>Modules installed:</Typography>
-              <ul>
-                {modulesList.validators?.map((module, i) => (
-                  <li key={i}>
-                    <Typography fontSize={14}>{module}</Typography>
-                  </li>
-                ))}
-              </ul>
-            </div>
+            <Box sx={{ borderBottom: 1, borderTop: 1, borderColor: 'divider' }} mt={4} py={4}>
+              <div>
+                <Typography>Modules installed:</Typography>
+                <ul>
+                  {modulesList.validators?.map((module, i) => (
+                    <li key={i}>
+                      <Typography fontSize={14}>{module}</Typography>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <button onClick={onInstallModuleClick}>Install a module</button>
+              <button onClick={onUninstallModuleClick}>Uninstall a module</button>
+            </Box>
           )}
-          <button onClick={onInstallModuleClick}>Install a module</button>
-          <button onClick={onUninstallModuleClick}>Uninstall a module</button>
-        </Box>
       </Box>
       <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
         <Tabs value={activeTab} onChange={(event, id) => setActiveTab(id)}>

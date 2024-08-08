@@ -127,7 +127,7 @@ const useEtherspotModules = (chainId?: number): IEtherspotModulesHook => {
     } catch (e) {
       console.error(
         `Sorry, an error occurred whilst trying to list all your wallet modules on`
-        + ` ${modulesForAccount}. Please try again. Error:`,
+        + ` ${modulesForAccount}. Please make sure your account is deployed and try again. Error:`,
         e,
       );
       throw new Error(`Failed to list all modules: ${e}`)

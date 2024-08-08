@@ -22,7 +22,7 @@
   "homepage": "https://github.com/etherspot/transaction-kit#readme",
   "dependencies": {
     "@etherspot/eip1271-verification-util": "0.1.2",
-    "@etherspot/modular-sdk": "1.1.2",
+    "@etherspot/modular-sdk": "2.0.0",
     "@etherspot/prime-sdk": "1.8.1",
     "buffer": "^6.0.3",
     "ethers": "^5.6.9",
