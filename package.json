@@ -4,7 +4,7 @@
   "version": "0.15.1",
   "main": "dist/cjs/index.js",
   "scripts": {
-    "rollup:build": "NODE_OPTIONS=--max-old-space-size=8192 rollup -c && cp ./src/post-message.ts dist",
+    "rollup:build": "NODE_OPTIONS=--max-old-space-size=8192 rollup -c",
     "rollup:watch": "rimraf ./node_modules/react ./node_modules/react-dom && rollup -c -w",
     "test": "jest __tests__ --silent --detectOpenHandles",
     "test:watch": "jest --watch",
