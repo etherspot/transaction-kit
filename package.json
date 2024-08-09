@@ -5,10 +5,10 @@
   "main": "dist/cjs/index.js",
   "scripts": {
     "rollup:build": "NODE_OPTIONS=--max-old-space-size=8192 rollup -c",
-    "rollup:watch": "rimraf ./node_modules/react ./node_modules/react-dom && rollup -c -w",
+    "rollup:watch": "rimraf ./node_modules/react ./node_modules/react-dom",
     "test": "jest __tests__ --silent --detectOpenHandles",
     "test:watch": "jest --watch",
-    "postinstall": "node ./src/post-message.ts"
+    "postinstall": "node -e \"console.log('Important: the 0.15.0 version has newly updated Factory Addresses. To access previous addresses, use 0.14.1 or below, and make sure assets are moved from wallets before updating to 0.15.0+.');\""
   },
   "repository": {
     "type": "git",
