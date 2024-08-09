@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.15.0] - 2024-08-08
+
+### Breaking Changes
+- Updated `@etherspot/modular-sdk` with new wallet factory contract address
+- `IMPORTANT`: To access previous wallet factory contract address, please use 0.14.1 or below, and move assets from wallets before updating to 0.15.0+
+
 ## [0.14.1] - 2024-07-11
 
 ### Added Changes
