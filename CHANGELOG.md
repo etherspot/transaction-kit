@@ -3,7 +3,7 @@
 ## [0.15.1] - 2024-08-09
 
 ### Added Changes
-- Updated postinstall script
+- Remove postinstall script
 
 ## [0.15.0] - 2024-08-08
 
