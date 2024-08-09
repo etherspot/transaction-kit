@@ -1,14 +1,13 @@
 {
   "name": "@etherspot/transaction-kit",
   "description": "React Etherspot Transaction Kit",
-  "version": "0.15.0",
+  "version": "0.15.1",
   "main": "dist/cjs/index.js",
   "scripts": {
     "rollup:build": "NODE_OPTIONS=--max-old-space-size=8192 rollup -c",
     "rollup:watch": "rimraf ./node_modules/react ./node_modules/react-dom && rollup -c -w",
     "test": "jest __tests__ --silent --detectOpenHandles",
-    "test:watch": "jest --watch",
-    "postinstall": "node post-message.js"
+    "test:watch": "jest --watch"
   },
   "repository": {
     "type": "git",
