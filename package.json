@@ -8,7 +8,7 @@
     "rollup:watch": "rimraf ./node_modules/react ./node_modules/react-dom && rollup -c -w",
     "test": "jest __tests__ --silent --detectOpenHandles",
     "test:watch": "jest --watch",
-    "postinstall": "node post-message.js"
+    "postinstall": "node ./src/post-message.ts"
   },
   "repository": {
     "type": "git",
