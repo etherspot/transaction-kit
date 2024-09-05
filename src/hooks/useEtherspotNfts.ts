@@ -5,7 +5,10 @@ import { useMemo } from 'react';
 import useEtherspot from './useEtherspot';
 
 interface IEtherspotNftsHook {
-  getAccountNfts: (accountAddress?: string, chainId?: number) => Promise<NftCollection[]>;
+  getAccountNfts: (
+    accountAddress?: string,
+    chainId?: number
+  ) => Promise<NftCollection[]>;
 }
 
 /**
@@ -23,13 +26,14 @@ const useEtherspotNfts = (chainId?: number): IEtherspotNftsHook => {
 
   const getAccountNfts = async (
     accountAddress?: string,
-    nftsChainId: number = defaultChainId,
+    nftsChainId: number = defaultChainId
   ) => {
     const sdkForChainId = await getSdk(nftsChainId);
 
-    const nftsForAccount = accountAddress ?? await sdkForChainId.getCounterFactualAddress();
+    const nftsForAccount =
+      accountAddress ?? (await sdkForChainId.getCounterFactualAddress());
     if (!nftsForAccount) {
-      console.warn(`No account address provided!`);
+      console.warn('No account address provided!');
       return [];
     }
 
@@ -43,14 +47,14 @@ const useEtherspotNfts = (chainId?: number): IEtherspotNftsHook => {
       return items;
     } catch (e) {
       console.warn(
-        `Sorry, an error occurred whilst trying to fetch account NFTs`
-        + ` for ${nftsForAccount}. Please try again. Error:`,
-        e,
+        'Sorry, an error occurred whilst trying to fetch account NFTs' +
+          ` for ${nftsForAccount}. Please try again. Error:`,
+        e
       );
     }
 
     return [];
-  }
+  };
 
   return { getAccountNfts };
 };

@@ -1,4 +1,8 @@
-import { BridgingProvider, Transaction, TransactionStatus } from '@etherspot/prime-sdk/dist/sdk/data';
+import {
+  BridgingProvider,
+  Transaction,
+  TransactionStatus,
+} from '@etherspot/prime-sdk/dist/sdk/data';
 import { useMemo } from 'react';
 
 // hooks
@@ -8,8 +12,14 @@ import useEtherspot from './useEtherspot';
 import { UserOpTransaction } from '../types/EtherspotTransactionKit';
 
 interface IEtherspotHistoryHook {
-  getAccountTransactions: (accountAddress?: string, chainId?: number) => Promise<UserOpTransaction[]>;
-  getAccountTransaction: (hash: string, chainId?: number) => Promise<Transaction | undefined>;
+  getAccountTransactions: (
+    accountAddress?: string,
+    chainId?: number
+  ) => Promise<UserOpTransaction[]>;
+  getAccountTransaction: (
+    hash: string,
+    chainId?: number
+  ) => Promise<Transaction | undefined>;
   getAccountTransactionStatus: (
     fromChainId: number,
     toChainId: number,
@@ -39,9 +49,10 @@ const useEtherspotHistory = (chainId?: number): IEtherspotHistoryHook => {
 
     let transactions: UserOpTransaction[] = [];
 
-    const transactionsForAccount = accountAddress ?? (await sdkForChainId.getCounterFactualAddress());
+    const transactionsForAccount =
+      accountAddress ?? (await sdkForChainId.getCounterFactualAddress());
     if (!transactionsForAccount) {
-      console.warn(`No account address provided!`);
+      console.warn('No account address provided!');
       return [];
     }
 
@@ -53,8 +64,8 @@ const useEtherspotHistory = (chainId?: number): IEtherspotHistoryHook => {
       }));
     } catch (e) {
       console.warn(
-        `Sorry, an error occurred whilst trying to fetch the transactions` +
-        ` for account ${transactionsForAccount}. Please try again. Error:`,
+        'Sorry, an error occurred whilst trying to fetch the transactions' +
+          ` for account ${transactionsForAccount}. Please try again. Error:`,
         e
       );
     }
@@ -68,13 +79,17 @@ const useEtherspotHistory = (chainId?: number): IEtherspotHistoryHook => {
   ): Promise<Transaction | undefined> => {
     try {
       const dataService = getDataService();
-      return dataService.getTransaction({ hash, chainId: +historyChainId });
+      return await dataService.getTransaction({
+        hash,
+        chainId: +historyChainId,
+      });
     } catch (e) {
       console.warn(
-        `Sorry, an error occurred whilst trying to fetch the transaction` +
-        ` for hash ${hash}. Please try again. Error:`,
+        'Sorry, an error occurred whilst trying to fetch the transaction' +
+          ` for hash ${hash}. Please try again. Error:`,
         e
       );
+      return undefined;
     }
   };
 
@@ -86,15 +101,21 @@ const useEtherspotHistory = (chainId?: number): IEtherspotHistoryHook => {
   ): Promise<TransactionStatus | undefined> => {
     try {
       const dataService = getDataService();
-      return dataService.getTransactionStatus({ fromChainId, toChainId, transactionHash: hash, provider });
+      return await dataService.getTransactionStatus({
+        fromChainId,
+        toChainId,
+        transactionHash: hash,
+        provider,
+      });
     } catch (e) {
       console.warn(
-        `Sorry, an error occurred whilst trying to fetch the transaction status` +
-        ` from chain id ${fromChainId}` +
-        ` to chain id ${toChainId}` +
-        ` for hash ${hash}. Please try again. Error:`,
+        'Sorry, an error occurred whilst trying to fetch the transaction status' +
+          ` from chain id ${fromChainId}` +
+          ` to chain id ${toChainId}` +
+          ` for hash ${hash}. Please try again. Error:`,
         e
       );
+      return undefined;
     }
   };
 

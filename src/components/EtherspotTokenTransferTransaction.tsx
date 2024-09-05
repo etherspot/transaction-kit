@@ -1,5 +1,5 @@
-import React, { useContext } from 'react';
 import { ethers } from 'ethers';
+import React, { useContext } from 'react';
 
 // contexts
 import EtherspotBatchContext from '../contexts/EtherspotBatchContext';
@@ -14,7 +14,8 @@ import useWalletAddress from '../hooks/useWalletAddress';
 // components
 import EtherspotContractTransaction from './EtherspotContractTransaction';
 
-interface EtherspotTokenTransferTransactionProps extends IEtherspotTokenTransferTransaction {
+interface EtherspotTokenTransferTransactionProps
+  extends IEtherspotTokenTransferTransaction {
   children?: React.ReactNode;
 }
 
@@ -42,37 +43,41 @@ const EtherspotTokenTransferTransaction = ({
 
   let valueBN;
   try {
-    valueBN = typeof value === 'string' && !ethers.BigNumber.isBigNumber(value)
-      ? ethers.utils.parseUnits(value, tokenDecimals)
-      : value;
+    valueBN =
+      typeof value === 'string' && !ethers.BigNumber.isBigNumber(value)
+        ? ethers.utils.parseUnits(value, tokenDecimals)
+        : value;
   } catch (e) {
     if (e instanceof Error && e?.message) {
-      throw new Error(`Failed to parse provided value, please make sure value is wei: ${e.message}`);
+      throw new Error(
+        `Failed to parse provided value, please make sure value is wei: ${e.message}`
+      );
     }
   }
 
   if (!valueBN) {
-    throw new Error(`Failed to parse provided value, please make sure value is wei.`);
+    throw new Error(
+      'Failed to parse provided value, please make sure value is wei.'
+    );
   }
 
   // wait for sender address to be available
   if (!senderAddress) {
-    return (
-      <>{children}</>
-    )
+    // eslint-disable-next-line react/jsx-no-useless-fragment
+    return <>{children}</>;
   }
 
   return (
     <EtherspotContractTransaction
       id={transactionId ?? componentId}
       contractAddress={tokenAddress}
-      methodName={'transfer'}
+      methodName="transfer"
       abi={['function transfer(address to, uint256 value)']}
       params={[receiverAddress, valueBN]}
     >
       {children}
     </EtherspotContractTransaction>
-  )
+  );
 };
 
 export default EtherspotTokenTransferTransaction;

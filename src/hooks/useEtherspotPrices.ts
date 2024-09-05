@@ -1,5 +1,5 @@
-import { useMemo } from 'react';
 import { RateInfo } from '@etherspot/prime-sdk/dist/sdk/data';
+import { useMemo } from 'react';
 
 // hooks
 import useEtherspot from './useEtherspot';
@@ -10,8 +10,14 @@ import useEtherspot from './useEtherspot';
  * @property getPrice {function} - fetches single asset price from Etherspot
  */
 interface IEtherspotPricesHook {
-  getPrice: (assetAddress: string, assetChainId?: number) => Promise<RateInfo | undefined>;
-  getPrices: (assetAddresses: string[], assetsChainId?: number) => Promise<RateInfo[]>;
+  getPrice: (
+    assetAddress: string,
+    assetChainId?: number
+  ) => Promise<RateInfo | undefined>;
+  getPrices: (
+    assetAddresses: string[],
+    assetsChainId?: number
+  ) => Promise<RateInfo[]>;
 }
 
 /**
@@ -27,12 +33,10 @@ const useEtherspotPrices = (chainId?: number): IEtherspotPricesHook => {
     return etherspotChainId;
   }, [chainId, etherspotChainId]);
 
-  const getPrice = async (assetAddress: string, assetChainId: number = defaultChainId) => {
-    const [price] = await getPrices([assetAddress], +assetChainId);
-    return price;
-  }
-
-  const getPrices = async (assetAddresses: string[], assetsChainId: number = defaultChainId) => {
+  const getPrices = async (
+    assetAddresses: string[],
+    assetsChainId: number = defaultChainId
+  ) => {
     try {
       const dataService = getDataService();
       const result = await dataService.fetchExchangeRates({
@@ -42,8 +46,8 @@ const useEtherspotPrices = (chainId?: number): IEtherspotPricesHook => {
 
       if (result.errored && result.error) {
         console.warn(
-          `Sorry, an error occurred whilst trying to fetch prices from Etherspot.`
-          + ` Please try again. Error: ${result.error}.`
+          'Sorry, an error occurred whilst trying to fetch prices from Etherspot.' +
+            ` Please try again. Error: ${result.error}.`
         );
         return [];
       }
@@ -51,14 +55,22 @@ const useEtherspotPrices = (chainId?: number): IEtherspotPricesHook => {
       return result.items;
     } catch (e) {
       console.warn(
-        `Sorry, an error occurred whilst trying to fetch prices from Etherspot.`
-        + ` Please try again. Error:`,
-        e,
+        'Sorry, an error occurred whilst trying to fetch prices from Etherspot.' +
+          ' Please try again. Error:',
+        e
       );
     }
 
     return [];
-  }
+  };
+
+  const getPrice = async (
+    assetAddress: string,
+    assetChainId: number = defaultChainId
+  ) => {
+    const [price] = await getPrices([assetAddress], +assetChainId);
+    return price;
+  };
 
   return { getPrice, getPrices };
 };

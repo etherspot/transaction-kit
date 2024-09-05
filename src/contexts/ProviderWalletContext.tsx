@@ -12,10 +12,14 @@ interface IProviderWalletContext {
     transaction: undefined | IProviderWalletTransaction;
     estimate: () => Promise<IProviderWalletTransactionEstimated>;
     send: () => Promise<IProviderWalletTransactionSent>;
-  },
-  setTransactionById: Dispatch<SetStateAction<{ [id: string]: IProviderWalletTransaction | undefined }>>;
+  };
+  setTransactionById: Dispatch<
+    SetStateAction<{ [id: string]: IProviderWalletTransaction | undefined }>
+  >;
 }
 
-const ProviderWalletContext = createContext<IProviderWalletContext | null>(null);
+const ProviderWalletContext = createContext<IProviderWalletContext | null>(
+  null
+);
 
 export default ProviderWalletContext;

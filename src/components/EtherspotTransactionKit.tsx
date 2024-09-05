@@ -1,14 +1,15 @@
-import React from 'react';
+import { WalletProviderLike as WalletProviderLikeModular } from '@etherspot/modular-sdk';
 import { WalletProviderLike } from '@etherspot/prime-sdk';
-import { WalletProviderLike as WalletProviderLikeModular} from '@etherspot/modular-sdk';
+import React from 'react';
 
 // types
 import { AccountTemplate } from '../types/EtherspotTransactionKit';
 
 // providers
+import EtherspotContextProvider from '../providers/EtherspotContextProvider';
 import EtherspotTransactionKitContextProvider from '../providers/EtherspotTransactionKitContextProvider';
 import ProviderWalletContextProvider from '../providers/ProviderWalletContextProvider';
-import EtherspotContextProvider from '../providers/EtherspotContextProvider';
+
 interface EtherspotTransactionKitProps extends React.PropsWithChildren {
   provider: WalletProviderLike | WalletProviderLikeModular;
   chainId?: number;
@@ -46,21 +47,21 @@ const EtherspotTransactionKit = ({
   }
 
   return (
-  <EtherspotContextProvider
-    provider={provider}
-    chainId={+chainId} // cast to make it less failproof when passed as string, i.e. from env file
-    accountTemplate={accountTemp}
-    dataApiKey={dataApiKey}
-    bundlerApiKey={bundlerApiKey}
-    isModular={accountTemp === 'etherspotModular'}
-  >
-    <EtherspotTransactionKitContextProvider>
-      <ProviderWalletContextProvider>
-        {children}
-      </ProviderWalletContextProvider>
-    </EtherspotTransactionKitContextProvider>
-  </EtherspotContextProvider>
-  )
+    <EtherspotContextProvider
+      provider={provider}
+      chainId={+chainId} // cast to make it less failproof when passed as string, i.e. from env file
+      accountTemplate={accountTemp}
+      dataApiKey={dataApiKey}
+      bundlerApiKey={bundlerApiKey}
+      isModular={accountTemp === 'etherspotModular'}
+    >
+      <EtherspotTransactionKitContextProvider>
+        <ProviderWalletContextProvider>
+          {children}
+        </ProviderWalletContextProvider>
+      </EtherspotTransactionKitContextProvider>
+    </EtherspotContextProvider>
+  );
 };
 
 export default EtherspotTransactionKit;

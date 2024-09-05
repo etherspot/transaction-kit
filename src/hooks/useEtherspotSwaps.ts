@@ -1,10 +1,17 @@
-import { BridgingProvider, Quote, StepTransaction } from '@etherspot/prime-sdk/dist/sdk/data';
+import {
+  BridgingProvider,
+  Quote,
+  StepTransaction,
+} from '@etherspot/prime-sdk/dist/sdk/data';
 import { Route } from '@lifi/types';
 import { BigNumber } from 'ethers';
 import { useMemo } from 'react';
 
 // types
-import { ICrossChainSwapOffers, ISameChainSwapOffers } from '../types/EtherspotTransactionKit';
+import {
+  ICrossChainSwapOffers,
+  ISameChainSwapOffers,
+} from '../types/EtherspotTransactionKit';
 
 // hooks
 import useEtherspot from './useEtherspot';
@@ -22,7 +29,10 @@ interface IEtherspotSwapsHook {
     toChainId?: number,
     fromAccountAddress?: string
   ) => Promise<ISameChainSwapOffers | ICrossChainSwapOffers | undefined>;
-  prepareCrossChainOfferTransactions: (offer: Route, accountAddress?: string) => Promise<StepTransaction[] | undefined>;
+  prepareCrossChainOfferTransactions: (
+    offer: Route,
+    accountAddress?: string
+  ) => Promise<StepTransaction[] | undefined>;
   getQuotes: (
     toAddress: string,
     toChainId: number,
@@ -53,9 +63,10 @@ const useEtherspotSwaps = (chainId?: number): IEtherspotSwapsHook => {
   ): Promise<StepTransaction[] | undefined> => {
     const sdkForChainId = await getSdk(swapsChainId);
 
-    const forAccount = accountAddress ?? (await sdkForChainId.getCounterFactualAddress());
+    const forAccount =
+      accountAddress ?? (await sdkForChainId.getCounterFactualAddress());
     if (!forAccount) {
-      console.warn(`No account address provided!`);
+      console.warn('No account address provided!');
       return [];
     }
 
@@ -68,9 +79,11 @@ const useEtherspotSwaps = (chainId?: number): IEtherspotSwapsHook => {
       return items;
     } catch (e) {
       console.warn(
-        `Sorry, an error occurred whilst trying to fetch cross-chain offer transactions.` + ` Please try again. Error:`,
+        'Sorry, an error occurred whilst trying to fetch cross-chain offer transactions.' +
+          ' Please try again. Error:',
         e
       );
+      return [];
     }
   };
 
@@ -84,10 +97,11 @@ const useEtherspotSwaps = (chainId?: number): IEtherspotSwapsHook => {
   ): Promise<ISameChainSwapOffers | ICrossChainSwapOffers | undefined> => {
     const sdkForChainId = await getSdk(swapsChainId);
 
-    const fromAccount = fromAccountAddress ?? (await sdkForChainId.getCounterFactualAddress());
+    const fromAccount =
+      fromAccountAddress ?? (await sdkForChainId.getCounterFactualAddress());
     if (!fromAccount) {
-      console.warn(`No account address provided!`);
-      return;
+      console.warn('No account address provided!');
+      return undefined;
     }
 
     const dataService = getDataService();
@@ -105,15 +119,15 @@ const useEtherspotSwaps = (chainId?: number): IEtherspotSwapsHook => {
         return { type: 'cross-chain', offers };
       } catch (e) {
         console.warn(
-          `Sorry, an error occurred whilst trying to fetch cross-chain offers.` + ` Please try again. Error:`,
+          'Sorry, an error occurred whilst trying to fetch cross-chain offers.' +
+            ' Please try again. Error:',
           e
         );
       }
-      return;
+      return undefined;
     }
 
     try {
-      // @ts-ignore
       const offers = await dataService.getExchangeOffers({
         fromAmount,
         fromTokenAddress,
@@ -124,9 +138,11 @@ const useEtherspotSwaps = (chainId?: number): IEtherspotSwapsHook => {
       return { type: 'same-chain', offers };
     } catch (e) {
       console.warn(
-        `Sorry, an error occurred whilst trying to fetch same-chain offers.` + ` Please try again. Error:`,
+        'Sorry, an error occurred whilst trying to fetch same-chain offers.' +
+          ' Please try again. Error:',
         e
       );
+      return undefined;
     }
   };
 
@@ -142,10 +158,11 @@ const useEtherspotSwaps = (chainId?: number): IEtherspotSwapsHook => {
   ): Promise<Quote[] | undefined> => {
     const sdkForChainId = await getSdk(swapsChainId);
 
-    const fromAccount = fromAccountAddress ?? (await sdkForChainId.getCounterFactualAddress());
+    const fromAccount =
+      fromAccountAddress ?? (await sdkForChainId.getCounterFactualAddress());
     if (!fromAccount) {
-      console.warn(`No account address provided!`);
-      return;
+      console.warn('No account address provided!');
+      return undefined;
     }
 
     const dataService = getDataService();
@@ -165,7 +182,8 @@ const useEtherspotSwaps = (chainId?: number): IEtherspotSwapsHook => {
       return quotes;
     } catch (e) {
       console.warn(
-        `Sorry, an error occurred whilst trying to fetch cross-chain quotes.` + ` Please try again. Error:`,
+        'Sorry, an error occurred whilst trying to fetch cross-chain quotes.' +
+          ' Please try again. Error:',
         e
       );
       return [];

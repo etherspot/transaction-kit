@@ -1,9 +1,10 @@
+/* eslint-disable react/jsx-no-constructed-context-values */
 import React, { useContext, useEffect, useState } from 'react';
 
 // contexts
-import EtherspotTransactionKitContext from '../contexts/EtherspotTransactionKitContext';
-import EtherspotBatchesContext from '../contexts/EtherspotBatchesContext';
 import EtherspotBatchContext from '../contexts/EtherspotBatchContext';
+import EtherspotBatchesContext from '../contexts/EtherspotBatchesContext';
+import EtherspotTransactionKitContext from '../contexts/EtherspotTransactionKitContext';
 
 // types
 import { IBatch, IBatches } from '../types/EtherspotTransactionKit';
@@ -13,12 +14,12 @@ import { TypePerId } from '../types/Helper';
 import { getObjectSortedByKeys } from '../utils/common';
 
 // hooks
-import useId from '../hooks/useId';
 import useDeepCompare from '../hooks/useDeepCompare';
+import useId from '../hooks/useId';
 
 type EtherspotBatchesProps = IBatches & {
   children?: React.ReactNode;
-}
+};
 
 const EtherspotBatches = (props: EtherspotBatchesProps) => {
   const {
@@ -39,7 +40,9 @@ const EtherspotBatches = (props: EtherspotBatchesProps) => {
   const paymaster = useDeepCompare(paymasterObject);
 
   if (existingBatchesContext !== null) {
-    throw new Error('<EtherspotBatches /> cannot be inside <EtherspotBatches />');
+    throw new Error(
+      '<EtherspotBatches /> cannot be inside <EtherspotBatches />'
+    );
   }
 
   if (existingBatchContext !== null) {
@@ -51,7 +54,7 @@ const EtherspotBatches = (props: EtherspotBatchesProps) => {
   }
 
   useEffect(() => {
-    let groupedBatch: IBatches = {
+    const groupedBatch: IBatches = {
       id: batchesId ?? componentId,
       skip,
       batches: getObjectSortedByKeys(batchesPerId),
@@ -60,27 +63,26 @@ const EtherspotBatches = (props: EtherspotBatchesProps) => {
       paymaster,
     };
 
-    context.setGroupedBatchesPerId((current) => ({ ...current, [componentId]: groupedBatch }));
+    context.setGroupedBatchesPerId((current) => ({
+      ...current,
+      [componentId]: groupedBatch,
+    }));
 
     return () => {
       context.setGroupedBatchesPerId((current) => {
+        // eslint-disable-next-line no-param-reassign
         delete current[componentId];
         return current;
       });
-    }
-  }, [
-    componentId,
-    batchesPerId,
-    skip,
-    batchesId,
-    paymaster,
-  ]);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [componentId, batchesPerId, skip, batchesId, paymaster]);
 
   return (
     <EtherspotBatchesContext.Provider value={{ setBatchesPerId }}>
       {children}
     </EtherspotBatchesContext.Provider>
   );
-}
+};
 
 export default EtherspotBatches;

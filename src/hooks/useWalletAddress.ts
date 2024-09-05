@@ -12,8 +12,13 @@ import useEtherspot from './useEtherspot';
  * @param chainId {number} - Chain ID
  * @returns {string | undefined} - wallet address by its type
  */
-const useWalletAddress = (walletType: IWalletType = 'etherspot', chainId?: number): string | undefined => {
-  const [accountAddress, setAccountAddress] = useState<(string | undefined)>(undefined);
+const useWalletAddress = (
+  walletType: IWalletType = 'etherspot',
+  chainId?: number
+): string | undefined => {
+  const [accountAddress, setAccountAddress] = useState<string | undefined>(
+    undefined
+  );
   const { getSdk, chainId: defaultChainId, provider } = useEtherspot();
 
   const walletAddressChainId = useMemo(() => {
@@ -34,29 +39,40 @@ const useWalletAddress = (walletType: IWalletType = 'etherspot', chainId?: numbe
          * Currently `etherspotWallet` is marked as private on SDK, let's ignore until SDK team fixes it
          * Reference – https://github.com/etherspot/etherspot-prime-sdk/blob/master/src/sdk/sdk.ts#L31
          */
-        // @ts-ignore
-        newAccountAddress = etherspotModularOrPrimeSdk?.etherspotWallet?.accountAddress;
+        newAccountAddress =
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-expect-error
+          etherspotModularOrPrimeSdk?.etherspotWallet?.accountAddress;
       } catch (e) {
-        console.warn(`Unable to get wallet address from SDK state for etherspot type for chainId ID ${walletAddressChainId}.`, e);
+        console.warn(
+          `Unable to get wallet address from SDK state for etherspot type for chainId ID ${walletAddressChainId}.`,
+          e
+        );
       }
 
       // if were unable to get wallet address from SDK state, try to get using getCounterFactualAddress
       if (!newAccountAddress) {
         try {
-          newAccountAddress = await etherspotModularOrPrimeSdk.getCounterFactualAddress();
+          newAccountAddress =
+            await etherspotModularOrPrimeSdk.getCounterFactualAddress();
         } catch (e) {
-          console.warn(`Unable to get wallet address for etherspot type for chainId ID ${walletAddressChainId}.`, e);
+          console.warn(
+            `Unable to get wallet address for etherspot type for chainId ID ${walletAddressChainId}.`,
+            e
+          );
         }
       }
 
       if (!newAccountAddress || !shouldUpdate) return;
 
       setAccountAddress(newAccountAddress);
-    }
+    };
 
     updateAccountAddress();
 
-    return () => { shouldUpdate = false; }
+    return () => {
+      shouldUpdate = false;
+    };
   }, [getSdk, walletAddressChainId]);
 
   return useMemo(() => {
@@ -65,13 +81,15 @@ const useWalletAddress = (walletType: IWalletType = 'etherspot', chainId?: numbe
     }
 
     if (walletType === 'provider') {
-      // @ts-ignore
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-expect-error
       const providerAddress = provider?.address || provider?.accounts?.[0];
       if (providerAddress) return providerAddress;
-      console.warn(`Unable to get wallet address for provider type`);
+      console.warn('Unable to get wallet address for provider type');
     }
 
     return undefined;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accountAddress, walletType]);
 };
 

@@ -1,5 +1,5 @@
-import React, { useContext, useEffect } from 'react';
 import { ethers } from 'ethers';
+import React, { useContext, useEffect } from 'react';
 
 // contexts
 import EtherspotBatchContext from '../contexts/EtherspotBatchContext';
@@ -31,23 +31,35 @@ const EtherspotTransaction = ({
   useEffect(() => {
     let valueBN;
     if (value) {
-      valueBN = typeof value === 'string' && !ethers.BigNumber.isBigNumber(value)
-        ? ethers.utils.parseEther(value)
-        : value;
+      valueBN =
+        typeof value === 'string' && !ethers.BigNumber.isBigNumber(value)
+          ? ethers.utils.parseEther(value)
+          : value;
     }
 
-    const transaction = { id: transactionId ?? componentId, to, data, value: valueBN };
+    const transaction = {
+      id: transactionId ?? componentId,
+      to,
+      data,
+      value: valueBN,
+    };
 
-    context.setTransactionsPerId((current) => ({ ...current, [componentId]: transaction }));
+    context.setTransactionsPerId((current) => ({
+      ...current,
+      [componentId]: transaction,
+    }));
 
     return () => {
       context.setTransactionsPerId((current) => {
+        // eslint-disable-next-line no-param-reassign
         delete current[componentId];
         return current;
       });
-    }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [componentId, to, data, value, transactionId]);
 
+  // eslint-disable-next-line react/jsx-no-useless-fragment
   return <>{children}</>;
 };
 

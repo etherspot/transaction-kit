@@ -1,7 +1,7 @@
-import typescript from '@rollup/plugin-typescript';
-import dts from 'rollup-plugin-dts';
-import dotenv from 'dotenv';
 import replace from '@rollup/plugin-replace';
+import typescript from '@rollup/plugin-typescript';
+import dotenv from 'dotenv';
+import dts from 'rollup-plugin-dts';
 
 dotenv.config();
 
@@ -30,16 +30,17 @@ export default [
         file: packageJson.module,
         format: 'esm',
         sourcemap: true,
-      }
+      },
     ],
     plugins: [
       typescript({
         tsconfig: './tsconfig.json',
-        exclude: ['./example/**', './src/test/**']
+        exclude: ['./example/**', './src/test/**'],
       }),
       replace({
         __ETHERSPOT_DATA_API_KEY__: process.env.ETHERSPOT_DATA_API_KEY ?? '',
-        __ETHERSPOT_BUNDLER_API_KEY__: process.env.ETHERSPOT_BUNDLER_API_KEY ?? '',
+        __ETHERSPOT_BUNDLER_API_KEY__:
+          process.env.ETHERSPOT_BUNDLER_API_KEY ?? '',
         preventAssignment: true,
       }),
     ],

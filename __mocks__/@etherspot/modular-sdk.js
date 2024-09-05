@@ -1,9 +1,12 @@
 import * as EtherspotModular from '@etherspot/modular-sdk';
 import { ethers } from 'ethers';
 
-export const defaultAccountAddressModular = '0x7F30B1960D5556929B03a0339814fE903c55a347';
-export const otherFactoryDefaultAccountAddressModular = '0xe383724e3bDC4753746dEC781809f8CD82010914';
-export const otherAccountAddressModular = '0xAb4C67d8D7B248B2fA6B638C645466065fE8F1F1';
+export const defaultAccountAddressModular =
+  '0x7F30B1960D5556929B03a0339814fE903c55a347';
+export const otherFactoryDefaultAccountAddressModular =
+  '0xe383724e3bDC4753746dEC781809f8CD82010914';
+export const otherAccountAddressModular =
+  '0xAb4C67d8D7B248B2fA6B638C645466065fE8F1F1';
 
 export class ModularSdk {
   sdkChainId;
@@ -78,7 +81,11 @@ export class ModularSdk {
     };
   }
 
-  totalGasEstimated({ callGasLimit, verificationGasLimit, preVerificationGas }) {
+  totalGasEstimated({
+    callGasLimit,
+    verificationGasLimit,
+    preVerificationGas,
+  }) {
     return callGasLimit.add(verificationGasLimit).add(preVerificationGas);
   }
 
@@ -103,7 +110,7 @@ export class ModularSdk {
 
   async generateModuleDeInitData() {
     const deInitData = ethers.utils.defaultAbiCoder.encode(
-      ["address", "bytes"],
+      ['address', 'bytes'],
       ['0x0000000000000000000000000000000000000001', '0x00']
     );
     return deInitData;
@@ -111,15 +118,15 @@ export class ModularSdk {
 
   async installModule(moduleType, module, initData, accountAddress) {
     if (!accountAddress && !defaultAccountAddressModular) {
-      throw new Error('No account address provided!')
+      throw new Error('No account address provided!');
     }
 
     if (!moduleType || !module) {
-      throw new Error('installModule props missing')
+      throw new Error('installModule props missing');
     }
 
     if (module === '0x222') {
-      throw new Error('module is already installed')
+      throw new Error('module is already installed');
     }
 
     return '0x123';
@@ -127,15 +134,15 @@ export class ModularSdk {
 
   async uninstallModule(moduleType, module, deinitData, accountAddress) {
     if (module === '0x222') {
-      throw new Error('module is not installed')
-     }
+      throw new Error('module is not installed');
+    }
 
     if (!accountAddress && !defaultAccountAddressModular) {
-      throw new Error('No account address provided!')
+      throw new Error('No account address provided!');
     }
 
     if (!moduleType || !module || !deinitData) {
-      throw new Error('uninstallModule props missing')
+      throw new Error('uninstallModule props missing');
     }
 
     return '0x456';
@@ -143,21 +150,21 @@ export class ModularSdk {
 
   async getAllModules(pageSize, accountAddress) {
     if (!accountAddress && !defaultAccountAddressModular) {
-      throw new Error('No account address provided!')
+      throw new Error('No account address provided!');
     }
 
     return {
-      validators: ['0x000', '0x111', '0x222']
+      validators: ['0x000', '0x111', '0x222'],
     };
   }
 
   async isModuleInstalled(moduleType, module, accountAddress) {
     if (!accountAddress && !defaultAccountAddressModular) {
-      throw new Error('No account address provided!')
+      throw new Error('No account address provided!');
     }
 
     if (!moduleType || !module) {
-      throw new Error('uninstallModule props missing')
+      throw new Error('uninstallModule props missing');
     }
 
     if (module === '0x111') {

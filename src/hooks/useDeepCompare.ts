@@ -1,5 +1,6 @@
-import { useRef } from 'react';
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import isEqual from 'lodash/isEqual';
+import { useRef } from 'react';
 
 const useDeepCompare = (value: any) => {
   const ref = useRef<any>(value);
@@ -9,6 +10,6 @@ const useDeepCompare = (value: any) => {
   }
 
   return ref.current;
-}
+};
 
 export default useDeepCompare;
