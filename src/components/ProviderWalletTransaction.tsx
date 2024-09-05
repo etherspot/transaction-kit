@@ -1,5 +1,5 @@
-import React, { useContext, useEffect } from 'react';
 import { ethers } from 'ethers';
+import React, { useContext, useEffect } from 'react';
 
 // contexts
 import ProviderWalletContext from '../contexts/ProviderWalletContext';
@@ -44,15 +44,18 @@ const ProviderWalletTransaction = ({
       throw new Error('Multiple <ProviderWalletTransaction /> not allowed');
     }
 
-    return () => { instances--; }
+    return () => {
+      instances--;
+    };
   }, []);
 
   useEffect(() => {
     let valueBN;
     if (value) {
-      valueBN = typeof value === 'string' && !ethers.BigNumber.isBigNumber(value)
-        ? ethers.utils.parseEther(value)
-        : value;
+      valueBN =
+        typeof value === 'string' && !ethers.BigNumber.isBigNumber(value)
+          ? ethers.utils.parseEther(value)
+          : value;
     }
 
     const transaction = {
@@ -64,7 +67,10 @@ const ProviderWalletTransaction = ({
       chainId,
     };
 
-    context.setTransactionById((current) => ({ ...current, [componentId]: transaction }));
+    context.setTransactionById((current) => ({
+      ...current,
+      [componentId]: transaction,
+    }));
 
     return () => {
       context.setTransactionById((current) => {
@@ -72,9 +78,11 @@ const ProviderWalletTransaction = ({
         delete updated[componentId];
         return updated;
       });
-    }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [to, data, value, chainId, componentId, providerWalletAddress]);
 
+  // eslint-disable-next-line react/jsx-no-useless-fragment
   return <>{children}</>;
 };
 

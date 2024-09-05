@@ -1,7 +1,11 @@
 import { createContext, Dispatch, SetStateAction } from 'react';
 
 // types
-import { IBatches, IEstimatedBatches, ISentBatches } from '../types/EtherspotTransactionKit';
+import {
+  IBatches,
+  IEstimatedBatches,
+  ISentBatches,
+} from '../types/EtherspotTransactionKit';
 import { TypePerId } from '../types/Helper';
 
 export interface IEtherspotTransactionKitContext {
@@ -14,10 +18,11 @@ export interface IEtherspotTransactionKitContext {
     isSending: boolean;
     containsSendingError: boolean;
     containsEstimatingError: boolean;
-  },
+  };
   setGroupedBatchesPerId: Dispatch<SetStateAction<TypePerId<IBatches>>>;
 }
 
-const EtherspotTransactionKitContext = createContext<IEtherspotTransactionKitContext | null>(null);
+const EtherspotTransactionKitContext =
+  createContext<IEtherspotTransactionKitContext | null>(null);
 
 export default EtherspotTransactionKitContext;

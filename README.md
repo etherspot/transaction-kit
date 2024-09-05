@@ -11,19 +11,18 @@
    </p>
 </div>
 
---------------
+---
 
->[!IMPORTANT]
->This repo/software is under active development.
+> [!IMPORTANT]
+> This repo/software is under active development.
 >
->[![npm](https://img.shields.io/npm/v/@etherspot/transaction-kit)](https://www.npmjs.com/package/@etherspot/transaction-kit) 
-
+> [![npm](https://img.shields.io/npm/v/@etherspot/transaction-kit)](https://www.npmjs.com/package/@etherspot/transaction-kit)
 
 ## 🧰 TransactionKit
 
 TransactionKit is a React Library that lets developers, no matter how experienced, get going with web3 development with ease.
 
-It simplifies working with Account Abstraction so developers can focus on building a great User Experience and easily interact with their Smart Contracts 
+It simplifies working with Account Abstraction so developers can focus on building a great User Experience and easily interact with their Smart Contracts
 on a [large number of EVM based chains](https://etherspot.fyi/prime-sdk/chains-supported).
 
 ## ⚙ Get started
@@ -34,8 +33,8 @@ You can either get started by installing the packages yourself here:
 npm i @etherspot/transaction-kit
 ```
 
-Or follow our introductory guide on our docs [here](https://etherspot.fyi/transaction-kit/intro) which walk you through 
-cloning down an example repo and setting up a dapp in your own environment. 
+Or follow our introductory guide on our docs [here](https://etherspot.fyi/transaction-kit/intro) which walk you through
+cloning down an example repo and setting up a dapp in your own environment.
 
 ## 📖 Documentation
 

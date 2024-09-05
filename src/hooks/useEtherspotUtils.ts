@@ -1,5 +1,5 @@
-import { ethers } from 'ethers';
 import { isValidEip1271Signature } from '@etherspot/eip1271-verification-util';
+import { ethers } from 'ethers';
 
 // utils
 import { addressesEqual } from '../utils/common';
@@ -23,13 +23,12 @@ interface IEtherspotUtilsHook {
  * @returns {IEtherspotUtilsHook} - utils related to Etherspot and EVM
  */
 const useEtherspotUtils = (): IEtherspotUtilsHook => {
-
   const checksumAddress = (address: string) => {
     if (!ethers.utils.isAddress(address)) {
       throw new Error('Invalid address');
     }
     return ethers.utils.getAddress(address.toLowerCase());
-  }
+  };
 
   const verifyEip1271Message = async (
     address: string,
@@ -37,21 +36,19 @@ const useEtherspotUtils = (): IEtherspotUtilsHook => {
     signature: string,
     rpcUrls: string[]
   ) => {
-    return isValidEip1271Signature(
-      rpcUrls,
-      address,
-      hash,
-      signature
-    );
-  }
+    return isValidEip1271Signature(rpcUrls, address, hash, signature);
+  };
 
   const toBigNumber = (number: string | number, decimals: number = 18) => {
     return ethers.utils.parseUnits(`${number}`, decimals);
-  }
+  };
 
-  const parseBigNumber = (number: ethers.BigNumberish, decimals: number = 18) => {
+  const parseBigNumber = (
+    number: ethers.BigNumberish,
+    decimals: number = 18
+  ) => {
     return ethers.utils.formatUnits(number, decimals);
-  }
+  };
 
   const isZeroAddress = (address: string) => {
     const zeroAddresses = [
@@ -62,8 +59,10 @@ const useEtherspotUtils = (): IEtherspotUtilsHook => {
       '0xDDdDddDdDdddDDddDDddDDDDdDdDDdDDdDDDDDDd',
       '0xFFfFfFffFFfffFFfFFfFFFFFffFFFffffFfFFFfF',
     ];
-    return zeroAddresses.some((zeroAddress) => addressesEqual(zeroAddress, address));
-  }
+    return zeroAddresses.some((zeroAddress) =>
+      addressesEqual(zeroAddress, address)
+    );
+  };
 
   return {
     checksumAddress,

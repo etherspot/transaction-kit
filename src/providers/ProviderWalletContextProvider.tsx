@@ -1,3 +1,4 @@
+/* eslint-disable react/jsx-no-constructed-context-values */
 import React, { useMemo, useState } from 'react';
 
 // contexts
@@ -20,11 +21,18 @@ interface ProviderWalletContextProviderProps {
   children?: React.ReactNode;
 }
 
-const ProviderWalletContextProvider = ({ children }: ProviderWalletContextProviderProps) => {
-  const [transactionById, setTransactionById] = useState<{ [id: string]: IProviderWalletTransaction | undefined }>({});
+const ProviderWalletContextProvider = ({
+  children,
+}: ProviderWalletContextProviderProps) => {
+  const [transactionById, setTransactionById] = useState<{
+    [id: string]: IProviderWalletTransaction | undefined;
+  }>({});
   const { provider, chainId } = useEtherspot();
 
-  const transaction = useMemo(() => Object.values(transactionById)[0], [transactionById]);
+  const transaction = useMemo(
+    () => Object.values(transactionById)[0],
+    [transactionById]
+  );
 
   const estimate = async (): Promise<IProviderWalletTransactionEstimated> => {
     if (!provider) {
@@ -35,57 +43,72 @@ const ProviderWalletContextProvider = ({ children }: ProviderWalletContextProvid
       return { errorMessage: 'No transaction' };
     }
 
-    const result = await switchWalletProviderToChain(transaction.chainId ?? chainId);
+    const result = await switchWalletProviderToChain(
+      transaction.chainId ?? chainId
+    );
     if (result?.errorMessage) {
       return { errorMessage: result.errorMessage };
     }
 
     try {
-      // @ts-ignore
-      const gasCost = await web3Provider.sendRequest('eth_estimateGas', [transaction]);
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-expect-error
+      const gasCost = await web3Provider.sendRequest('eth_estimateGas', [
+        transaction,
+      ]);
       return { gasCost };
     } catch (e) {
       console.warn('Failed to estimate gas', transaction, e);
-      const errorMessage = e instanceof Error && e?.message ? e.message : 'Unknown reason';
-      return { errorMessage }
+      const errorMessage =
+        e instanceof Error && e?.message ? e.message : 'Unknown reason';
+      return { errorMessage };
     }
-  }
+  };
 
   const send = async (): Promise<IProviderWalletTransactionSent> => {
     if (!transaction) {
       return { errorMessage: 'No transaction' };
     }
 
-    const result = await switchWalletProviderToChain(transaction.chainId ?? chainId);
+    const result = await switchWalletProviderToChain(
+      transaction.chainId ?? chainId
+    );
     if (result?.errorMessage) {
       return { errorMessage: result.errorMessage };
     }
 
     try {
-      // @ts-ignore
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-expect-error
       const signer = web3Provider.getSigner();
-      const { hash: transactionHash } = await signer.sendTransaction(transaction);
+      const { hash: transactionHash } =
+        await signer.sendTransaction(transaction);
       return { transactionHash };
     } catch (e) {
       console.warn('Failed to send transaction', transaction, e);
-      const errorMessage = e instanceof Error && e?.message ? e.message : 'Unknown reason';
-      return { errorMessage }
+      const errorMessage =
+        e instanceof Error && e?.message ? e.message : 'Unknown reason';
+      return { errorMessage };
     }
-  }
+  };
 
-  const contextData = useMemo(() => ({
-    transaction,
-    estimate,
-    send,
-  }), [
-    transaction,
-  ]);
+  const contextData = useMemo(
+    () => ({
+      transaction,
+      estimate,
+      send,
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [transaction]
+  );
 
   return (
-    <ProviderWalletContext.Provider value={{ data: contextData, setTransactionById }}>
+    <ProviderWalletContext.Provider
+      value={{ data: contextData, setTransactionById }}
+    >
       {children}
     </ProviderWalletContext.Provider>
   );
-}
+};
 
 export default ProviderWalletContextProvider;

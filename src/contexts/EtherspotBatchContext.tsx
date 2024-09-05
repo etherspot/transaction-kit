@@ -9,6 +9,8 @@ interface IEtherspotBatchContext {
   chainId?: number;
 }
 
-const EtherspotBatchContext = createContext<IEtherspotBatchContext | null>(null);
+const EtherspotBatchContext = createContext<IEtherspotBatchContext | null>(
+  null
+);
 
 export default EtherspotBatchContext;

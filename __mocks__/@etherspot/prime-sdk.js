@@ -1,8 +1,10 @@
 import * as EtherspotPrime from '@etherspot/prime-sdk';
 import { ethers } from 'ethers';
 
-export const defaultAccountAddress = '0x7F30B1960D5556929B03a0339814fE903c55a347';
-export const otherFactoryDefaultAccountAddress = '0xe383724e3bDC4753746dEC781809f8CD82010914';
+export const defaultAccountAddress =
+  '0x7F30B1960D5556929B03a0339814fE903c55a347';
+export const otherFactoryDefaultAccountAddress =
+  '0xe383724e3bDC4753746dEC781809f8CD82010914';
 export const otherAccountAddress = '0xAb4C67d8D7B248B2fA6B638C645466065fE8F1F1';
 
 export class PrimeSdk {
@@ -78,7 +80,11 @@ export class PrimeSdk {
     };
   }
 
-  totalGasEstimated({ callGasLimit, verificationGasLimit, preVerificationGas }) {
+  totalGasEstimated({
+    callGasLimit,
+    verificationGasLimit,
+    preVerificationGas,
+  }) {
     return callGasLimit.add(verificationGasLimit).add(preVerificationGas);
   }
 
@@ -103,65 +109,91 @@ export class PrimeSdk {
 }
 
 export class DataUtils {
-  constructor() { }
+  constructor() {}
 
-  getQuotes({ fromAddress, toAddress, fromChainId, toChainId, fromToken, fromAmount, slippage }) {
-    if (!fromAddress || !toAddress || !fromChainId || !toChainId || !fromToken || !fromAmount || !slippage) {
+  getQuotes({
+    fromAddress,
+    toAddress,
+    fromChainId,
+    toChainId,
+    fromToken,
+    fromAmount,
+    slippage,
+  }) {
+    if (
+      !fromAddress ||
+      !toAddress ||
+      !fromChainId ||
+      !toChainId ||
+      !fromToken ||
+      !fromAmount ||
+      !slippage
+    ) {
       return 'getQuotes: missing required props';
     }
 
-    if (fromAddress === '0x111' && toAddress === '0x222' && fromChainId === 1 && toChainId === 56 && fromToken == '0x123456' && fromAmount === '0x10000000000' && slippage === 1) {
+    if (
+      fromAddress === '0x111' &&
+      toAddress === '0x222' &&
+      fromChainId === 1 &&
+      toChainId === 56 &&
+      fromToken == '0x123456' &&
+      fromAmount === '0x10000000000' &&
+      slippage === 1
+    ) {
       return {
         transactions: [
           {
-            data: "0x111222333",
-            to: "0x123",
-            value: "0x00"
+            data: '0x111222333',
+            to: '0x123',
+            value: '0x00',
           },
           {
-            value: "0xb2eed2c27ce6",
-            data: "0x444555666",
-            to: "0x456",
-            chainId: 1
-          }
-        ]
-      }
+            value: '0xb2eed2c27ce6',
+            data: '0x444555666',
+            to: '0x456',
+            chainId: 1,
+          },
+        ],
+      };
     }
 
     return { transactions: [] };
   }
 
   getSupportedAssets({ chainId, provider: bridgingProvider }) {
-    const allSupportedAssets = [{
-      address: "0x123",
-      chainId: 1,
-      name: "USDC",
-      symbol: "USDC",
-    },
-    {
-      address: "0x456",
-      chainId: 1,
-      name: "USDC",
-      symbol: "USDC",
-    },
-    {
-      address: "0x789",
-      chainId: 137,
-      name: "USDC",
-      symbol: "USDC",
-    },
+    const allSupportedAssets = [
+      {
+        address: '0x123',
+        chainId: 1,
+        name: 'USDC',
+        symbol: 'USDC',
+      },
+      {
+        address: '0x456',
+        chainId: 1,
+        name: 'USDC',
+        symbol: 'USDC',
+      },
+      {
+        address: '0x789',
+        chainId: 137,
+        name: 'USDC',
+        symbol: 'USDC',
+      },
     ];
 
     if (!chainId) {
-      return { tokens: allSupportedAssets }
+      return { tokens: allSupportedAssets };
     }
 
-    if (allSupportedAssets.some(asset => asset.chainId === chainId)) {
-      return { tokens: allSupportedAssets.filter((asset) => asset.chainId === chainId) }
+    if (allSupportedAssets.some((asset) => asset.chainId === chainId)) {
+      return {
+        tokens: allSupportedAssets.filter((asset) => asset.chainId === chainId),
+      };
     }
 
-    return { tokens: [] }
-
+    return { tokens: [] };
   }
 
   getAccountBalances({ chainId, account }) {
@@ -169,8 +201,16 @@ export class DataUtils {
     const tokenBalance = ethers.utils.parseEther('420');
     const nativeAssetBalance = ethers.utils.parseEther('0');
 
-    const token = { token: '0x', balance: tokenBalance, superBalance: tokenBalance };
-    const nativeAsset = { token: null, balance: nativeAssetBalance, superBalance: nativeAssetBalance };
+    const token = {
+      token: '0x',
+      balance: tokenBalance,
+      superBalance: tokenBalance,
+    };
+    const nativeAsset = {
+      token: null,
+      balance: nativeAssetBalance,
+      superBalance: nativeAssetBalance,
+    };
 
     if (chainId !== 1) {
       return { items: [nativeAsset] };
@@ -181,7 +221,12 @@ export class DataUtils {
     }
 
     if (account === otherAccountAddress) {
-      return { items: [nativeAsset, { ...token, balance: ethers.utils.parseEther('69') }] };
+      return {
+        items: [
+          nativeAsset,
+          { ...token, balance: ethers.utils.parseEther('69') },
+        ],
+      };
     }
 
     return { items: [] };
@@ -210,7 +255,7 @@ export class DataUtils {
 
   getTransactionStatus({ fromChainId, toChainId, transactionHash, provider }) {
     if (!fromChainId || !toChainId || !transactionHash) {
-      return 'getTransactionStatus: missing required props'
+      return 'getTransactionStatus: missing required props';
     }
 
     if (fromChainId === 1 && toChainId === 137 && transactionHash === '0x123') {
@@ -232,8 +277,16 @@ export class DataUtils {
 
   getNftList({ account, chainId }) {
     const accountNfts = [
-      { contractName: 'Collection Alpha', contractAddress: '0x2', items: [{ tokenId: 420 }] },
-      { contractName: 'Collection Beta', contractAddress: '0x1', items: [{ tokenId: 6 }, { tokenId: 9 }] },
+      {
+        contractName: 'Collection Alpha',
+        contractAddress: '0x2',
+        items: [{ tokenId: 420 }],
+      },
+      {
+        contractName: 'Collection Beta',
+        contractAddress: '0x1',
+        items: [{ tokenId: 6 }, { tokenId: 9 }],
+      },
     ];
 
     if (chainId !== 1) {
@@ -245,22 +298,49 @@ export class DataUtils {
     }
 
     if (account === otherAccountAddress) {
-      return { items: [{ ...accountNfts[0], contractName: 'Collection Gama' }] };
+      return {
+        items: [{ ...accountNfts[0], contractName: 'Collection Gama' }],
+      };
     }
 
     return { items: [] };
   }
 
   getTokenListTokens({ name, chainId }) {
-    const token1 = { address: '0x1', chainId, name: 'tk1', symbol: 'TK1', decimals: 18, logoURI: '' };
-    const token2 = { address: '0x2', chainId, name: 'tk2', symbol: 'TK2', decimals: 18, logoURI: '' };
-    const token3 = { address: '0x3', chainId, name: 'tk3', symbol: 'TK3', decimals: 18, logoURI: '' };
+    const token1 = {
+      address: '0x1',
+      chainId,
+      name: 'tk1',
+      symbol: 'TK1',
+      decimals: 18,
+      logoURI: '',
+    };
+    const token2 = {
+      address: '0x2',
+      chainId,
+      name: 'tk2',
+      symbol: 'TK2',
+      decimals: 18,
+      logoURI: '',
+    };
+    const token3 = {
+      address: '0x3',
+      chainId,
+      name: 'tk3',
+      symbol: 'TK3',
+      decimals: 18,
+      logoURI: '',
+    };
 
     return chainId === 1 ? [token1, token2, token3] : [token1];
   }
 
   getExchangeOffers({ fromTokenAddress, toTokenAddress, fromChainId }) {
-    if (fromChainId !== 1 || fromTokenAddress !== '0x111' || toTokenAddress !== '0x222') {
+    if (
+      fromChainId !== 1 ||
+      fromTokenAddress !== '0x111' ||
+      toTokenAddress !== '0x222'
+    ) {
       return [];
     }
 
@@ -279,8 +359,19 @@ export class DataUtils {
     return [offer1, offer2];
   }
 
-  getAdvanceRoutesLiFi({ fromAmount, fromChainId, toChainId, fromTokenAddress, toTokenAddress }) {
-    if (fromChainId !== 1 || toChainId !== 137 || fromTokenAddress !== '0x111' || toTokenAddress !== '0x222') {
+  getAdvanceRoutesLiFi({
+    fromAmount,
+    fromChainId,
+    toChainId,
+    fromTokenAddress,
+    toTokenAddress,
+  }) {
+    if (
+      fromChainId !== 1 ||
+      toChainId !== 137 ||
+      fromTokenAddress !== '0x111' ||
+      toTokenAddress !== '0x222'
+    ) {
       return { items: [] };
     }
 

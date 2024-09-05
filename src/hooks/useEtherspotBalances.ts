@@ -5,7 +5,10 @@ import { useMemo } from 'react';
 import useEtherspot from './useEtherspot';
 
 interface IEtherspotBalancesHook {
-  getAccountBalances: (accountAddress?: string, chainId?: number) => Promise<AccountBalance[]>;
+  getAccountBalances: (
+    accountAddress?: string,
+    chainId?: number
+  ) => Promise<AccountBalance[]>;
 }
 
 /**
@@ -23,13 +26,14 @@ const useEtherspotBalances = (chainId?: number): IEtherspotBalancesHook => {
 
   const getAccountBalances = async (
     accountAddress?: string,
-    balancesChainId: number = defaultChainId,
+    balancesChainId: number = defaultChainId
   ) => {
     const sdkForChainId = await getSdk(balancesChainId);
 
-    const balancesForAccount = accountAddress ?? await sdkForChainId.getCounterFactualAddress();
+    const balancesForAccount =
+      accountAddress ?? (await sdkForChainId.getCounterFactualAddress());
     if (!balancesForAccount) {
-      console.warn(`No account address provided!`);
+      console.warn('No account address provided!');
       return [];
     }
 
@@ -43,14 +47,14 @@ const useEtherspotBalances = (chainId?: number): IEtherspotBalancesHook => {
       return items;
     } catch (e) {
       console.warn(
-        `Sorry, an error occurred whilst trying to fetch the balances`
-        + ` for ${balancesForAccount}. Please try again. Error:`,
-        e,
+        'Sorry, an error occurred whilst trying to fetch the balances' +
+          ` for ${balancesForAccount}. Please try again. Error:`,
+        e
       );
     }
 
     return [];
-  }
+  };
 
   return { getAccountBalances };
 };

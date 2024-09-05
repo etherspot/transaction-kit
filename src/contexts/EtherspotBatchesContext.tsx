@@ -8,6 +8,8 @@ interface IEtherspotBatchesContext {
   setBatchesPerId: Dispatch<SetStateAction<TypePerId<IBatch>>>;
 }
 
-const EtherspotBatchesContext = createContext<IEtherspotBatchesContext | null>(null);
+const EtherspotBatchesContext = createContext<IEtherspotBatchesContext | null>(
+  null
+);
 
 export default EtherspotBatchesContext;

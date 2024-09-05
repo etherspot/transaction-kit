@@ -1,10 +1,10 @@
-import { Fragment, JsonFragment } from '@ethersproject/abi';
-import { BigNumber, BigNumberish, BytesLike } from 'ethers';
-import { Route } from '@lifi/types';
+import { PaymasterApi as PaymasterApiModular } from '@etherspot/modular-sdk';
 import { PaymasterApi } from '@etherspot/prime-sdk';
 import { ExchangeOffer } from '@etherspot/prime-sdk/dist/sdk/data';
 import { TransactionStatuses } from '@etherspot/prime-sdk/dist/sdk/data/constants';
-import { PaymasterApi as PaymasterApiModular } from '@etherspot/modular-sdk';
+import { Fragment, JsonFragment } from '@ethersproject/abi';
+import { Route } from '@lifi/types';
+import { BigNumber, BigNumberish, BytesLike } from 'ethers';
 
 export interface ITransaction {
   id?: string;
@@ -44,16 +44,16 @@ export interface IBatches {
   onEstimated?: (estimated: EstimatedBatch[]) => void;
   onSent?: (sent: SentBatch[]) => void;
   skip?: boolean;
-  paymaster?: PaymasterApi | PaymasterApiModular,
+  paymaster?: PaymasterApi | PaymasterApiModular;
 }
 
 export type IEstimatedBatches = IBatches & {
   estimatedBatches: EstimatedBatch[];
-}
+};
 
 export type ISentBatches = IEstimatedBatches & {
   sentBatches: SentBatch[];
-}
+};
 
 export interface IEtherspotContractTransaction {
   id?: string;
@@ -82,12 +82,12 @@ export interface IEtherspotApprovalTransaction {
 
 export interface ISameChainSwapOffers {
   type: 'same-chain';
-  offers: ExchangeOffer[],
+  offers: ExchangeOffer[];
 }
 
 export interface ICrossChainSwapOffers {
   type: 'cross-chain';
-  offers: Route[],
+  offers: Route[];
 }
 
 export interface IProviderWalletTransactionEstimated {
@@ -183,13 +183,18 @@ export interface UserOpTransaction {
   nftTransfers?: EtherspotNftTransfersEntity[];
 }
 
-export type AccountTemplate = 'etherspot' | 'etherspotModular' | 'zeroDev' | 'simpleAccount';
+export type AccountTemplate =
+  | 'etherspot'
+  | 'etherspotModular'
+  | 'zeroDev'
+  | 'simpleAccount';
 
+// eslint-disable-next-line @typescript-eslint/naming-convention
 export enum MODULE_TYPE {
-  VALIDATOR = "0x01",
-  EXECUTOR = "0x02",
-  FALLBACK = "0x03",
-  HOOK = "0x04"
+  VALIDATOR = '0x01',
+  EXECUTOR = '0x02',
+  FALLBACK = '0x03',
+  HOOK = '0x04',
 }
 
 export type ModuleInfo = {

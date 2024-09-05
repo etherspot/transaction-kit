@@ -1,12 +1,19 @@
+import {
+  BridgingProvider,
+  Token,
+  TokenListToken,
+} from '@etherspot/prime-sdk/dist/sdk/data';
 import { useMemo } from 'react';
-import { BridgingProvider, Token, TokenListToken } from '@etherspot/prime-sdk/dist/sdk/data';
 
 // hooks
 import useEtherspot from './useEtherspot';
 
 interface IEtherspotAssetsHook {
   getAssets: (chainId?: number, name?: string) => Promise<TokenListToken[]>;
-  getSupportedAssets: (chainId?: number, bridgingProvider?: BridgingProvider) => Promise<Token[]>
+  getSupportedAssets: (
+    chainId?: number,
+    bridgingProvider?: BridgingProvider
+  ) => Promise<Token[]>;
 }
 
 /**
@@ -23,12 +30,12 @@ const useEtherspotAssets = (chainId?: number): IEtherspotAssetsHook => {
   }, [chainId, etherspotChainId]);
 
   const getAssets = async (
-    chainId?: number,
-    name?: string,
+    assetBlockchainId?: number,
+    name?: string
   ): Promise<TokenListToken[]> => {
     let assets: TokenListToken[] = [];
 
-    const assetsChainId = chainId ?? defaultChainId;
+    const assetsChainId = assetBlockchainId ?? defaultChainId;
 
     try {
       const dataService = getDataService();
@@ -38,36 +45,42 @@ const useEtherspotAssets = (chainId?: number): IEtherspotAssetsHook => {
       });
     } catch (e) {
       console.warn(
-        `Sorry, an error occurred whilst trying to fetch Etherspot assets.`
-        + ` Please try again. Error:`,
-        e,
+        'Sorry, an error occurred whilst trying to fetch Etherspot assets.' +
+          ' Please try again. Error:',
+        e
       );
     }
 
     return assets;
   };
 
-  const getSupportedAssets = async (chainId?: number, bridgingProvider?: BridgingProvider): Promise<Token[]> => {
+  const getSupportedAssets = async (
+    supportedAssetBlockchainId?: number,
+    bridgingProvider?: BridgingProvider
+  ): Promise<Token[]> => {
     let supportedAssets: Token[] = [];
 
     try {
       const dataService = getDataService();
-      supportedAssets = await dataService.getSupportedAssets({ chainId, provider: bridgingProvider });
+      supportedAssets = await dataService.getSupportedAssets({
+        chainId: supportedAssetBlockchainId,
+        provider: bridgingProvider,
+      });
     } catch (e) {
       console.warn(
-        `Sorry, an error occurred whilst trying to fetch supported Etherspot assets.`
-        + ` Please try again. Error:`,
-        e,
+        'Sorry, an error occurred whilst trying to fetch supported Etherspot assets.' +
+          ' Please try again. Error:',
+        e
       );
     }
 
     return supportedAssets;
   };
 
-  return ({
+  return {
     getAssets,
     getSupportedAssets,
-  });
+  };
 };
 
 export default useEtherspotAssets;
