@@ -2,7 +2,7 @@ import {
   BridgingProvider,
   Quote,
   StepTransaction,
-} from '@etherspot/prime-sdk/dist/sdk/data';
+} from '@etherspot/data-utils/dist/data';
 import { Route } from '@lifi/types';
 import { BigNumber } from 'ethers';
 import { useMemo } from 'react';
@@ -179,7 +179,7 @@ const useEtherspotSwaps = (chainId?: number): IEtherspotSwapsHook => {
         provider,
       });
 
-      return quotes;
+      return quotes.transactions;
     } catch (e) {
       console.warn(
         'Sorry, an error occurred whilst trying to fetch cross-chain quotes.' +

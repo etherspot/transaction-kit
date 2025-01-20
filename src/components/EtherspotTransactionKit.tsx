@@ -1,5 +1,4 @@
-import { WalletProviderLike as WalletProviderLikeModular } from '@etherspot/modular-sdk';
-import { WalletProviderLike } from '@etherspot/prime-sdk';
+import { WalletProviderLike } from '@etherspot/modular-sdk/dist/cjs/sdk/wallet/providers/interfaces';
 import React from 'react';
 
 // types
@@ -11,7 +10,7 @@ import EtherspotTransactionKitContextProvider from '../providers/EtherspotTransa
 import ProviderWalletContextProvider from '../providers/ProviderWalletContextProvider';
 
 interface EtherspotTransactionKitProps extends React.PropsWithChildren {
-  provider: WalletProviderLike | WalletProviderLikeModular;
+  provider: WalletProviderLike;
   chainId?: number;
   accountTemplate?: AccountTemplate;
   dataApiKey?: string;

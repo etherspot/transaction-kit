@@ -89,9 +89,11 @@
     "node_modules/",
     "build/",
     "__tests__/",
+    "__mocks__/",
     "jest.config.js",
     "babel.config.js",
-    "rollup.config.js"
+    "rollup.config.js",
+    "dist"
   ],
   "settings": {
     "import/resolver": {

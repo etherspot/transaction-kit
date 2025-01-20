@@ -2,7 +2,7 @@ import {
   BridgingProvider,
   Token,
   TokenListToken,
-} from '@etherspot/prime-sdk/dist/sdk/data';
+} from '@etherspot/data-utils/dist/data';
 import { useMemo } from 'react';
 
 // hooks

@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { ethers } from 'ethers';
-import sortBy from 'lodash/sortBy';
+import { sortBy } from 'lodash';
+import { Chain, toHex } from 'viem';
+import { base, gnosis, mainnet, polygon } from 'viem/chains';
 
 // types
 import { TypePerId } from '../types/Helper';
@@ -38,11 +39,26 @@ export const switchWalletProviderToChain = async (
   try {
     await window.ethereum.request({
       method: 'wallet_switchEthereumChain',
-      params: [{ chainId: ethers.utils.hexValue(chainId) }], // chainId must be in hex
+      params: [{ chainId: toHex(chainId) }], // chainId must be in hex
     });
   } catch (e) {
     console.warn('Failed to switch chain', e);
   }
 
   return { errorMessage: 'Failed to switch chain!' };
+};
+
+export const getNetworkViem = (chainId: number): Chain => {
+  switch (chainId) {
+    case 1:
+      return mainnet;
+    case 137:
+      return polygon;
+    case 100:
+      return gnosis;
+    case 8453:
+      return base;
+    default:
+      return mainnet;
+  }
 };

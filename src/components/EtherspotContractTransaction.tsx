@@ -1,5 +1,6 @@
-import { ethers } from 'ethers';
+import { BigNumber } from 'ethers';
 import React, { useContext, useEffect } from 'react';
+import { encodeFunctionData, parseEther } from 'viem';
 
 // contexts
 import EtherspotBatchContext from '../contexts/EtherspotBatchContext';
@@ -37,26 +38,13 @@ const EtherspotContractTransaction = ({
     throw new Error('No parent <EtherspotBatch />');
   }
 
-  let contractInterface;
-  try {
-    contractInterface = new ethers.utils.Interface(abi);
-  } catch (e) {
-    if (e instanceof Error && e?.message) {
-      throw new Error(
-        `Failed to build contract interface from provided ABI, please check ABI formatting: ${e.message}`
-      );
-    }
-  }
-
-  if (!contractInterface) {
-    throw new Error(
-      'Failed to build contract interface from provided ABI, please check ABI formatting.'
-    );
-  }
-
   let data: string | undefined;
   try {
-    data = contractInterface.encodeFunctionData(methodName, params);
+    data = encodeFunctionData({
+      abi: [abi],
+      functionName: methodName,
+      args: params,
+    });
   } catch (e) {
     if (e instanceof Error && e?.message) {
       throw new Error(
@@ -75,8 +63,8 @@ const EtherspotContractTransaction = ({
     let valueBN;
     if (value) {
       valueBN =
-        typeof value === 'string' && !ethers.BigNumber.isBigNumber(value)
-          ? ethers.utils.parseEther(value)
+        typeof value === 'string' && !BigNumber.isBigNumber(value)
+          ? parseEther(value)
           : value;
     }
 

@@ -1,5 +1,6 @@
-import { ethers } from 'ethers';
+import { BigNumber } from 'ethers';
 import React, { useContext, useEffect } from 'react';
+import { parseEther } from 'viem';
 
 // contexts
 import EtherspotBatchContext from '../contexts/EtherspotBatchContext';
@@ -32,8 +33,8 @@ const EtherspotTransaction = ({
     let valueBN;
     if (value) {
       valueBN =
-        typeof value === 'string' && !ethers.BigNumber.isBigNumber(value)
-          ? ethers.utils.parseEther(value)
+        typeof value === 'string' && !BigNumber.isBigNumber(value)
+          ? parseEther(value)
           : value;
     }
 

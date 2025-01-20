@@ -1,7 +1,8 @@
-import { PaymasterApi as PaymasterApiModular } from '@etherspot/modular-sdk';
-import { PaymasterApi } from '@etherspot/prime-sdk';
-import { ExchangeOffer } from '@etherspot/prime-sdk/dist/sdk/data';
-import { TransactionStatuses } from '@etherspot/prime-sdk/dist/sdk/data/constants';
+import {
+  ExchangeOffer,
+  TransactionStatuses,
+} from '@etherspot/data-utils/dist/data';
+import { PaymasterApi } from '@etherspot/modular-sdk';
 import { Fragment, JsonFragment } from '@ethersproject/abi';
 import { Route } from '@lifi/types';
 import { BigNumber, BigNumberish, BytesLike } from 'ethers';
@@ -44,7 +45,7 @@ export interface IBatches {
   onEstimated?: (estimated: EstimatedBatch[]) => void;
   onSent?: (sent: SentBatch[]) => void;
   skip?: boolean;
-  paymaster?: PaymasterApi | PaymasterApiModular;
+  paymaster?: PaymasterApi;
 }
 
 export type IEstimatedBatches = IBatches & {

@@ -1,5 +1,12 @@
 import { isValidEip1271Signature } from '@etherspot/eip1271-verification-util';
-import { ethers } from 'ethers';
+import { BigNumber, BigNumberish } from 'ethers';
+import {
+  formatUnits,
+  checksumAddress as getAddress,
+  isAddress,
+  parseUnits,
+  zeroAddress as zeroAddressConstant,
+} from 'viem';
 
 // utils
 import { addressesEqual } from '../utils/common';
@@ -12,8 +19,8 @@ interface IEtherspotUtilsHook {
     signature: string,
     rpcUrls: string[]
   ) => Promise<boolean>;
-  toBigNumber: (number: string | number) => ethers.BigNumber;
-  parseBigNumber: (number: ethers.BigNumberish) => string;
+  toBigNumber: (number: string | number) => BigNumber;
+  parseBigNumber: (number: BigNumberish) => string;
   isZeroAddress: (address: string) => boolean;
   addressesEqual: (address1: string, address2: string) => boolean;
 }
@@ -24,10 +31,10 @@ interface IEtherspotUtilsHook {
  */
 const useEtherspotUtils = (): IEtherspotUtilsHook => {
   const checksumAddress = (address: string) => {
-    if (!ethers.utils.isAddress(address)) {
+    if (!isAddress(address)) {
       throw new Error('Invalid address');
     }
-    return ethers.utils.getAddress(address.toLowerCase());
+    return getAddress(address.toLowerCase() as `0x${string}`);
   };
 
   const verifyEip1271Message = async (
@@ -40,19 +47,16 @@ const useEtherspotUtils = (): IEtherspotUtilsHook => {
   };
 
   const toBigNumber = (number: string | number, decimals: number = 18) => {
-    return ethers.utils.parseUnits(`${number}`, decimals);
+    return BigNumber.from(parseUnits(`${number}`, decimals));
   };
 
-  const parseBigNumber = (
-    number: ethers.BigNumberish,
-    decimals: number = 18
-  ) => {
-    return ethers.utils.formatUnits(number, decimals);
+  const parseBigNumber = (number: BigNumberish, decimals: number = 18) => {
+    return formatUnits(BigNumber.from(number).toBigInt(), decimals);
   };
 
   const isZeroAddress = (address: string) => {
     const zeroAddresses = [
-      ethers.constants.AddressZero,
+      zeroAddressConstant,
       '0x000000000000000000000000000000000000dEaD',
       '0xdeaDDeADDEaDdeaDdEAddEADDEAdDeadDEADDEaD',
       '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',

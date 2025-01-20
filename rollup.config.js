@@ -9,17 +9,22 @@ const packageJson = require('./package.json');
 
 const external = [
   'etherspot',
-  '@etherspot/prime-sdk',
   '@etherspot/modular-sdk',
   'ethers',
   'react',
   'buffer',
   'lodash',
+  'viem',
+  '@etherspot/eip1271-verification-util',
+  'viem/chains',
+  '@etherspot/data-utils',
 ];
 
 export default [
   {
     input: 'src/index.ts',
+    // makeAbsoluteExternalsRelative: false,
+    // preserveEntrySignatures: 'strict',
     output: [
       {
         file: packageJson.main,
@@ -34,14 +39,16 @@ export default [
     ],
     plugins: [
       typescript({
-        tsconfig: './tsconfig.json',
-        exclude: ['./example/**', './src/test/**'],
+        tsconfig: 'tsconfig.json',
+        exclude: ['example/**', 'src/test/**'],
       }),
       replace({
-        __ETHERSPOT_DATA_API_KEY__: process.env.ETHERSPOT_DATA_API_KEY ?? '',
-        __ETHERSPOT_BUNDLER_API_KEY__:
-          process.env.ETHERSPOT_BUNDLER_API_KEY ?? '',
         preventAssignment: true,
+        values: {
+          __ETHERSPOT_DATA_API_KEY__: process.env.ETHERSPOT_DATA_API_KEY ?? '',
+          __ETHERSPOT_BUNDLER_API_KEY__:
+            process.env.ETHERSPOT_BUNDLER_API_KEY ?? '',
+        },
       }),
     ],
     external,
@@ -53,7 +60,7 @@ export default [
   {
     input: 'dist/esm/index.d.ts',
     output: [{ file: 'dist/index.d.ts', format: 'esm' }],
-    plugins: [dts()],
+    plugins: [dts.default()],
     external,
     watch: {
       clearScreen: false,

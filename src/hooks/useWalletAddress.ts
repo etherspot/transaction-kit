@@ -30,7 +30,7 @@ const useWalletAddress = (
     let shouldUpdate = true;
 
     const updateAccountAddress = async () => {
-      const etherspotModularOrPrimeSdk = await getSdk(walletAddressChainId);
+      const etherspotModulaSdk = await getSdk(walletAddressChainId);
 
       let newAccountAddress;
 
@@ -42,7 +42,7 @@ const useWalletAddress = (
         newAccountAddress =
           // eslint-disable-next-line @typescript-eslint/ban-ts-comment
           // @ts-expect-error
-          etherspotModularOrPrimeSdk?.etherspotWallet?.accountAddress;
+          etherspotModulaSdk?.etherspotWallet?.accountAddress;
       } catch (e) {
         console.warn(
           `Unable to get wallet address from SDK state for etherspot type for chainId ID ${walletAddressChainId}.`,
@@ -54,7 +54,7 @@ const useWalletAddress = (
       if (!newAccountAddress) {
         try {
           newAccountAddress =
-            await etherspotModularOrPrimeSdk.getCounterFactualAddress();
+            await etherspotModulaSdk.getCounterFactualAddress();
         } catch (e) {
           console.warn(
             `Unable to get wallet address for etherspot type for chainId ID ${walletAddressChainId}.`,
