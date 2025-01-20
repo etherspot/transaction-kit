@@ -1,3 +1,4 @@
+import { AccountBalances } from '@etherspot/data-utils/dist/data';
 import {
   EstimatedBatch,
   EtherspotBatch,
@@ -9,7 +10,6 @@ import {
   ModuleInfo,
   SentBatch,
   useEtherspot,
-  useEtherspotAssets,
   useEtherspotModules,
   useEtherspotTransactions,
   useWalletAddress,
@@ -26,9 +26,10 @@ import {
   Tabs,
   Typography,
 } from '@mui/material';
-import { ethers } from 'ethers';
+import { BigNumber } from 'ethers';
 import React, { useEffect, useState } from 'react';
 import { AiFillCaretDown, AiFillCaretRight } from 'react-icons/ai';
+import { formatEther } from 'viem';
 
 const walletAddressByName = {
   Alice: '0x3E3e21928AC037DFF9D4E82839eF691c0ca37664',
@@ -97,8 +98,7 @@ const App = () => {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { getDataService, chainId: etherspotChainId } = useEtherspot();
   const { installModule, uninstallModule, listModules } = useEtherspotModules();
-  const etherspotPrimeOrModularAddress = useWalletAddress();
-  const { getAssets } = useEtherspotAssets();
+  const etherspotModulaSdk = useWalletAddress();
   const [balancePerAddress, setBalancePerAddress] = useState({
     [walletAddressByName.Alice]: '',
     [walletAddressByName.Bob]: '',
@@ -177,22 +177,13 @@ const App = () => {
     setExpanded(batchesTreeViewExpandedIds);
   };
 
-  const deInitData = ethers.utils.defaultAbiCoder.encode(
-    ['address', 'bytes'],
-    ['0x0000000000000000000000000000000000000001', '0x00']
-  );
-
   const onInstallModuleClick = async () => {
     await installModule(MODULE_TYPE.VALIDATOR, testModuleSepoliaTestnet);
     await listModules().then((list) => setModulesList(list));
   };
 
   const onUninstallModuleClick = async () => {
-    await uninstallModule(
-      MODULE_TYPE.VALIDATOR,
-      testModuleSepoliaTestnet,
-      deInitData
-    );
+    await uninstallModule(MODULE_TYPE.VALIDATOR, testModuleSepoliaTestnet);
     await listModules().then((list) => setModulesList(list));
   };
 
@@ -208,21 +199,22 @@ const App = () => {
         [walletAddressByName.Christie]: 'N/A',
       };
 
-      if (etherspotPrimeOrModularAddress) {
-        updatedBalances[etherspotPrimeOrModularAddress] = 'N/A';
+      if (etherspotModulaSdk) {
+        updatedBalances[etherspotModulaSdk] = 'N/A';
       }
 
       await Promise.all(
         Object.keys(updatedBalances).map(async (address) => {
-          const balances = await dataServices.getAccountBalances({
-            account: address,
-            chainId: +(process.env.REACT_APP_CHAIN_ID as string),
-          });
+          const balances: AccountBalances =
+            await dataServices.getAccountBalances({
+              account: address,
+              chainId: +(process.env.REACT_APP_CHAIN_ID as string),
+            });
           const balance =
             balances && balances.items.find(({ token }) => token === null);
           if (balance)
-            updatedBalances[address] = ethers.utils.formatEther(
-              balance.balance
+            updatedBalances[address] = formatEther(
+              BigNumber.from(balance?.balance).toBigInt()
             );
         })
       );
@@ -241,22 +233,13 @@ const App = () => {
       expired = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [etherspotPrimeOrModularAddress]);
+  }, [etherspotModulaSdk]);
 
   const estimationFailed = estimated?.some((estimatedGroup) =>
     estimatedGroup.estimatedBatches?.some(
       (estimatedBatch) => estimatedBatch.errorMessage
     )
   );
-
-  const hey = async () => {
-    const prout = await getAssets(undefined, 'EtherspotPopularTokens');
-    return prout;
-  };
-
-  useEffect(() => {
-    hey().then((x) => console.log(x));
-  }, []);
 
   return (
     <Container maxWidth={'sm'}>
@@ -272,9 +255,8 @@ const App = () => {
         </Typography>
         <Chip
           label={`My balance: ${
-            etherspotPrimeOrModularAddress &&
-            balancePerAddress[etherspotPrimeOrModularAddress]
-              ? `${Number(balancePerAddress[etherspotPrimeOrModularAddress]).toFixed(4)} ETH`
+            etherspotModulaSdk && balancePerAddress[etherspotModulaSdk]
+              ? `${Number(balancePerAddress[etherspotModulaSdk]).toFixed(4)} ETH`
               : 'Loading...'
           }`}
           variant={'outlined'}
@@ -303,9 +285,9 @@ const App = () => {
       </Box>
       <Box>
         <Typography>Etherspot Smart Wallet Address:</Typography>
-        {!!etherspotPrimeOrModularAddress?.length && (
+        {!!etherspotModulaSdk?.length && (
           <Paper sx={{ p: 1 }} variant="outlined">
-            <Typography>{etherspotPrimeOrModularAddress}</Typography>
+            <Typography>{etherspotModulaSdk}</Typography>
           </Paper>
         )}
         {modulesList && (
@@ -398,7 +380,10 @@ const App = () => {
                       {!!estimatedBatch?.cost && (
                         <Typography ml={1} fontWeight={800}>
                           Batch estimated:{' '}
-                          {ethers.utils.formatEther(estimatedBatch.cost)} ETH
+                          {formatEther(
+                            BigNumber.from(estimatedBatch.cost).toBigInt()
+                          )}{' '}
+                          ETH
                         </Typography>
                       )}
                       {!!estimatedBatch?.errorMessage && (
@@ -422,9 +407,9 @@ const App = () => {
                             ? transaction.value
                             : '0.0';
 
-                        if (ethers.BigNumber.isBigNumber(transaction.value)) {
-                          transactionValue = ethers.utils.formatEther(
-                            transaction.value
+                        if (BigNumber.isBigNumber(transaction.value)) {
+                          transactionValue = formatEther(
+                            BigNumber.from(transaction.value).toBigInt()
                           );
                         }
 
