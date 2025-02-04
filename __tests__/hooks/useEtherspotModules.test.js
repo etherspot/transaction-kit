@@ -1,22 +1,25 @@
 import { renderHook, waitFor } from '@testing-library/react';
-import { ethers } from 'ethers';
+import { createWalletClient, http } from 'viem';
+import { privateKeyToAccount } from 'viem/accounts';
+import { sepolia } from 'viem/chains';
+
 import {
   EtherspotTransactionKit,
   MODULE_TYPE,
   useEtherspotModules,
 } from '../../src';
 
-const ethersProvider = new ethers.providers.JsonRpcProvider(
-  'http://localhost:8545',
-  'sepolia'
-); // replace with your node's RPC URL
-const provider = new ethers.Wallet.createRandom().connect(ethersProvider);
+const randomWallet = privateKeyToAccount(
+  `0x${crypto.getRandomValues(new Uint8Array(32)).reduce((acc, byte) => acc + byte.toString(16).padStart(2, '0'), '')}`
+);
+const provider = createWalletClient({
+  account: randomWallet,
+  chain: sepolia,
+  transport: http('http://localhost:8545'),
+});
 
 const moduleAddress = '0x111';
-const initData = ethers.utils.defaultAbiCoder.encode(
-  ['address', 'bytes'],
-  ['0x0000000000000000000000000000000000000001', '0x00']
-);
+const initData = '0000000000000000000000000000000000000001';
 
 describe('useEtherspotModules()', () => {
   it('install one module', async () => {

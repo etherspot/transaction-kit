@@ -23,8 +23,6 @@ const external = [
 export default [
   {
     input: 'src/index.ts',
-    // makeAbsoluteExternalsRelative: false,
-    // preserveEntrySignatures: 'strict',
     output: [
       {
         file: packageJson.main,

@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { sortBy } from 'lodash';
-import { Chain, toHex } from 'viem';
-import { base, gnosis, mainnet, polygon } from 'viem/chains';
+import { toHex } from 'viem';
 
 // types
 import { TypePerId } from '../types/Helper';
@@ -46,19 +45,4 @@ export const switchWalletProviderToChain = async (
   }
 
   return { errorMessage: 'Failed to switch chain!' };
-};
-
-export const getNetworkViem = (chainId: number): Chain => {
-  switch (chainId) {
-    case 1:
-      return mainnet;
-    case 137:
-      return polygon;
-    case 100:
-      return gnosis;
-    case 8453:
-      return base;
-    default:
-      return mainnet;
-  }
 };

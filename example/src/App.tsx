@@ -1,4 +1,3 @@
-import { AccountBalances } from '@etherspot/data-utils/dist/data';
 import {
   EstimatedBatch,
   EtherspotBatch,
@@ -205,11 +204,10 @@ const App = () => {
 
       await Promise.all(
         Object.keys(updatedBalances).map(async (address) => {
-          const balances: AccountBalances =
-            await dataServices.getAccountBalances({
-              account: address,
-              chainId: +(process.env.REACT_APP_CHAIN_ID as string),
-            });
+          const balances = await dataServices.getAccountBalances({
+            account: address,
+            chainId: +(process.env.REACT_APP_CHAIN_ID as string),
+          });
           const balance =
             balances && balances.items.find(({ token }) => token === null);
           if (balance)

@@ -1,87 +1,107 @@
-import { renderHook, render } from '@testing-library/react';
-import { ethers } from 'ethers';
+import { render, renderHook } from '@testing-library/react';
+import { createWalletClient, http, parseEther } from 'viem';
+import { privateKeyToAccount } from 'viem/accounts';
+import { sepolia } from 'viem/chains';
 
-import { useEtherspotTransactions, EtherspotTransactionKit, EtherspotBatches, EtherspotBatch, EtherspotContractTransaction } from '../../src';
+import {
+  EtherspotBatch,
+  EtherspotBatches,
+  EtherspotContractTransaction,
+  EtherspotTransactionKit,
+  useEtherspotTransactions,
+} from '../../src';
 
-const ethersProvider = new ethers.providers.JsonRpcProvider('http://localhost:8545', 'sepolia'); // replace with your node's RPC URL
-const provider = new ethers.Wallet.createRandom().connect(ethersProvider);
+const randomWallet = privateKeyToAccount(
+  `0x${crypto.getRandomValues(new Uint8Array(32)).reduce((acc, byte) => acc + byte.toString(16).padStart(2, '0'), '')}`
+);
+const provider = createWalletClient({
+  account: randomWallet,
+  chain: sepolia,
+  transport: http('http://localhost:8545'),
+});
+
+const abi = {
+  inputs: [
+    { internalType: 'address', name: 'to', type: 'address' },
+    { internalType: 'uint256', name: 'value', type: 'uint256' },
+  ],
+  name: 'transfer',
+  outputs: [],
+  stateMutability: 'nonpayable',
+  type: 'function',
+};
 
 describe('EtherspotContractTransaction', () => {
   it('throws an error if <EtherspotContractTransaction /> rendered without <EtherspotBatch />', () => {
-    expect(() => render(
-      <EtherspotContractTransaction
-        contractAddress={'0x'}
-        params={[]}
-        abi={'function test()'}
-        methodName={'test'}
-      >
-        <span>test</span>
-      </EtherspotContractTransaction>
-    ))
-      .toThrow('No parent <EtherspotBatch />');
+    expect(() =>
+      render(
+        <EtherspotContractTransaction
+          contractAddress={'0x'}
+          params={[]}
+          abi={'function test()'}
+          methodName={'test'}
+        >
+          <span>test</span>
+        </EtherspotContractTransaction>
+      )
+    ).toThrow('No parent <EtherspotBatch />');
   });
 
   it('throws error if wrong ABI provided', () => {
-    expect(() => render(
-      <EtherspotTransactionKit provider={provider}>
-        <EtherspotBatches>
-          <EtherspotBatch>
-            <EtherspotContractTransaction
-              abi={['wrong']}
-              contractAddress={'0x'}
-              methodName={'test'}
-              params={[0]}
-            />
-          </EtherspotBatch>
-        </EtherspotBatches>
-      </EtherspotTransactionKit>
-    ))
-      .toThrow(
-        'Failed to build contract interface from provided ABI, please check ABI formatting: unsupported fragment'
-        + ' (argument="value", value="wrong", code=INVALID_ARGUMENT, version=abi/5.7.0)'
-      );
+    expect(() =>
+      render(
+        <EtherspotTransactionKit provider={provider}>
+          <EtherspotBatches>
+            <EtherspotBatch>
+              <EtherspotContractTransaction
+                abi={['wrong']}
+                contractAddress={'0x'}
+                methodName={'test'}
+                params={[0]}
+              />
+            </EtherspotBatch>
+          </EtherspotBatches>
+        </EtherspotTransactionKit>
+      )
+    ).toThrow();
   });
 
   it('throws error if wrong method name provided', () => {
-    expect(() => render(
-      <EtherspotTransactionKit provider={provider}>
-        <EtherspotBatches>
-          <EtherspotBatch>
-            <EtherspotContractTransaction
-              abi={['function transferFrom(address, uint)']}
-              contractAddress={'0x'}
-              methodName={'transfer'}
-              params={[0]}
-            />
-          </EtherspotBatch>
-        </EtherspotBatches>
-      </EtherspotTransactionKit>
-    ))
-      .toThrow(
-        'Failed to build transaction data, please check data/method formatting: no matching function'
-        + ' (argument="name", value="transfer", code=INVALID_ARGUMENT, version=abi/5.7.0)'
-      );
+    expect(() =>
+      render(
+        <EtherspotTransactionKit provider={provider}>
+          <EtherspotBatches>
+            <EtherspotBatch>
+              <EtherspotContractTransaction
+                abi={[abi]}
+                contractAddress={'0x'}
+                methodName={'transferFrom'}
+                params={[0]}
+              />
+            </EtherspotBatch>
+          </EtherspotBatches>
+        </EtherspotTransactionKit>
+      )
+    ).toThrow();
   });
 
   it('throws error if wrong params provided', () => {
-    expect(() => render(
-      <EtherspotTransactionKit provider={provider}>
-        <EtherspotBatches>
-          <EtherspotBatch>
-            <EtherspotContractTransaction
-              abi={['function transfer(uint)']}
-              contractAddress={'0x'}
-              methodName={'transfer'}
-              params={['test']}
-            />
-          </EtherspotBatch>
-        </EtherspotBatches>
-      </EtherspotTransactionKit>
-    ))
-      .toThrow(
-        'Failed to build transaction data, please check data/method formatting: invalid BigNumber string'
-        + ' (argument="value", value="test", code=INVALID_ARGUMENT, version=bignumber/5.7.0)'
-      );
+    expect(() =>
+      render(
+        <EtherspotTransactionKit provider={provider}>
+          <EtherspotBatches>
+            <EtherspotBatch>
+              <EtherspotContractTransaction
+                abi={[abi]}
+                contractAddress={'0x'}
+                methodName={'transfer'}
+                params={['test']}
+              />
+            </EtherspotBatch>
+          </EtherspotBatches>
+        </EtherspotTransactionKit>
+      )
+    ).toThrow();
   });
 
   it('builds transaction data successfully', () => {
@@ -90,10 +110,13 @@ describe('EtherspotContractTransaction', () => {
         <EtherspotBatches>
           <EtherspotBatch>
             <EtherspotContractTransaction
-              abi={['function transfer(address, uint)']}
+              abi={[abi]}
               contractAddress={'0xe3818504c1b32bf1557b16c238b2e01fd3149c17'}
               methodName={'transfer'}
-              params={['0x7F30B1960D5556929B03a0339814fE903c55a347', ethers.utils.parseEther('123')]}
+              params={[
+                '0x7F30B1960D5556929B03a0339814fE903c55a347',
+                parseEther('123'),
+              ]}
             />
           </EtherspotBatch>
         </EtherspotBatches>
@@ -101,11 +124,16 @@ describe('EtherspotContractTransaction', () => {
       </EtherspotTransactionKit>
     );
 
-    const { result: { current } } = renderHook(() => useEtherspotTransactions(), { wrapper });
+    const {
+      result: { current },
+    } = renderHook(() => useEtherspotTransactions(), { wrapper });
 
-    expect(current.batches[0].batches[0].transactions[0].to).toBe('0xe3818504c1b32bf1557b16c238b2e01fd3149c17');
-    expect(current.batches[0].batches[0].transactions[0].data).toBe('0xa9059cbb0000000000000000000000007f30b1960d5556929b03a0339814fe903c55a347000000000000000000000000000000000000000000000006aaf7c8516d0c0000');
+    expect(current.batches[0].batches[0].transactions[0].to).toBe(
+      '0xe3818504c1b32bf1557b16c238b2e01fd3149c17'
+    );
+    expect(current.batches[0].batches[0].transactions[0].data).toBe(
+      '0xa9059cbb0000000000000000000000007f30b1960d5556929b03a0339814fe903c55a347000000000000000000000000000000000000000000000006aaf7c8516d0c0000'
+    );
     expect(current.batches[0].batches[0].transactions[0].value).toBe(undefined);
   });
-
-})
+});

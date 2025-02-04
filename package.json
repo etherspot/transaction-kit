@@ -1,7 +1,7 @@
 {
   "name": "@etherspot/transaction-kit",
   "description": "React Etherspot Transaction Kit",
-  "version": "0.15.2",
+  "version": "0.16.0",
   "main": "dist/cjs/index.js",
   "scripts": {
     "rollup:build": "NODE_OPTIONS=--max-old-space-size=8192 rollup -c --bundleConfigAsCjs",
@@ -24,7 +24,7 @@
   },
   "homepage": "https://github.com/etherspot/transaction-kit#readme",
   "dependencies": {
-    "@etherspot/data-utils": "^1.0.0",
+    "@etherspot/data-utils": "^1.1.1",
     "@etherspot/eip1271-verification-util": "0.1.2",
     "@etherspot/modular-sdk": "^5.0.0",
     "@ethersproject/abi": "^5.7.0",
@@ -71,6 +71,7 @@
     "eslint-plugin-react-hooks": "^4.6.2",
     "jest": "^29.7.0",
     "jest-environment-jsdom": "^29.3.1",
+    "jest-fixed-jsdom": "^0.0.9",
     "react": "^18.2.0",
     "react-test-renderer": "^18.2.0",
     "rimraf": "^5.0.1",

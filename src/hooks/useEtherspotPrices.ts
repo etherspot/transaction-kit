@@ -1,4 +1,4 @@
-import { RateInfo } from '@etherspot/data-utils/dist/data';
+import { RateInfo } from '@etherspot/data-utils/dist/cjs/sdk/data/classes/rate-info';
 import { useMemo } from 'react';
 
 // hooks

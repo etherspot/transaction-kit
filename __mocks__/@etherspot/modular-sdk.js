@@ -1,17 +1,16 @@
-import * as EtherspotModular from '@etherspot/modular-sdk';
-import { ethers } from 'ethers';
+import { BigNumber } from 'ethers';
+import { parseUnits } from 'viem';
 
-export const defaultAccountAddressModular =
+export const defaultAccountAddress =
   '0x7F30B1960D5556929B03a0339814fE903c55a347';
-export const otherFactoryDefaultAccountAddressModular =
+export const otherFactoryDefaultAccountAddress =
   '0xe383724e3bDC4753746dEC781809f8CD82010914';
-export const otherAccountAddressModular =
-  '0xAb4C67d8D7B248B2fA6B638C645466065fE8F1F1';
+export const otherAccountAddress = '0xAb4C67d8D7B248B2fA6B638C645466065fE8F1F1';
 
 export class ModularSdk {
   sdkChainId;
   userOps = [];
-  nonce = ethers.BigNumber.from(1);
+  nonce = BigNumber.from(1);
   factoryWallet;
 
   constructor(provider, config) {
@@ -20,10 +19,10 @@ export class ModularSdk {
   }
 
   getCounterFactualAddress() {
-    if (this.factoryWallet === 'etherspotModular') {
-      return defaultAccountAddressModular;
+    if (this.factoryWallet === 'etherspot') {
+      return defaultAccountAddress;
     }
-    return otherFactoryDefaultAccountAddressModular;
+    return otherFactoryDefaultAccountAddress;
   }
 
   async clearUserOpsFromBatch() {
@@ -35,22 +34,22 @@ export class ModularSdk {
   }
 
   async estimate({ paymasterDetails: paymaster }) {
-    let maxFeePerGas = ethers.utils.parseUnits('1', 'gwei');
-    let maxPriorityFeePerGas = ethers.utils.parseUnits('1', 'gwei');
-    let callGasLimit = ethers.BigNumber.from('50000');
+    let maxFeePerGas = parseUnits('1', 9);
+    let maxPriorityFeePerGas = parseUnits('1', 9);
+    let callGasLimit = BigNumber.from('50000');
     let signature = '0x004';
 
     if (paymaster?.url === 'someUrl') {
-      maxFeePerGas = ethers.utils.parseUnits('2', 'gwei');
-      maxPriorityFeePerGas = ethers.utils.parseUnits('3', 'gwei');
-      callGasLimit = ethers.BigNumber.from('75000');
+      maxFeePerGas = parseUnits('2', 9);
+      maxPriorityFeePerGas = parseUnits('3', 9);
+      callGasLimit = BigNumber.from('75000');
     }
 
     if (paymaster?.url === 'someUnstableUrl') {
       signature = '0x0';
     }
 
-    let finalGasLimit = ethers.BigNumber.from(callGasLimit);
+    let finalGasLimit = BigNumber.from(callGasLimit);
 
     if (this.sdkChainId === 420) {
       throw new Error('Transaction reverted: chain too high');
@@ -67,13 +66,13 @@ export class ModularSdk {
     });
 
     return {
-      sender: defaultAccountAddressModular,
+      sender: defaultAccountAddress,
       nonce: this.nonce,
       initCode: '0x001',
       callData: '0x002',
       callGasLimit: finalGasLimit,
-      verificationGasLimit: ethers.BigNumber.from('25000'),
-      preVerificationGas: ethers.BigNumber.from('75000'),
+      verificationGasLimit: BigNumber.from('25000'),
+      preVerificationGas: BigNumber.from('75000'),
       maxFeePerGas,
       maxPriorityFeePerGas,
       paymasterAndData: '0x003',
@@ -109,15 +108,12 @@ export class ModularSdk {
   }
 
   async generateModuleDeInitData() {
-    const deInitData = ethers.utils.defaultAbiCoder.encode(
-      ['address', 'bytes'],
-      ['0x0000000000000000000000000000000000000001', '0x00']
-    );
+    const deInitData = '0000000000000000000000000000000000000001';
     return deInitData;
   }
 
   async installModule(moduleType, module, initData, accountAddress) {
-    if (!accountAddress && !defaultAccountAddressModular) {
+    if (!accountAddress && !defaultAccountAddress) {
       throw new Error('No account address provided!');
     }
 
@@ -137,7 +133,7 @@ export class ModularSdk {
       throw new Error('module is not installed');
     }
 
-    if (!accountAddress && !defaultAccountAddressModular) {
+    if (!accountAddress && !defaultAccountAddress) {
       throw new Error('No account address provided!');
     }
 
@@ -149,7 +145,7 @@ export class ModularSdk {
   }
 
   async getAllModules(pageSize, accountAddress) {
-    if (!accountAddress && !defaultAccountAddressModular) {
+    if (!accountAddress && !defaultAccountAddress) {
       throw new Error('No account address provided!');
     }
 
@@ -159,7 +155,7 @@ export class ModularSdk {
   }
 
   async isModuleInstalled(moduleType, module, accountAddress) {
-    if (!accountAddress && !defaultAccountAddressModular) {
+    if (!accountAddress && !defaultAccountAddress) {
       throw new Error('No account address provided!');
     }
 
@@ -177,10 +173,6 @@ export class ModularSdk {
   }
 }
 
-export const isWalletProvider = EtherspotModular.isWalletProvider;
-
-export const Factory = EtherspotModular.Factory;
+export const Factory = 'etherspot';
 
 export const EtherspotBundler = jest.fn();
-
-export default EtherspotModular;

@@ -1,8 +1,6 @@
-import {
-  BridgingProvider,
-  Token,
-  TokenListToken,
-} from '@etherspot/data-utils/dist/data';
+import { Token } from '@etherspot/data-utils/dist/cjs/sdk/data/classes/token';
+import { TokenListToken } from '@etherspot/data-utils/dist/cjs/sdk/data/classes/token-list-token';
+import { BridgingProvider } from '@etherspot/data-utils/dist/cjs/sdk/data/constants';
 import { useMemo } from 'react';
 
 // hooks

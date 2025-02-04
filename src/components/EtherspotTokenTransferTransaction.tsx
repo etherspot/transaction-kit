@@ -68,25 +68,23 @@ const EtherspotTokenTransferTransaction = ({
     return <>{children}</>;
   }
 
-  const abi = [
-    {
-      inputs: [
-        { internalType: 'address', name: 'to', type: 'address' },
-        { internalType: 'uint256', name: 'value', type: 'uint256' },
-      ],
-      name: 'transfer',
-      outputs: [],
-      stateMutability: 'nonpayable',
-      type: 'function',
-    },
-  ];
+  const abi = {
+    inputs: [
+      { internalType: 'address', name: 'to', type: 'address' },
+      { internalType: 'uint256', name: 'value', type: 'uint256' },
+    ],
+    name: 'transfer',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  };
 
   return (
     <EtherspotContractTransaction
       id={transactionId ?? componentId}
       contractAddress={tokenAddress}
       methodName="transfer"
-      abi={abi}
+      abi={[abi]}
       params={[receiverAddress, valueBN]}
     >
       {children}

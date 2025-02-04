@@ -1,6 +1,6 @@
 import { BigNumber } from 'ethers';
 import React, { useContext, useEffect } from 'react';
-import { encodeFunctionData, parseEther } from 'viem';
+import { Abi, encodeFunctionData, parseEther } from 'viem';
 
 // contexts
 import EtherspotBatchContext from '../contexts/EtherspotBatchContext';
@@ -41,7 +41,7 @@ const EtherspotContractTransaction = ({
   let data: string | undefined;
   try {
     data = encodeFunctionData({
-      abi: [abi],
+      abi: abi as Abi,
       functionName: methodName,
       args: params,
     });

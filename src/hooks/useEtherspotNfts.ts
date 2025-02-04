@@ -1,4 +1,4 @@
-import { NftCollection } from '@etherspot/data-utils/dist/data';
+import { NftCollection } from '@etherspot/data-utils/dist/cjs/sdk/data/classes/nft-collection';
 import { useMemo } from 'react';
 
 // hooks

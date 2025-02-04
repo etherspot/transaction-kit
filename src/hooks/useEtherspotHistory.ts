@@ -1,8 +1,6 @@
-import {
-  BridgingProvider,
-  Transaction,
-  TransactionStatus,
-} from '@etherspot/data-utils/dist/data';
+import { Transaction } from '@etherspot/data-utils/dist/cjs/sdk/data/classes/transaction';
+import { TransactionStatus } from '@etherspot/data-utils/dist/cjs/sdk/data/classes/transaction-status';
+import { BridgingProvider } from '@etherspot/data-utils/dist/cjs/sdk/data/constants';
 import { useMemo } from 'react';
 
 // hooks
