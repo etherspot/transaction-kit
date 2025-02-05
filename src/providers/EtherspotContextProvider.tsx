@@ -1,3 +1,4 @@
+/* eslint-disable no-await-in-loop */
 /* eslint-disable react/jsx-no-constructed-context-values */
 import { DataUtils } from '@etherspot/data-utils';
 import { EtherspotBundler, Factory, ModularSdk } from '@etherspot/modular-sdk';
@@ -67,8 +68,28 @@ const EtherspotContextProvider = ({
           factoryWallet: 'etherspot' as Factory,
         });
 
-        // load the address into SDK state
-        await etherspotModularSdk.getCounterFactualAddress();
+        // Retry 3 times to load the address into SDK state
+        for (let i = 1; i <= 3; i++) {
+          try {
+            await etherspotModularSdk.getCounterFactualAddress();
+            break;
+          } catch (error) {
+            console.error(
+              `Attempt ${i} failed to get counter factual address when initialising the Etherspot Modular SDK:`,
+              error
+            );
+
+            if (i < 3) {
+              await new Promise((resolve) => {
+                setTimeout(resolve, 1000);
+              }); // Wait 1 sec before retrying
+            } else {
+              throw new Error(
+                'Failed to get counter factual address when initialising the Etherspot Modular SDK after 3 attempts.'
+              );
+            }
+          }
+        }
 
         prevProvider = provider as WalletProviderLike;
 

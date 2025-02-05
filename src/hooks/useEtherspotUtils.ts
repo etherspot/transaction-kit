@@ -32,7 +32,9 @@ interface IEtherspotUtilsHook {
 const useEtherspotUtils = (): IEtherspotUtilsHook => {
   const checksumAddress = (address: string) => {
     if (!isAddress(address)) {
-      throw new Error('Invalid address');
+      throw new Error(
+        `Invalid address: ${address} at checksumAddress() on useEtherspotUtils hook. Please ensure it is a valid address starting with 0x.`
+      );
     }
     return getAddress(address.toLowerCase() as `0x${string}`);
   };
