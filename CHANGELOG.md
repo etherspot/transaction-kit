@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.16.0] - 2025-02-03
+
+### Added Changes
+
+- Version update of `etherspot-modular`
+- Use of the `Viem` library
+- Use of the `etherspot-data-utils` to replace `etherspot-prime-sdk` data utils
+
+### Breaking Changes
+
+- Removed the `etherspot-prime-sdk`
+- Removed `isModular` because the Transaction Kit is now using only `etherspot-modular-sdk`
+- Removed `accountTemplate` because the Transaction Kit is not using only one `accountTemplate` type, `etherspot`
+
 ## [0.15.2] - 2024-09-05
 
 ### Added Changes

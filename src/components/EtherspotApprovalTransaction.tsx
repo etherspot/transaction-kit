@@ -1,5 +1,6 @@
-import { ethers } from 'ethers';
+import { BigNumber } from 'ethers';
 import React, { useContext } from 'react';
+import { parseUnits } from 'viem';
 
 // contexts
 import EtherspotBatchContext from '../contexts/EtherspotBatchContext';
@@ -42,8 +43,8 @@ const EtherspotApprovalTransaction = ({
   let valueBN;
   try {
     valueBN =
-      typeof value === 'string' && !ethers.BigNumber.isBigNumber(value)
-        ? ethers.utils.parseUnits(value, tokenDecimals)
+      typeof value === 'string' && !BigNumber.isBigNumber(value)
+        ? parseUnits(value, tokenDecimals)
         : value;
   } catch (e) {
     if (e instanceof Error && e?.message) {
@@ -59,12 +60,23 @@ const EtherspotApprovalTransaction = ({
     );
   }
 
+  const abi = {
+    inputs: [
+      { internalType: 'address', name: 'to', type: 'address' },
+      { internalType: 'uint256', name: 'value', type: 'uint256' },
+    ],
+    name: 'approve',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  };
+
   return (
     <EtherspotContractTransaction
       id={transactionId ?? componentId}
       contractAddress={tokenAddress}
       methodName="approve"
-      abi={['function approve(address, uint256)']}
+      abi={[abi]}
       params={[receiverAddress, valueBN]}
     >
       {children}

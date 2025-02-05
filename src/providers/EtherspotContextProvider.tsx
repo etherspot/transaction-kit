@@ -1,22 +1,12 @@
+/* eslint-disable no-await-in-loop */
 /* eslint-disable react/jsx-no-constructed-context-values */
+import { DataUtils } from '@etherspot/data-utils';
+import { EtherspotBundler, Factory, ModularSdk } from '@etherspot/modular-sdk';
 import {
-  EtherspotBundler as EtherspotBundlerModular,
-  Factory as ModularFactory,
-  ModularSdk,
-  WalletProviderLike as WalletProviderLikeModular,
-  Web3WalletProvider as Web3WalletModularProvider,
-  isWalletProvider as isWalletProviderModular,
-} from '@etherspot/modular-sdk';
-import {
-  DataUtils,
-  EtherspotBundler,
-  Factory,
-  PrimeSdk,
+  WalletProvider,
   WalletProviderLike,
-  Web3WalletProvider,
-  isWalletProvider,
-} from '@etherspot/prime-sdk';
-import isEqual from 'lodash/isEqual';
+} from '@etherspot/modular-sdk/dist/cjs/sdk/wallet/providers/interfaces';
+import { isEqual } from 'lodash';
 import React, {
   ReactNode,
   useCallback,
@@ -28,36 +18,23 @@ import React, {
 // contexts
 import EtherspotContext from '../contexts/EtherspotContext';
 
-// types
-import { AccountTemplate } from '../types/EtherspotTransactionKit';
-
-let sdkPerChain: { [chainId: number]: PrimeSdk | Promise<PrimeSdk> } = {};
+let sdkPerChain: { [chainId: number]: ModularSdk | Promise<ModularSdk> } = {};
 let prevProvider: WalletProviderLike;
-let prevAccountTemplate: AccountTemplate | undefined;
 
 let dataService: DataUtils;
-
-let sdkPerChainModular: {
-  [chainId: number]: ModularSdk | Promise<ModularSdk>;
-} = {};
-let prevProviderModular: WalletProviderLikeModular;
 
 const EtherspotContextProvider = ({
   children,
   provider,
   chainId,
-  accountTemplate,
   dataApiKey,
   bundlerApiKey,
-  isModular,
 }: {
   children: ReactNode;
-  provider: WalletProviderLike | WalletProviderLikeModular;
+  provider: WalletProviderLike;
   chainId: number;
-  accountTemplate?: AccountTemplate;
   dataApiKey?: string;
   bundlerApiKey?: string;
-  isModular: boolean;
 }) => {
   const context = useContext(EtherspotContext);
 
@@ -69,140 +46,65 @@ const EtherspotContextProvider = ({
     return () => {
       // reset on unmount
       sdkPerChain = {};
-      sdkPerChainModular = {};
     };
   }, []);
 
   const getSdk = useCallback(
     async (sdkChainId: number = chainId, forceNewInstance: boolean = false) => {
-      if (isModular) {
-        const accountTemplateOrProviderChanged =
-          (prevProvider &&
-            !isEqual(
-              prevProviderModular,
-              provider as WalletProviderLikeModular
-            )) ||
-          (prevAccountTemplate && prevAccountTemplate !== accountTemplate);
+      const providerChanged =
+        prevProvider && !isEqual(prevProvider, provider as WalletProviderLike);
 
-        if (
-          sdkPerChainModular[sdkChainId] &&
-          !forceNewInstance &&
-          !accountTemplateOrProviderChanged
-        ) {
-          return sdkPerChainModular[sdkChainId];
-        }
-
-        sdkPerChainModular[sdkChainId] = (async () => {
-          let mappedProvider;
-
-          if (!isWalletProviderModular(provider as WalletProviderLikeModular)) {
-            try {
-              mappedProvider = new Web3WalletModularProvider(
-                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                // @ts-expect-error
-                provider as WalletProviderLikeModular
-              );
-              await mappedProvider.refresh();
-            } catch (e) {
-              // no need to log, this is an attempt
-            }
-
-            if (!mappedProvider) {
-              throw new Error('Invalid provider!');
-            }
-          }
-
-          const etherspotModularSdk = new ModularSdk(
-            (mappedProvider as Web3WalletModularProvider) ??
-              (provider as WalletProviderLikeModular),
-            {
-              chainId: +sdkChainId,
-              bundlerProvider: new EtherspotBundlerModular(
-                +sdkChainId,
-                bundlerApiKey ?? ('__ETHERSPOT_BUNDLER_API_KEY__' || undefined)
-              ),
-              factoryWallet: accountTemplate as ModularFactory,
-            }
-          );
-
-          // load the address into SDK state
-          await etherspotModularSdk.getCounterFactualAddress();
-
-          prevProviderModular = provider as WalletProviderLikeModular;
-          prevAccountTemplate = accountTemplate;
-
-          return etherspotModularSdk;
-        })();
-
-        return sdkPerChainModular[sdkChainId];
-      }
-
-      const accountTemplateOrProviderChanged =
-        (prevProvider &&
-          !isEqual(prevProvider, provider as WalletProviderLike)) ||
-        (prevAccountTemplate && prevAccountTemplate !== accountTemplate);
-
-      if (
-        sdkPerChain[sdkChainId] &&
-        !forceNewInstance &&
-        !accountTemplateOrProviderChanged
-      ) {
+      if (sdkPerChain[sdkChainId] && !forceNewInstance && !providerChanged) {
         return sdkPerChain[sdkChainId];
       }
 
       sdkPerChain[sdkChainId] = (async () => {
-        let mappedProvider;
+        const etherspotModularSdk = new ModularSdk(provider as WalletProvider, {
+          chainId: +sdkChainId,
+          bundlerProvider: new EtherspotBundler(
+            +sdkChainId,
+            bundlerApiKey ?? '__ETHERSPOT_BUNDLER_API_KEY__'
+          ),
+          factoryWallet: 'etherspot' as Factory,
+        });
 
-        if (!isWalletProvider(provider as WalletProviderLike)) {
+        // Retry 3 times to load the address into SDK state
+        for (let i = 1; i <= 3; i++) {
           try {
-            mappedProvider = new Web3WalletProvider(
-              // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-              // @ts-expect-error
-              provider as WalletProviderLike
+            await etherspotModularSdk.getCounterFactualAddress();
+            break;
+          } catch (error) {
+            console.error(
+              `Attempt ${i} failed to get counter factual address when initialising the Etherspot Modular SDK:`,
+              error
             );
-            await mappedProvider.refresh();
-          } catch (e) {
-            // no need to log, this is an attempt
-          }
 
-          if (!mappedProvider) {
-            throw new Error('Invalid provider!');
+            if (i < 3) {
+              await new Promise((resolve) => {
+                setTimeout(resolve, 1000);
+              }); // Wait 1 sec before retrying
+            } else {
+              throw new Error(
+                'Failed to get counter factual address when initialising the Etherspot Modular SDK after 3 attempts.'
+              );
+            }
           }
         }
 
-        const etherspotPrimeSdk = new PrimeSdk(
-          (mappedProvider as Web3WalletProvider) ??
-            (provider as WalletProviderLike),
-          {
-            chainId: +sdkChainId,
-            bundlerProvider: new EtherspotBundler(
-              +sdkChainId,
-              bundlerApiKey ?? ('__ETHERSPOT_BUNDLER_API_KEY__' || undefined)
-            ),
-            factoryWallet: accountTemplate as Factory,
-          }
-        );
-
-        // load the address into SDK state
-        await etherspotPrimeSdk.getCounterFactualAddress();
-
         prevProvider = provider as WalletProviderLike;
-        prevAccountTemplate = accountTemplate;
 
-        return etherspotPrimeSdk;
+        return etherspotModularSdk;
       })();
 
       return sdkPerChain[sdkChainId];
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [provider, chainId, accountTemplate, bundlerApiKey]
+    [provider, chainId, bundlerApiKey]
   );
 
   const getDataService = useCallback(() => {
     if (dataService) return dataService;
-    dataService = new DataUtils(
-      dataApiKey ?? ('__ETHERSPOT_DATA_API_KEY__' || undefined)
-    );
+    dataService = new DataUtils(dataApiKey ?? '__ETHERSPOT_DATA_API_KEY__');
     return dataService;
   }, [dataApiKey]);
 
@@ -212,9 +114,8 @@ const EtherspotContextProvider = ({
       getDataService,
       provider,
       chainId,
-      isModular,
     }),
-    [getSdk, getDataService, provider, chainId, isModular]
+    [getSdk, getDataService, provider, chainId]
   );
 
   return (

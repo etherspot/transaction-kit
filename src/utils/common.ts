@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { ethers } from 'ethers';
-import sortBy from 'lodash/sortBy';
+import { sortBy } from 'lodash';
+import { toHex } from 'viem';
 
 // types
 import { TypePerId } from '../types/Helper';
@@ -38,7 +38,7 @@ export const switchWalletProviderToChain = async (
   try {
     await window.ethereum.request({
       method: 'wallet_switchEthereumChain',
-      params: [{ chainId: ethers.utils.hexValue(chainId) }], // chainId must be in hex
+      params: [{ chainId: toHex(chainId) }], // chainId must be in hex
     });
   } catch (e) {
     console.warn('Failed to switch chain', e);

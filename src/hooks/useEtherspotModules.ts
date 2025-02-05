@@ -41,7 +41,7 @@ interface IEtherspotModulesHook {
  * @returns {IEtherspotModulesHook} - hook method to fetch Etherspot account balances
  */
 const useEtherspotModules = (chainId?: number): IEtherspotModulesHook => {
-  const { getSdk, chainId: etherspotChainId, isModular } = useEtherspot();
+  const { getSdk, chainId: etherspotChainId } = useEtherspot();
 
   const defaultChainId = useMemo(() => {
     if (chainId) return chainId;
@@ -55,13 +55,6 @@ const useEtherspotModules = (chainId?: number): IEtherspotModulesHook => {
     accountAddress?: string,
     modulesChainId: number = defaultChainId
   ) => {
-    // this hook can only be used is the sdk is using the modular functionality
-    if (!isModular) {
-      throw new Error(
-        'The <EtherspotTransactionKit /> component is not using the modular functionality. Please make sure to use the modular functionality to install and uninstall modules.'
-      );
-    }
-
     const sdkForChainId = (await getSdk(modulesChainId)) as ModularSdk;
 
     const modulesForAccount =
@@ -95,13 +88,6 @@ const useEtherspotModules = (chainId?: number): IEtherspotModulesHook => {
     accountAddress?: string,
     modulesChainId: number = defaultChainId
   ) => {
-    // this hook can only be used is the sdk is using the modular functionality
-    if (!isModular) {
-      throw new Error(
-        'The <EtherspotTransactionKit /> component is not using the modular functionality. Please make sure to use the modular functionality to install and uninstall modules.'
-      );
-    }
-
     const sdkForChainId = (await getSdk(modulesChainId)) as ModularSdk;
 
     const modulesForAccount =
@@ -144,13 +130,6 @@ const useEtherspotModules = (chainId?: number): IEtherspotModulesHook => {
     accountAddress?: string,
     modulesChainId: number = defaultChainId
   ) => {
-    // this hook can only be used is the sdk is using the modular functionality
-    if (!isModular) {
-      throw new Error(
-        'The <EtherspotTransactionKit /> component is not using the modular functionality. Please make sure to use the modular functionality to install and uninstall modules.'
-      );
-    }
-
     const sdkForChainId = (await getSdk(modulesChainId)) as ModularSdk;
 
     const modulesForAccount =
@@ -182,13 +161,6 @@ const useEtherspotModules = (chainId?: number): IEtherspotModulesHook => {
     accountAddress?: string,
     modulesChainId: number = defaultChainId
   ) => {
-    // this hook can only be used is the sdk is using the modular functionality
-    if (!isModular) {
-      throw new Error(
-        'The <EtherspotTransactionKit /> component is not using the modular functionality. Please make sure to use the modular functionality to install and uninstall modules.'
-      );
-    }
-
     const sdkForChainId = (await getSdk(modulesChainId)) as ModularSdk;
 
     const modulesForAccount =

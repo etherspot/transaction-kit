@@ -1,4 +1,4 @@
-import { AccountBalance } from '@etherspot/prime-sdk/dist/sdk/data';
+import { AccountBalance } from '@etherspot/data-utils/dist/cjs/sdk/data/classes/account-balance';
 import { useMemo } from 'react';
 
 // hooks

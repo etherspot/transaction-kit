@@ -1,13 +1,45 @@
 import { renderHook, waitFor } from '@testing-library/react';
-import { ethers } from 'ethers';
+import { createWalletClient, http } from 'viem';
+import { privateKeyToAccount } from 'viem/accounts';
+import { sepolia } from 'viem/chains';
 
-// hooks
-import { useEtherspotPrices, EtherspotTransactionKit } from '../../src';
+import { EtherspotTransactionKit, useEtherspotPrices } from '../../src';
 
-const ethersProvider = new ethers.providers.JsonRpcProvider('http://localhost:8545', 'sepolia'); // replace with your node's RPC URL
-const provider = new ethers.Wallet.createRandom().connect(ethersProvider);
+const randomWallet = privateKeyToAccount(
+  `0x${crypto.getRandomValues(new Uint8Array(32)).reduce((acc, byte) => acc + byte.toString(16).padStart(2, '0'), '')}`
+);
+const provider = createWalletClient({
+  account: randomWallet,
+  chain: sepolia,
+  transport: http('http://localhost:8545'),
+});
+
+jest.mock('@etherspot/data-utils', () => ({
+  DataUtils: jest.fn().mockImplementation(() => ({
+    fetchExchangeRates: jest.fn(({ chainId, tokens }) => {
+      if (chainId !== 1) {
+        return { items: [] };
+      }
+
+      if (tokens.includes('some_wrongAddressFormat')) {
+        return { items: [], errored: true, error: 'Wrong address provided!' };
+      }
+
+      const prices = tokens.map((token, index) => ({
+        address: token,
+        eth: 1 + index * 0.1,
+        usd: 1800 * (1 + index * 0.1),
+      }));
+
+      return { items: prices };
+    }),
+  })),
+}));
 
 describe('useEtherspotPrices()', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
   describe('getPrices()', () => {
     it('fails if wrong asset address provided', async () => {
       const wrapper = ({ children }) => (
@@ -21,7 +53,10 @@ describe('useEtherspotPrices()', () => {
       // wait for hook to load
       await waitFor(() => expect(result.current).not.toBeNull());
 
-      const pricesMainnet = await result.current.getPrices(['0x1', 'some_wrongAddressFormat']);
+      const pricesMainnet = await result.current.getPrices([
+        '0x1',
+        'some_wrongAddressFormat',
+      ]);
       expect(pricesMainnet.length).toEqual(0);
     });
 
@@ -32,10 +67,13 @@ describe('useEtherspotPrices()', () => {
         </EtherspotTransactionKit>
       );
 
-      const { result, rerender } = renderHook(({ chainId }) => useEtherspotPrices(chainId), {
-        initialProps: { chainId: 1 },
-        wrapper,
-      });
+      const { result, rerender } = renderHook(
+        ({ chainId }) => useEtherspotPrices(chainId),
+        {
+          initialProps: { chainId: 1 },
+          wrapper,
+        }
+      );
 
       // wait for hook to load
       await waitFor(() => expect(result.current).not.toBeNull());
@@ -48,7 +86,10 @@ describe('useEtherspotPrices()', () => {
       expect(pricesMainnet[1].address).toBe('0x2');
       expect(pricesMainnet[1].eth).toBe(1.1);
 
-      const pricesPolygon1 = await result.current.getPrices(['0x1', '0x2'], 137);
+      const pricesPolygon1 = await result.current.getPrices(
+        ['0x1', '0x2'],
+        137
+      );
       expect(pricesPolygon1.length).toEqual(0);
 
       // rerender with different chain ID 137
@@ -72,7 +113,9 @@ describe('useEtherspotPrices()', () => {
       // wait for hook to load
       await waitFor(() => expect(result.current).not.toBeNull());
 
-      const pricesMainnet = await result.current.getPrice('some_wrongAddressFormat');
+      const pricesMainnet = await result.current.getPrice(
+        'some_wrongAddressFormat'
+      );
       expect(pricesMainnet).toEqual(undefined);
     });
 
@@ -83,10 +126,13 @@ describe('useEtherspotPrices()', () => {
         </EtherspotTransactionKit>
       );
 
-      const { result, rerender } = renderHook(({ chainId }) => useEtherspotPrices(chainId), {
-        initialProps: { chainId: 1 },
-        wrapper,
-      });
+      const { result, rerender } = renderHook(
+        ({ chainId }) => useEtherspotPrices(chainId),
+        {
+          initialProps: { chainId: 1 },
+          wrapper,
+        }
+      );
 
       // wait for hook to load
       await waitFor(() => expect(result.current).not.toBeNull());
@@ -106,4 +152,4 @@ describe('useEtherspotPrices()', () => {
       expect(pricePolygon2).toEqual(undefined);
     });
   });
-})
+});

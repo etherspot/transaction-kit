@@ -98,15 +98,14 @@ const EtherspotTransactionKitContextProvider = ({
             }
 
             // force new instance for each batch to not mix up user ops added to SDK state batch
-            const etherspotModularOrPrimeSdk = await getSdk(batchChainId, true);
+            const etherspotModulaSdk = await getSdk(batchChainId, true);
 
             try {
-              if (!forSending)
-                await etherspotModularOrPrimeSdk.clearUserOpsFromBatch();
+              if (!forSending) await etherspotModulaSdk.clearUserOpsFromBatch();
 
               await Promise.all(
                 batch.transactions.map(async ({ to, value, data }) => {
-                  await etherspotModularOrPrimeSdk.addUserOpsToBatch({
+                  await etherspotModulaSdk.addUserOpsToBatch({
                     to,
                     value,
                     data,
@@ -114,11 +113,11 @@ const EtherspotTransactionKitContextProvider = ({
                 })
               );
 
-              const userOp = await etherspotModularOrPrimeSdk.estimate({
+              const userOp = await etherspotModulaSdk.estimate({
                 paymasterDetails: groupedBatch.paymaster,
               });
               const totalGas =
-                await etherspotModularOrPrimeSdk.totalGasEstimated(userOp);
+                await etherspotModulaSdk.totalGasEstimated(userOp);
               estimatedBatches.push({
                 ...batch,
                 cost: totalGas.mul(userOp.maxFeePerGas as BigNumber),
@@ -171,9 +170,9 @@ const EtherspotTransactionKitContextProvider = ({
           batches.map(async (batch) => {
             const batchChainId = batch.chainId ?? chainId;
 
-            const etherspotModularOrPrimeSdk = await getSdk(batchChainId);
+            const etherspotModulaSdk = await getSdk(batchChainId);
 
-            await etherspotModularOrPrimeSdk.clearUserOpsFromBatch();
+            await etherspotModulaSdk.clearUserOpsFromBatch();
           })
         )
       )
@@ -198,7 +197,7 @@ const EtherspotTransactionKitContextProvider = ({
             continue;
           }
 
-          const etherspotModularOrPrimeSdk = await getSdk(batchChainId);
+          const etherspotModulaSdk = await getSdk(batchChainId);
 
           if (!estimatedBatch.userOp) {
             sentBatches.push({
@@ -209,7 +208,7 @@ const EtherspotTransactionKitContextProvider = ({
           }
 
           try {
-            const userOpHash = await etherspotModularOrPrimeSdk.send(
+            const userOpHash = await etherspotModulaSdk.send(
               estimatedBatch.userOp
             );
             sentBatches.push({ ...estimatedBatch, userOpHash });
