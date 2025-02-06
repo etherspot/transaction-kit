@@ -7,7 +7,7 @@ jobs:
   install:
     working_directory: ~/etherspot-transaction-kit
     docker:
-      - image: cimg/node:16.19.0
+      - image: cimg/node:21.7.3
         auth:
           username: $DOCKERHUB_USER
           password: $DOCKERHUB_PASSWORD
@@ -33,7 +33,7 @@ jobs:
   install_build:
     working_directory: ~/etherspot-transaction-kit
     docker:
-      - image: cimg/node:16.19.0
+      - image: cimg/node:21.7.3
         auth:
           username: $DOCKERHUB_USER
           password: $DOCKERHUB_PASSWORD
@@ -52,7 +52,7 @@ jobs:
   publish:
     working_directory: ~/etherspot-transaction-kit
     docker:
-      - image: circleci/node:16.3.0
+      - image: circleci/node:21.7.3
         auth:
           username: $DOCKERHUB_USER
           password: $DOCKERHUB_PASSWORD
