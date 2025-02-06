@@ -1,6 +1,12 @@
 # Changelog
 
-## [0.16.0] - 2025-02-03
+## [1.0.1] - 2025-02-06
+
+### Added Changes
+
+- Node version update on circleci
+
+## [1.0.0] - 2025-02-03
 
 ### Added Changes
 
