@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.2] - 2025-02-19
+
+### Added Changes
+
+- Update `Viem` library version to match `etherspot-modular`
+
 ## [1.0.1] - 2025-02-06
 
 ### Added Changes
