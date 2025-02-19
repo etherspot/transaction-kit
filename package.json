@@ -1,7 +1,7 @@
 {
   "name": "@etherspot/transaction-kit",
   "description": "React Etherspot Transaction Kit",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "main": "dist/cjs/index.js",
   "scripts": {
     "rollup:build": "NODE_OPTIONS=--max-old-space-size=8192 rollup -c --bundleConfigAsCjs",
@@ -38,7 +38,7 @@
     "ethers": "^5.6.9",
     "lodash": "^4.17.21",
     "prettier": "^3.3.3",
-    "viem": "^2.22.10"
+    "viem": "2.21.53"
   },
   "module": "dist/esm/index.js",
   "types": "dist/index.d.ts",
