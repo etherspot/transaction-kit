@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.3] - 2025-02-19
+
+### Added Changes
+
+- Version update of `etherspot-modular`
+
 ## [1.0.2] - 2025-02-19
 
 ### Added Changes
