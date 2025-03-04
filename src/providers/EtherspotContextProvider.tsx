@@ -1,11 +1,13 @@
 /* eslint-disable no-await-in-loop */
 /* eslint-disable react/jsx-no-constructed-context-values */
 import { DataUtils } from '@etherspot/data-utils';
-import { EtherspotBundler, Factory, ModularSdk } from '@etherspot/modular-sdk';
 import {
+  EtherspotBundler,
+  Factory,
+  ModularSdk,
   WalletProvider,
   WalletProviderLike,
-} from '@etherspot/modular-sdk/dist/cjs/sdk/wallet/providers/interfaces';
+} from '@etherspot/modular-sdk';
 import { isEqual } from 'lodash';
 import React, {
   ReactNode,

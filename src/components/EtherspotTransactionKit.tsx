@@ -1,4 +1,4 @@
-import { WalletProviderLike } from '@etherspot/modular-sdk/dist/cjs/sdk/wallet/providers/interfaces';
+import { WalletProviderLike } from '@etherspot/modular-sdk';
 import React from 'react';
 
 // providers

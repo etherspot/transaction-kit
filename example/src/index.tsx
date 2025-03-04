@@ -6,6 +6,7 @@ import { privateKeyToAccount } from 'viem/accounts';
 import { polygon } from 'viem/chains';
 
 // components
+import { WalletProviderLike } from '@etherspot/modular-sdk';
 import App from './App';
 
 const root = ReactDOM.createRoot(
@@ -25,7 +26,7 @@ const client = createWalletClient({
 root.render(
   <React.StrictMode>
     <EtherspotTransactionKit
-      provider={client}
+      provider={client as WalletProviderLike}
       chainId={+(process.env.REACT_APP_CHAIN_ID as string)}
     >
       <App />

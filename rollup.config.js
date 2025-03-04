@@ -24,16 +24,8 @@ export default [
   {
     input: 'src/index.ts',
     output: [
-      {
-        file: packageJson.main,
-        format: 'cjs',
-        sourcemap: true,
-      },
-      {
-        file: packageJson.module,
-        format: 'esm',
-        sourcemap: true,
-      },
+      { file: packageJson.main, format: 'cjs', sourcemap: true },
+      { file: packageJson.module, format: 'esm', sourcemap: true },
     ],
     plugins: [
       typescript({
@@ -50,19 +42,13 @@ export default [
       }),
     ],
     external,
-    watch: {
-      clearScreen: false,
-      include: 'src/**',
-    },
+    watch: { clearScreen: false, include: 'src/**' },
   },
   {
     input: 'dist/esm/index.d.ts',
     output: [{ file: 'dist/index.d.ts', format: 'esm' }],
     plugins: [dts.default()],
     external,
-    watch: {
-      clearScreen: false,
-      include: 'src/**',
-    },
+    watch: { clearScreen: false, include: 'src/**' },
   },
 ];

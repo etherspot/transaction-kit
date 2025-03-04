@@ -1,0 +1,34 @@
+{
+  // This tsconfig file contains the shared config for the build (tsconfig.build.json) and type checking (tsconfig.json) config.
+  "compilerOptions": {
+    "resolveJsonModule": true,
+    // NOTE: Enabling incremental builds speeds up `tsc`. Keep in mind though that it does not reliably bust the cache when the `tsconfig.json` file changes.
+    "incremental": false,
+    // JavaScript support
+    "allowJs": false,
+    "checkJs": false,
+    // Interop constraints
+    "esModuleInterop": true,
+    "experimentalDecorators": true,
+    "allowSyntheticDefaultImports": true,
+    // "forceConsistentCasingInFileNames": true,
+    // "verbatimModuleSyntax": true,
+    "importHelpers": true, // This is only used for build validation. Since we do not have `tslib` installed, this will fail if we accidentally make use of anything that'd require injection of helpers.
+    // Language and environment
+    "target": "ES2021", // Setting this to `ES2021` enables native support for `Node v16+`: https://github.com/microsoft/TypeScript/wiki/Node-Target-Mapping.
+    "lib": [
+      "ES2022", // By using ES2022 we get access to the `.cause` property on `Error` instances.
+      "DOM" // We are adding `DOM` here to get the `fetch`, etc. types. This should be removed once these types are available via DefinitelyTyped.
+    ],
+    // Skip type checking for node modules
+    "skipLibCheck": true,
+    "strict": false,
+    "downlevelIteration": true,
+    "jsx": "react-jsx",
+    "declaration": true
+  },
+  "tsc-alias": {
+    "resolveFullPaths": true,
+    "verbose": false
+  }
+}
