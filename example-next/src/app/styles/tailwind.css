@@ -1,0 +1,48 @@
+@config '../../../tailwind.config.ts';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+[type='text'],
+input:where(:not([type])),
+[type='email'],
+[type='url'],
+[type='password'],
+[type='number'],
+[type='date'],
+[type='datetime-local'],
+[type='month'],
+[type='search'],
+[type='tel'],
+[type='time'],
+[type='week'],
+[multiple],
+textarea,
+select {
+  appearance: none;
+  background-color: transparent;
+  border-color: unset;
+  border-width: 0;
+  border-radius: unset;
+  padding: unset;
+  font-size: unset;
+  line-height: unset;
+}
+
+/* Override default focus colors for tailwindcss-forms https://github.com/tailwindlabs/tailwindcss-forms */
+[type='text']:focus,
+[type='email']:focus,
+[type='url']:focus,
+[type='password']:focus,
+[type='number']:focus,
+[type='date']:focus,
+[type='search']:focus,
+[type='checkbox']:focus,
+[type='radio']:focus,
+[multiple]:focus,
+textarea:focus,
+select:focus {
+  --tw-ring-color: '#5e00ff';
+  border-color: '#5e00ff';
+}

@@ -26,7 +26,7 @@
   "dependencies": {
     "@etherspot/data-utils": "^1.1.1",
     "@etherspot/eip1271-verification-util": "0.1.2",
-    "@etherspot/modular-sdk": "^5.0.1",
+    "@etherspot/modular-sdk": "file:/Users/ranakhoury/Documents/Projects/etherspot-modular-sdk/",
     "@ethersproject/abi": "^5.7.0",
     "@lifi/types": "^9.2.0",
     "buffer": "^6.0.3",
@@ -39,7 +39,8 @@
     "lodash": "^4.17.21",
     "permissionless": "^0.2.35",
     "prettier": "^3.3.3",
-    "rxjs": "^7.8.2"
+    "rxjs": "^7.8.2",
+    "viem": "2.23.2"
   },
   "module": "dist/esm/index.js",
   "types": "dist/index.d.ts",
@@ -78,8 +79,7 @@
     "rimraf": "^5.0.1",
     "rollup": "^4.31.0",
     "rollup-plugin-dts": "^6.1.1",
-    "typescript": "^5.7.3",
-    "viem": "2.23.2"
+    "typescript": "^5.7.3"
   },
   "eslintConfig": {
     "extends": [

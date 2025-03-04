@@ -1,0 +1,13 @@
+{
+  // This file is used to compile the for cjs and esm (see package.json build scripts). It should exclude all test files.
+  "extends": "./tsconfig.default.json",
+  "compilerOptions": {
+    "moduleResolution": "NodeNext",
+    "module": "NodeNext",
+    "outDir": "../dist/esm",
+    "declarationDir": "../dist/types",
+    "emitDeclarationOnly": true,
+    "declaration": true,
+    "declarationMap": true
+  }
+}
