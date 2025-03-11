@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.3] - 2025-02-19
+
+### Added Changes
+
+- Added `getTransactionHash` to get transaction hash with an userOp hash.
+- Added `transactionHash` to `send()` in `EtherspotTransactionKitContextProvider`.
+
 ## [1.0.2] - 2025-02-19
 
 ### Added Changes

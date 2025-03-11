@@ -211,7 +211,35 @@ const EtherspotTransactionKitContextProvider = ({
             const userOpHash = await etherspotModulaSdk.send(
               estimatedBatch.userOp
             );
-            sentBatches.push({ ...estimatedBatch, userOpHash });
+
+            // get transaction hash or userOp receipt...
+            let userOpsReceipt = null;
+            const timeout = Date.now() + 30 * 1000; // 30 seconds timeout
+
+            while (!userOpsReceipt && Date.now() < timeout) {
+              await new Promise<void>((resolve) => {
+                setTimeout(resolve, 2000);
+              }); // Retry every 2 sec
+
+              try {
+                userOpsReceipt =
+                  await etherspotModulaSdk.getUserOpReceipt(userOpHash);
+              } catch (error) {
+                console.error('Error fetching transaction hash:', error);
+              }
+            }
+
+            if (!userOpsReceipt) {
+              console.warn(
+                'Failed to get the transaction hash within 30 seconds.'
+              );
+            } else {
+              sentBatches.push({
+                ...estimatedBatch,
+                userOpHash,
+                transactionHash: userOpsReceipt,
+              });
+            }
           } catch (e) {
             const errorMessage = parseEtherspotErrorMessage(
               e,
@@ -240,11 +268,40 @@ const EtherspotTransactionKitContextProvider = ({
     return result;
   };
 
+  const getTransactionHash = async (
+    userOpHash: string,
+    batchId: number
+  ): Promise<string | null> => {
+    const etherspotModulaSdk = await getSdk(batchId);
+
+    let transactionHash = null;
+    const timeout = Date.now() + 30 * 1000; // 30 seconds timeout
+
+    while (!transactionHash && Date.now() < timeout) {
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, 2000);
+      }); // Retry every 2 sec
+
+      try {
+        transactionHash = await etherspotModulaSdk.getUserOpReceipt(userOpHash);
+      } catch (error) {
+        console.error('Error fetching transaction hash:', error);
+      }
+    }
+
+    if (!transactionHash) {
+      console.warn('Failed to get the transaction hash within 30 seconds.');
+    }
+
+    return transactionHash;
+  };
+
   const contextData = useMemo(
     () => ({
       batches: getObjectSortedByKeys(groupedBatchesPerId),
       estimate,
       send,
+      getTransactionHash,
       chainId,
       isEstimating,
       isSending,

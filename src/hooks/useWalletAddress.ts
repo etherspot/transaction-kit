@@ -82,7 +82,6 @@ const useWalletAddress = (
 
     if (walletType === 'provider') {
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-expect-error
       const providerAddress = provider?.address || provider?.accounts?.[0];
       if (providerAddress) return providerAddress;
       console.warn('Unable to get wallet address for provider type');
