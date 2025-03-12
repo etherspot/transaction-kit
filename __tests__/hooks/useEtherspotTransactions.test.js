@@ -4,7 +4,6 @@ import { act } from 'react';
 import { createWalletClient, http, parseEther, toHex } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { sepolia } from 'viem/chains';
-
 import {
   EtherspotBatch,
   EtherspotBatches,
@@ -13,7 +12,6 @@ import {
   EtherspotTransactionKit,
   useEtherspotTransactions,
 } from '../../src';
-
 const randomWallet = privateKeyToAccount(
   `0x${crypto.getRandomValues(new Uint8Array(32)).reduce((acc, byte) => acc + byte.toString(16).padStart(2, '0'), '')}`
 );
@@ -30,7 +28,6 @@ const TestSingleBatchComponent = () => (
     </EtherspotBatch>
   </EtherspotBatches>
 );
-
 const abi = {
   inputs: [
     { internalType: 'address', name: 'to', type: 'address' },
@@ -41,7 +38,6 @@ const abi = {
   stateMutability: 'nonpayable',
   type: 'function',
 };
-
 jest.mock('@etherspot/data-utils', () => ({
   DataUtils: jest.fn().mockImplementation(() => ({
     getAccountBalances: jest.fn(({ chainId, account }) => {
@@ -50,10 +46,8 @@ jest.mock('@etherspot/data-utils', () => ({
         defaultAccountAddress,
         otherAccountAddress,
       } = require('../../__mocks__/@etherspot/modular-sdk');
-
       const tokenBalance = parseEther('420');
       const nativeAssetBalance = parseEther('0');
-
       const token = {
         token: '0x',
         balance: tokenBalance,
@@ -64,26 +58,21 @@ jest.mock('@etherspot/data-utils', () => ({
         balance: nativeAssetBalance,
         superBalance: nativeAssetBalance,
       };
-
       if (chainId !== 1) {
         return { items: [nativeAsset] };
       }
-
       if (account === defaultAccountAddress) {
         return { items: [nativeAsset, token] };
       }
-
       if (account === otherAccountAddress) {
         return {
           items: [nativeAsset, { ...token, balance: parseEther('69') }],
         };
       }
-
       return { items: [] };
     }),
   })),
 }));
-
 describe('useEtherspotTransactions()', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -130,11 +119,9 @@ describe('useEtherspotTransactions()', () => {
         {children}
       </EtherspotTransactionKit>
     );
-
     const {
       result: { current },
     } = renderHook(() => useEtherspotTransactions(), { wrapper });
-
     expect(current.batches.length).toBe(5);
     expect(current.batches[0].batches.length).toBe(1);
     expect(current.batches[0].batches[0].chainId).toBe(123);
@@ -157,7 +144,6 @@ describe('useEtherspotTransactions()', () => {
       api_key: 'someApiKey',
     });
   });
-
   it('throws an error if <EtherspotBatches /> within <EtherspotBatches />', () => {
     const wrapper = ({ children }) => (
       <EtherspotTransactionKit provider={provider}>
@@ -177,12 +163,10 @@ describe('useEtherspotTransactions()', () => {
         {children}
       </EtherspotTransactionKit>
     );
-
     expect(() =>
       renderHook(() => useEtherspotTransactions(), { wrapper })
     ).toThrow('<EtherspotBatches /> cannot be inside <EtherspotBatches />');
   });
-
   it('throws an error if <EtherspotBatch /> within <EtherspotBatch />', () => {
     const wrapper = ({ children }) => (
       <EtherspotTransactionKit provider={provider}>
@@ -204,12 +188,10 @@ describe('useEtherspotTransactions()', () => {
         {children}
       </EtherspotTransactionKit>
     );
-
     expect(() =>
       renderHook(() => useEtherspotTransactions(), { wrapper })
     ).toThrow('<EtherspotBatch /> cannot be inside <EtherspotBatch />');
   });
-
   it('throws an error if <EtherspotBatches /> rendered without <EtherspotTransactionKit />', () => {
     expect(() =>
       render(
@@ -221,7 +203,6 @@ describe('useEtherspotTransactions()', () => {
       )
     ).toThrow('No parent <EtherspotTransactionKit />');
   });
-
   it('throws an error if <EtherspotBatch /> rendered without <EtherspotBatches />', () => {
     expect(() =>
       render(
@@ -231,7 +212,6 @@ describe('useEtherspotTransactions()', () => {
       )
     ).toThrow('No parent <EtherspotBatches />');
   });
-
   it('throws an error if <EtherspotTransaction /> rendered without <EtherspotBatch />', () => {
     expect(() =>
       render(
@@ -241,7 +221,6 @@ describe('useEtherspotTransactions()', () => {
       )
     ).toThrow('No parent <EtherspotBatch />');
   });
-
   it('single grouped batches estimate returns cost and send returns userOp hash successfully', async () => {
     const wrapper = ({ children }) => (
       <EtherspotTransactionKit provider={provider}>
@@ -273,21 +252,16 @@ describe('useEtherspotTransactions()', () => {
         {children}
       </EtherspotTransactionKit>
     );
-
     const { result } = renderHook(() => useEtherspotTransactions(), {
       wrapper,
     });
-
     expect(result.current.isEstimating).toBe(false);
-
     let estimatePromise;
     act(() => {
       estimatePromise = result.current.estimate();
     });
-
     await waitFor(() => expect(result.current.isEstimating).toBe(true));
     await waitFor(() => expect(result.current.isEstimating).toBe(false));
-
     const estimated = await estimatePromise;
     expect(result.current.containsEstimatingError).toBe(false);
     expect(BigNumber.isBigNumber(estimated[0].estimatedBatches[0].cost)).toBe(
@@ -299,31 +273,17 @@ describe('useEtherspotTransactions()', () => {
 
     expect(result.current.isSending).toBe(false);
 
-    // Mocking the timeout during the send operation
-    jest.useFakeTimers();
-
     let sendPromise;
     act(() => {
       sendPromise = result.current.send();
     });
 
     await waitFor(() => expect(result.current.isSending).toBe(true));
-
-    // Simulate 30 seconds timeout
-    jest.advanceTimersByTime(30000);
-
-    await waitFor(
-      () => {
-        expect(result.current.isSending).toBe(false);
-      },
-      { timeout: 31000 }
-    ); // Increase timeout slightly to cover the full timeout
+    await waitFor(() => expect(result.current.isSending).toBe(false));
 
     const sent = await sendPromise;
     expect(result.current.containsSendingError).toBe(false);
     expect(sent[0].sentBatches[0].userOpHash).toBe('0x7c');
-
-    jest.useRealTimers();
   });
 
   it('estimates and sends single grouped batches without calling estimate', async () => {
@@ -357,14 +317,11 @@ describe('useEtherspotTransactions()', () => {
         {children}
       </EtherspotTransactionKit>
     );
-
     const { result } = renderHook(() => useEtherspotTransactions(), {
       wrapper,
     });
 
     expect(result.current.isSending).toBe(false);
-
-    jest.useFakeTimers();
 
     let sendPromise;
     act(() => {
@@ -372,19 +329,12 @@ describe('useEtherspotTransactions()', () => {
     });
 
     await waitFor(() => expect(result.current.isSending).toBe(true));
-
-    jest.advanceTimersByTime(30000);
-
-    await waitFor(() => expect(result.current.isSending).toBe(false), {
-      timeout: 31000,
-    });
+    await waitFor(() => expect(result.current.isSending).toBe(false));
 
     const sent = await sendPromise;
     expect(result.current.containsSendingError).toBe(false);
     expect(sent[0].estimatedBatches[0].cost.toString()).toBe('350000000000000');
     expect(sent[0].sentBatches[0].userOpHash).toBe('0x7c');
-
-    jest.useRealTimers();
   });
 
   it('estimates and sends multiple grouped batches with skipped and with no batches', async () => {
@@ -436,14 +386,11 @@ describe('useEtherspotTransactions()', () => {
         {children}
       </EtherspotTransactionKit>
     );
-
     const { result } = renderHook(() => useEtherspotTransactions(), {
       wrapper,
     });
 
     expect(result.current.isEstimating).toBe(false);
-
-    jest.useFakeTimers();
 
     let estimatePromise;
     act(() => {
@@ -451,12 +398,7 @@ describe('useEtherspotTransactions()', () => {
     });
 
     await waitFor(() => expect(result.current.isEstimating).toBe(true));
-
-    jest.advanceTimersByTime(30000);
-
-    await waitFor(() => expect(result.current.isEstimating).toBe(false), {
-      timeout: 31000,
-    });
+    await waitFor(() => expect(result.current.isEstimating).toBe(false));
 
     const estimated = await estimatePromise;
     expect(result.current.containsEstimatingError).toBe(false);
@@ -470,21 +412,14 @@ describe('useEtherspotTransactions()', () => {
     expect(estimated[2].estimatedBatches[0].cost.toString()).toBe(
       '250000000000000'
     );
-
     expect(result.current.isSending).toBe(false);
-
     let sendPromise;
     act(() => {
       sendPromise = result.current.send();
     });
 
     await waitFor(() => expect(result.current.isSending).toBe(true));
-
-    jest.advanceTimersByTime(30000);
-
-    await waitFor(() => expect(result.current.isSending).toBe(false), {
-      timeout: 31000,
-    });
+    await waitFor(() => expect(result.current.isSending).toBe(false));
 
     const sent = await sendPromise;
     expect(result.current.containsSendingError).toBe(false);
@@ -492,8 +427,6 @@ describe('useEtherspotTransactions()', () => {
     expect(sent[0].sentBatches[1].userOpHash).toBe('0x7d');
     expect(sent[1].sentBatches.length).toBe(0); // has skip prop
     expect(sent[2].sentBatches[0].userOpHash).toBe('0x46');
-
-    jest.useRealTimers();
   });
 
   it('estimates and sends multiple grouped batches with paymaster', async () => {
@@ -532,14 +465,11 @@ describe('useEtherspotTransactions()', () => {
         {children}
       </EtherspotTransactionKit>
     );
-
     const { result } = renderHook(() => useEtherspotTransactions(), {
       wrapper,
     });
 
     expect(result.current.isEstimating).toBe(false);
-
-    jest.useFakeTimers();
 
     let estimatePromise;
     act(() => {
@@ -547,12 +477,7 @@ describe('useEtherspotTransactions()', () => {
     });
 
     await waitFor(() => expect(result.current.isEstimating).toBe(true));
-
-    jest.advanceTimersByTime(30000);
-
-    await waitFor(() => expect(result.current.isEstimating).toBe(false), {
-      timeout: 31000,
-    });
+    await waitFor(() => expect(result.current.isEstimating).toBe(false));
 
     const estimated = await estimatePromise;
     expect(result.current.containsEstimatingError).toBe(false);
@@ -562,28 +487,19 @@ describe('useEtherspotTransactions()', () => {
     expect(estimated[1].estimatedBatches[0].cost.toString()).toBe(
       '650000000000000'
     );
-
     expect(result.current.isSending).toBe(false);
-
     let sendPromise;
     act(() => {
       sendPromise = result.current.send();
     });
 
     await waitFor(() => expect(result.current.isSending).toBe(true));
-
-    jest.advanceTimersByTime(30000);
-
-    await waitFor(() => expect(result.current.isSending).toBe(false), {
-      timeout: 31000,
-    });
+    await waitFor(() => expect(result.current.isSending).toBe(false));
 
     const sent = await sendPromise;
     expect(result.current.containsSendingError).toBe(false);
     expect(sent[0].sentBatches[0].userOpHash).toBe('0x7c');
     expect(sent[1].sentBatches[0].userOpHash).toBe('0x46');
-
-    jest.useRealTimers();
   });
 
   it('estimates and sends multiple grouped batches with matching chain IDs', async () => {
@@ -634,14 +550,11 @@ describe('useEtherspotTransactions()', () => {
         {children}
       </EtherspotTransactionKit>
     );
-
     const { result } = renderHook(() => useEtherspotTransactions(), {
       wrapper,
     });
 
     expect(result.current.isEstimating).toBe(false);
-
-    jest.useFakeTimers();
 
     let estimatePromise;
     act(() => {
@@ -649,12 +562,7 @@ describe('useEtherspotTransactions()', () => {
     });
 
     await waitFor(() => expect(result.current.isEstimating).toBe(true));
-
-    jest.advanceTimersByTime(30000);
-
-    await waitFor(() => expect(result.current.isEstimating).toBe(false), {
-      timeout: 31000,
-    });
+    await waitFor(() => expect(result.current.isEstimating).toBe(false));
 
     const estimated = await estimatePromise;
     expect(result.current.containsEstimatingError).toBe(false);
@@ -670,21 +578,14 @@ describe('useEtherspotTransactions()', () => {
     expect(estimated[2].estimatedBatches[0].cost.toString()).toBe(
       '650000000000000'
     );
-
     expect(result.current.isSending).toBe(false);
-
     let sendPromise;
     act(() => {
       sendPromise = result.current.send();
     });
 
     await waitFor(() => expect(result.current.isSending).toBe(true));
-
-    jest.advanceTimersByTime(30000);
-
-    await waitFor(() => expect(result.current.isSending).toBe(false), {
-      timeout: 31000,
-    });
+    await waitFor(() => expect(result.current.isSending).toBe(false));
 
     const sent = await sendPromise;
     expect(result.current.containsSendingError).toBe(false);
@@ -692,14 +593,11 @@ describe('useEtherspotTransactions()', () => {
     expect(sent[0].sentBatches[1].userOpHash).toBe('0x7e');
     expect(sent[1].sentBatches[0].userOpHash).toBe('0x46');
     expect(sent[2].sentBatches[0].userOpHash).toBe('0x7d');
-
-    jest.useRealTimers();
   });
 
   it('estimates and calls onEstimated for each batch group', async () => {
     const onEstimated1 = jest.fn((estimated) => estimated);
     const onEstimated2 = jest.fn((estimated) => estimated);
-
     const wrapper = ({ children }) => (
       <EtherspotTransactionKit provider={provider}>
         <div>
@@ -745,14 +643,11 @@ describe('useEtherspotTransactions()', () => {
         {children}
       </EtherspotTransactionKit>
     );
-
     const { result } = renderHook(() => useEtherspotTransactions(), {
       wrapper,
     });
 
     expect(result.current.isEstimating).toBe(false);
-
-    jest.useFakeTimers();
 
     let estimatePromise;
     act(() => {
@@ -760,12 +655,7 @@ describe('useEtherspotTransactions()', () => {
     });
 
     await waitFor(() => expect(result.current.isEstimating).toBe(true));
-
-    jest.advanceTimersByTime(30000);
-
-    await waitFor(() => expect(result.current.isEstimating).toBe(false), {
-      timeout: 31000,
-    });
+    await waitFor(() => expect(result.current.isEstimating).toBe(false));
 
     const estimated = await estimatePromise;
     expect(result.current.containsEstimatingError).toBe(false);
@@ -777,14 +667,11 @@ describe('useEtherspotTransactions()', () => {
     expect(onEstimated2.mock.calls[0][0]).toStrictEqual(
       estimated[1].estimatedBatches
     );
-
-    jest.useRealTimers();
   });
 
   it('sends and calls onSent for each batch group', async () => {
     const onSent1 = jest.fn((sent) => sent);
     const onSent2 = jest.fn((sent) => sent);
-
     const wrapper = ({ children }) => (
       <EtherspotTransactionKit provider={provider}>
         <div>
@@ -830,14 +717,11 @@ describe('useEtherspotTransactions()', () => {
         {children}
       </EtherspotTransactionKit>
     );
-
     const { result } = renderHook(() => useEtherspotTransactions(), {
       wrapper,
     });
 
     expect(result.current.isSending).toBe(false);
-
-    jest.useFakeTimers();
 
     let sendPromise;
     act(() => {
@@ -845,12 +729,7 @@ describe('useEtherspotTransactions()', () => {
     });
 
     await waitFor(() => expect(result.current.isSending).toBe(true));
-
-    jest.advanceTimersByTime(30000);
-
-    await waitFor(() => expect(result.current.isSending).toBe(false), {
-      timeout: 31000,
-    });
+    await waitFor(() => expect(result.current.isSending).toBe(false));
 
     const sent = await sendPromise;
 
@@ -858,14 +737,11 @@ describe('useEtherspotTransactions()', () => {
     expect(onSent2).toBeCalledTimes(1);
     expect(onSent1.mock.calls[0][0]).toStrictEqual(sent[0].sentBatches);
     expect(onSent2.mock.calls[0][0]).toStrictEqual(sent[1].sentBatches);
-
-    jest.useRealTimers();
   });
 
   it('estimates and returns error messages for each batch group', async () => {
     const onEstimated1 = jest.fn((estimated) => estimated);
     const onEstimated2 = jest.fn((estimated) => estimated);
-
     const wrapper = ({ children }) => (
       <EtherspotTransactionKit provider={provider}>
         <div>
@@ -908,14 +784,11 @@ describe('useEtherspotTransactions()', () => {
         {children}
       </EtherspotTransactionKit>
     );
-
     const { result } = renderHook(() => useEtherspotTransactions(), {
       wrapper,
     });
 
     expect(result.current.isEstimating).toBe(false);
-
-    jest.useFakeTimers();
 
     let estimatePromise;
     act(() => {
@@ -923,12 +796,7 @@ describe('useEtherspotTransactions()', () => {
     });
 
     await waitFor(() => expect(result.current.isEstimating).toBe(true));
-
-    jest.advanceTimersByTime(30000);
-
-    await waitFor(() => expect(result.current.isEstimating).toBe(false), {
-      timeout: 31000,
-    });
+    await waitFor(() => expect(result.current.isEstimating).toBe(false));
 
     const estimated = await estimatePromise;
     expect(result.current.containsEstimatingError).toBe(true);
@@ -944,14 +812,11 @@ describe('useEtherspotTransactions()', () => {
     expect(onEstimated2.mock.calls[0][0]).toStrictEqual(
       estimated[1].estimatedBatches
     );
-
-    jest.useRealTimers();
   });
 
   it('estimates successfully and returns error messages on send for each batch group', async () => {
     const onSent1 = jest.fn((sent) => sent);
     const onSent2 = jest.fn((sent) => sent);
-
     const wrapper = ({ children }) => (
       <EtherspotTransactionKit provider={provider}>
         <div>
@@ -990,14 +855,11 @@ describe('useEtherspotTransactions()', () => {
         {children}
       </EtherspotTransactionKit>
     );
-
     const { result } = renderHook(() => useEtherspotTransactions(), {
       wrapper,
     });
 
     expect(result.current.isEstimating).toBe(false);
-
-    jest.useFakeTimers();
 
     let estimatePromise;
     act(() => {
@@ -1005,12 +867,7 @@ describe('useEtherspotTransactions()', () => {
     });
 
     await waitFor(() => expect(result.current.isEstimating).toBe(true));
-
-    jest.advanceTimersByTime(30000);
-
-    await waitFor(() => expect(result.current.isEstimating).toBe(false), {
-      timeout: 31000,
-    });
+    await waitFor(() => expect(result.current.isEstimating).toBe(false));
 
     const estimated = await estimatePromise;
     expect(result.current.containsEstimatingError).toBe(false);
@@ -1020,21 +877,14 @@ describe('useEtherspotTransactions()', () => {
     expect(estimated[1].estimatedBatches[0].cost.toString()).toBe(
       '250000000000000'
     );
-
     expect(result.current.isSending).toBe(false);
-
     let sendPromise;
     act(() => {
       sendPromise = result.current.send();
     });
 
     await waitFor(() => expect(result.current.isSending).toBe(true));
-
-    jest.advanceTimersByTime(30000);
-
-    await waitFor(() => expect(result.current.isSending).toBe(false), {
-      timeout: 31000,
-    });
+    await waitFor(() => expect(result.current.isSending).toBe(false));
 
     const sent = await sendPromise;
 
@@ -1047,15 +897,12 @@ describe('useEtherspotTransactions()', () => {
     );
     expect(onSent1.mock.calls[0][0]).toStrictEqual(sent[0].sentBatches);
     expect(onSent2.mock.calls[0][0]).toStrictEqual(sent[1].sentBatches);
-
-    jest.useRealTimers();
   });
 
   it('estimates valid and returns error messages for invalid batch group by ID', async () => {
     const onEstimated1 = jest.fn((estimated) => estimated);
     const onEstimated2 = jest.fn((estimated) => estimated);
     const onEstimated3 = jest.fn((estimated) => estimated);
-
     const wrapper = ({ children }) => (
       <EtherspotTransactionKit provider={provider}>
         <div>
@@ -1105,14 +952,11 @@ describe('useEtherspotTransactions()', () => {
         {children}
       </EtherspotTransactionKit>
     );
-
     const { result } = renderHook(() => useEtherspotTransactions(), {
       wrapper,
     });
 
     expect(result.current.isEstimating).toBe(false);
-
-    jest.useFakeTimers();
 
     let estimatePromise;
     act(() => {
@@ -1120,12 +964,7 @@ describe('useEtherspotTransactions()', () => {
     });
 
     await waitFor(() => expect(result.current.isEstimating).toBe(true));
-
-    jest.advanceTimersByTime(30000);
-
-    await waitFor(() => expect(result.current.isEstimating).toBe(false), {
-      timeout: 31000,
-    });
+    await waitFor(() => expect(result.current.isEstimating).toBe(false));
 
     const estimated1 = await estimatePromise;
     expect(result.current.containsEstimatingError).toBe(true);
@@ -1136,15 +975,12 @@ describe('useEtherspotTransactions()', () => {
     expect(onEstimated1.mock.calls[0][0]).toStrictEqual(
       estimated1[0].estimatedBatches
     );
-
     act(() => {
       estimatePromise = result.current.estimate(['test-id-2', 'test-id-3']);
     });
 
     await waitFor(() => expect(result.current.isEstimating).toBe(true));
-    await waitFor(() => expect(result.current.isEstimating).toBe(false), {
-      timeout: 31000,
-    });
+    await waitFor(() => expect(result.current.isEstimating).toBe(false));
 
     const estimated2 = await estimatePromise;
     expect(result.current.containsEstimatingError).toBe(false);
@@ -1161,15 +997,12 @@ describe('useEtherspotTransactions()', () => {
     expect(onEstimated3.mock.calls[0][0]).toStrictEqual(
       estimated2[1].estimatedBatches
     );
-
-    jest.useRealTimers();
   });
 
   it('sends valid and returns error messages for invalid batch group by ID', async () => {
     const onSent1 = jest.fn((estimated) => estimated);
     const onSent2 = jest.fn((estimated) => estimated);
     const onSent3 = jest.fn((estimated) => estimated);
-
     const wrapper = ({ children }) => (
       <EtherspotTransactionKit provider={provider}>
         <div>
@@ -1219,14 +1052,11 @@ describe('useEtherspotTransactions()', () => {
         {children}
       </EtherspotTransactionKit>
     );
-
     const { result } = renderHook(() => useEtherspotTransactions(), {
       wrapper,
     });
 
     expect(result.current.isSending).toBe(false);
-
-    jest.useFakeTimers();
 
     let sendPromise;
     act(() => {
@@ -1234,12 +1064,7 @@ describe('useEtherspotTransactions()', () => {
     });
 
     await waitFor(() => expect(result.current.isSending).toBe(true));
-
-    jest.advanceTimersByTime(30000);
-
-    await waitFor(() => expect(result.current.isSending).toBe(false), {
-      timeout: 31000,
-    });
+    await waitFor(() => expect(result.current.isSending).toBe(false));
 
     const sent1 = await sendPromise;
     expect(sent1.length).toBe(1);
@@ -1248,15 +1073,12 @@ describe('useEtherspotTransactions()', () => {
       'Transaction reverted: chain too hot'
     );
     expect(onSent1.mock.calls[0][0]).toStrictEqual(sent1[0].sentBatches);
-
     act(() => {
       sendPromise = result.current.send(['test-id-2', 'test-id-3']);
     });
 
     await waitFor(() => expect(result.current.isSending).toBe(true));
-    await waitFor(() => expect(result.current.isSending).toBe(false), {
-      timeout: 31000,
-    });
+    await waitFor(() => expect(result.current.isSending).toBe(false));
 
     const sent2 = await sendPromise;
     expect(sent2.length).toBe(2);
@@ -1265,7 +1087,5 @@ describe('useEtherspotTransactions()', () => {
     expect(sent2[1].sentBatches[0].userOpHash).toBe('0x47');
     expect(onSent2.mock.calls[0][0]).toStrictEqual(sent2[0].sentBatches);
     expect(onSent3.mock.calls[0][0]).toStrictEqual(sent2[1].sentBatches);
-
-    jest.useRealTimers();
   });
 });

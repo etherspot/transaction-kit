@@ -1,6 +1,12 @@
 # Changelog
 
-## [1.0.3] - 2025-02-19
+## [1.0.4] - 2025-03-12
+
+### Added Changes
+
+- Remove `transactionHash` to `send()` in `EtherspotTransactionKitContextProvider`.
+
+## [1.0.3] - 2025-03-12
 
 ### Added Changes
 

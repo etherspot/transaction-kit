@@ -212,44 +212,7 @@ const EtherspotTransactionKitContextProvider = ({
               estimatedBatch.userOp
             );
 
-            // get transaction hash or userOp receipt...
-            let userOpsReceipt;
-            const timeout = Date.now() + 30 * 1000; // 30 seconds timeout
-
-            try {
-              while (!userOpsReceipt && Date.now() < timeout) {
-                await new Promise<void>((resolve) => {
-                  setTimeout(resolve, 2000);
-                }); // Retry every 2 sec
-
-                try {
-                  userOpsReceipt =
-                    await etherspotModulaSdk.getUserOpReceipt(userOpHash);
-                } catch (error) {
-                  console.error(
-                    'Error fetching transaction hash. Please check if the transaction has gone through, or try to send the transaction again:',
-                    error
-                  );
-                }
-              }
-
-              if (!userOpsReceipt) {
-                console.warn(
-                  'Failed to get the transaction hash within 30 seconds. Please check if the transaction has gone through, or try to send the transaction again.'
-                );
-              }
-            } catch (e) {
-              console.error(
-                'Unexpected error while fetching the transaction hash. Please check if the transaction has gone through, or try to send the transaction again:',
-                e
-              );
-            }
-
-            sentBatches.push({
-              ...estimatedBatch,
-              userOpHash,
-              transactionHash: userOpsReceipt,
-            });
+            sentBatches.push({ ...estimatedBatch, userOpHash });
           } catch (e) {
             const errorMessage = parseEtherspotErrorMessage(
               e,
@@ -280,25 +243,25 @@ const EtherspotTransactionKitContextProvider = ({
 
   const getTransactionHash = async (
     userOpHash: string,
-    batchId: number,
-    timeout: number = 30 * 1000,
-    retryInterval: number = 2000
+    batchId?: number,
+    timeout: number = 30 * 1000, // Default to 30 sec
+    retryInterval: number = 2000 // Default to 2 sec
   ): Promise<string | null> => {
     const etherspotModulaSdk = await getSdk(batchId);
 
     let transactionHash = null;
-    const timeoutTotal = Date.now() + timeout; // 30 seconds timeout
+    const timeoutTotal = Date.now() + timeout; // Timeout duration
 
     while (!transactionHash && Date.now() < timeoutTotal) {
       await new Promise<void>((resolve) => {
         setTimeout(resolve, retryInterval);
-      }); // Retry every 2 sec
+      }); // Retry every retryInterval ms
 
       try {
         transactionHash = await etherspotModulaSdk.getUserOpReceipt(userOpHash);
       } catch (error) {
         console.error(
-          'Error fetching transaction hash. Please try again:',
+          'Error fetching transaction hash. Please check if the transaction has gone through, or try to send the transaction again:',
           error
         );
       }
@@ -306,7 +269,7 @@ const EtherspotTransactionKitContextProvider = ({
 
     if (!transactionHash) {
       console.warn(
-        'Failed to get the transaction hash within 30 seconds. Please try again'
+        'Failed to get the transaction hash within time limit. Please try again'
       );
     }
 
