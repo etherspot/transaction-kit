@@ -107,6 +107,10 @@ export class ModularSdk {
     return userOpHash;
   }
 
+  async getUserOpReceipt(userOpHash) {
+    return `0xreceipt_${userOpHash}`;
+  }
+
   async generateModuleDeInitData() {
     const deInitData = '0000000000000000000000000000000000000001';
     return deInitData;

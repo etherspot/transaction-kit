@@ -1,7 +1,7 @@
 {
   "name": "@etherspot/transaction-kit",
   "description": "React Etherspot Transaction Kit",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "main": "dist/cjs/index.js",
   "scripts": {
     "rollup:build": "NODE_OPTIONS=--max-old-space-size=8192 rollup -c --bundleConfigAsCjs",
@@ -26,7 +26,7 @@
   "dependencies": {
     "@etherspot/data-utils": "^1.1.1",
     "@etherspot/eip1271-verification-util": "0.1.2",
-    "@etherspot/modular-sdk": "^5.0.0",
+    "@etherspot/modular-sdk": "^5.1.0",
     "@ethersproject/abi": "^5.7.0",
     "@lifi/types": "^9.2.0",
     "buffer": "^6.0.3",

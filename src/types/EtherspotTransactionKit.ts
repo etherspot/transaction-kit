@@ -35,6 +35,7 @@ export interface EstimatedBatch extends IBatch {
 export interface SentBatch extends EstimatedBatch {
   errorMessage?: string;
   userOpHash?: string;
+  transactionHash?: string;
 }
 
 export interface IBatches {

@@ -14,6 +14,12 @@ export interface IEtherspotTransactionKitContext {
     batches: IBatches[];
     estimate: (batchesIds?: string[]) => Promise<IEstimatedBatches[]>;
     send: (batchesIds?: string[]) => Promise<ISentBatches[]>;
+    getTransactionHash: (
+      userOpHash: string,
+      batchId: number,
+      timeout?: number,
+      retryInterval?: number
+    ) => Promise<string | null>;
     isEstimating: boolean;
     isSending: boolean;
     containsSendingError: boolean;
