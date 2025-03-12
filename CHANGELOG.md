@@ -6,6 +6,7 @@
 
 - Added `getTransactionHash` to get transaction hash with an userOp hash.
 - Added `transactionHash` to `send()` in `EtherspotTransactionKitContextProvider`.
+- Version update of `etherspot-modular`.
 
 ## [1.0.2] - 2025-02-19
 

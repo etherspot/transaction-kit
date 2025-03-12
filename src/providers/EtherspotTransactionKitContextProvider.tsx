@@ -213,33 +213,43 @@ const EtherspotTransactionKitContextProvider = ({
             );
 
             // get transaction hash or userOp receipt...
-            let userOpsReceipt = null;
+            let userOpsReceipt;
             const timeout = Date.now() + 30 * 1000; // 30 seconds timeout
 
-            while (!userOpsReceipt && Date.now() < timeout) {
-              await new Promise<void>((resolve) => {
-                setTimeout(resolve, 2000);
-              }); // Retry every 2 sec
+            try {
+              while (!userOpsReceipt && Date.now() < timeout) {
+                await new Promise<void>((resolve) => {
+                  setTimeout(resolve, 2000);
+                }); // Retry every 2 sec
 
-              try {
-                userOpsReceipt =
-                  await etherspotModulaSdk.getUserOpReceipt(userOpHash);
-              } catch (error) {
-                console.error('Error fetching transaction hash:', error);
+                try {
+                  userOpsReceipt =
+                    await etherspotModulaSdk.getUserOpReceipt(userOpHash);
+                } catch (error) {
+                  console.error(
+                    'Error fetching transaction hash. Please check if the transaction has gone through, or try to send the transaction again:',
+                    error
+                  );
+                }
               }
+
+              if (!userOpsReceipt) {
+                console.warn(
+                  'Failed to get the transaction hash within 30 seconds. Please check if the transaction has gone through, or try to send the transaction again.'
+                );
+              }
+            } catch (e) {
+              console.error(
+                'Unexpected error while fetching the transaction hash. Please check if the transaction has gone through, or try to send the transaction again:',
+                e
+              );
             }
 
-            if (!userOpsReceipt) {
-              console.warn(
-                'Failed to get the transaction hash within 30 seconds.'
-              );
-            } else {
-              sentBatches.push({
-                ...estimatedBatch,
-                userOpHash,
-                transactionHash: userOpsReceipt,
-              });
-            }
+            sentBatches.push({
+              ...estimatedBatch,
+              userOpHash,
+              transactionHash: userOpsReceipt,
+            });
           } catch (e) {
             const errorMessage = parseEtherspotErrorMessage(
               e,
@@ -285,12 +295,17 @@ const EtherspotTransactionKitContextProvider = ({
       try {
         transactionHash = await etherspotModulaSdk.getUserOpReceipt(userOpHash);
       } catch (error) {
-        console.error('Error fetching transaction hash:', error);
+        console.error(
+          'Error fetching transaction hash. Please try again:',
+          error
+        );
       }
     }
 
     if (!transactionHash) {
-      console.warn('Failed to get the transaction hash within 30 seconds.');
+      console.warn(
+        'Failed to get the transaction hash within 30 seconds. Please try again'
+      );
     }
 
     return transactionHash;

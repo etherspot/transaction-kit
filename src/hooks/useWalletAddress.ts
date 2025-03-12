@@ -1,3 +1,4 @@
+import { EthereumProvider, WalletProvider } from '@etherspot/modular-sdk';
 import { useEffect, useMemo, useState } from 'react';
 
 // types
@@ -82,7 +83,9 @@ const useWalletAddress = (
 
     if (walletType === 'provider') {
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      const providerAddress = provider?.address || provider?.accounts?.[0];
+      const providerAddress =
+        (provider as WalletProvider)?.address ||
+        (provider as EthereumProvider)?.accounts?.[0];
       if (providerAddress) return providerAddress;
       console.warn('Unable to get wallet address for provider type');
     }
