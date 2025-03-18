@@ -243,11 +243,11 @@ const EtherspotTransactionKitContextProvider = ({
 
   const getTransactionHash = async (
     userOpHash: string,
-    batchId?: number,
-    timeout: number = 30 * 1000, // Default to 30 sec
+    txChainId: number,
+    timeout: number = 60 * 1000, // Default to 60 sec
     retryInterval: number = 2000 // Default to 2 sec
   ): Promise<string | null> => {
-    const etherspotModulaSdk = await getSdk(batchId);
+    const etherspotModulaSdk = await getSdk(txChainId);
 
     let transactionHash = null;
     const timeoutTotal = Date.now() + timeout; // Timeout duration
