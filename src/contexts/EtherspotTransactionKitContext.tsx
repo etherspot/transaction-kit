@@ -16,7 +16,7 @@ export interface IEtherspotTransactionKitContext {
     send: (batchesIds?: string[]) => Promise<ISentBatches[]>;
     getTransactionHash: (
       userOpHash: string,
-      batchId?: number,
+      txChainId: number,
       timeout?: number,
       retryInterval?: number
     ) => Promise<string | null>;

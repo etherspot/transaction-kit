@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.5] - 2025-03-18
+
+### Added Changes
+
+- Replaced `batchId` param with `chainId` in `getTransactionHash` and made it mandatory.
+
 ## [1.0.4] - 2025-03-12
 
 ### Added Changes
