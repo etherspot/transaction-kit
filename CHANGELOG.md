@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.1.0] - 2025-05-29
+
+### Added Changes
+
+- Added optional `customChain` to `getSdk`
+
+### Breaking Changes
+
+- Version update of `etherspot-modular` with new wallet factory address
+
 ## [1.0.5] - 2025-03-18
 
 ### Added Changes

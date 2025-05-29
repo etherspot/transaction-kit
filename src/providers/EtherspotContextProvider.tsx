@@ -18,6 +18,7 @@ import React, {
 } from 'react';
 
 // contexts
+import { Chain } from 'viem';
 import EtherspotContext from '../contexts/EtherspotContext';
 
 let sdkPerChain: { [chainId: number]: ModularSdk | Promise<ModularSdk> } = {};
@@ -52,7 +53,11 @@ const EtherspotContextProvider = ({
   }, []);
 
   const getSdk = useCallback(
-    async (sdkChainId: number = chainId, forceNewInstance: boolean = false) => {
+    async (
+      sdkChainId: number = chainId,
+      forceNewInstance: boolean = false,
+      customChain?: Chain
+    ) => {
       const providerChanged =
         prevProvider && !isEqual(prevProvider, provider as WalletProviderLike);
 
@@ -63,6 +68,7 @@ const EtherspotContextProvider = ({
       sdkPerChain[sdkChainId] = (async () => {
         const etherspotModularSdk = new ModularSdk(provider as WalletProvider, {
           chainId: +sdkChainId,
+          chain: customChain,
           bundlerProvider: new EtherspotBundler(
             +sdkChainId,
             bundlerApiKey ?? '__ETHERSPOT_BUNDLER_API_KEY__'
