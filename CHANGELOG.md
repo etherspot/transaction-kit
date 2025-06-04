@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.1.1] - 2025-06-04
+
+### Added Changes
+
+- Added `SendOptions` to the `send()` function, allowing an optional retry mechanism if the `useOp.maxFeePerGas` and `userOp.maxPriorityFeePerGas` are too low.
+
 ## [1.1.0] - 2025-05-29
 
 ### Added Changes

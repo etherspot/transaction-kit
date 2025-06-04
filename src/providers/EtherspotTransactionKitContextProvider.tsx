@@ -4,6 +4,7 @@
 /* eslint-disable no-restricted-syntax */
 import { BigNumber } from 'ethers';
 import React, { useMemo, useState } from 'react';
+import { toHex } from 'viem';
 
 // contexts
 import EtherspotTransactionKitContext from '../contexts/EtherspotTransactionKitContext';
@@ -21,6 +22,7 @@ import {
   IBatches,
   IEstimatedBatches,
   ISentBatches,
+  SendOptions,
   SentBatch,
 } from '../types/EtherspotTransactionKit';
 import { TypePerId } from '../types/Helper';
@@ -151,7 +153,16 @@ const EtherspotTransactionKitContextProvider = ({
     return result;
   };
 
-  const send = async (batchesIds?: string[]): Promise<ISentBatches[]> => {
+  const send = async (
+    batchesIds?: string[],
+    options?: SendOptions
+  ): Promise<ISentBatches[]> => {
+    const {
+      retryOnFeeTooLow = false,
+      maxRetries = 0,
+      feeMultiplier = 1.1,
+    } = options || {};
+
     setIsSending(true);
     setContainsSendingError(false);
 
@@ -180,14 +191,64 @@ const EtherspotTransactionKitContextProvider = ({
 
     const estimated = await estimate(batchesIds, true);
 
-    const result = await Promise.all(
+    // this will only try to resent if the maxRetries param is set higher than 0
+    const sendWithRetries = async (
+      estimatedBatch: EstimatedBatch
+    ): Promise<SentBatch> => {
+      let attempt = 0;
+      let userOp = { ...estimatedBatch.userOp };
+      const batchChainId = estimatedBatch.chainId ?? chainId;
+      const sdk = await getSdk(batchChainId);
+
+      while (attempt <= maxRetries) {
+        try {
+          const userOpHash = await sdk.send(userOp);
+          return { ...estimatedBatch, userOpHash };
+        } catch (e) {
+          // if it catches an error that has fee too low issue, it will retry with a higher gas fee
+          const errorMessage = parseEtherspotErrorMessage(e, 'Failed to send!');
+          const isFeeTooLow = errorMessage.includes('fee too low');
+
+          if (
+            retryOnFeeTooLow &&
+            isFeeTooLow &&
+            userOp?.maxFeePerGas != null &&
+            userOp?.maxPriorityFeePerGas != null
+          ) {
+            attempt++;
+            const maxFee = BigInt(userOp.maxFeePerGas.toString());
+            const maxFeeMultiplier = BigInt(Math.floor(feeMultiplier * 100));
+            const maxNewFee = (maxFee * maxFeeMultiplier) / BigInt(100);
+
+            const maxPriorityFee = BigInt(
+              userOp.maxPriorityFeePerGas.toString()
+            );
+            const maxFeePriorityMultiplier = BigInt(
+              Math.floor(feeMultiplier * 100)
+            );
+            const maxPriorityNewFee =
+              (maxPriorityFee * maxFeePriorityMultiplier) / BigInt(100);
+
+            userOp = {
+              ...userOp,
+              maxFeePerGas: toHex(maxNewFee),
+              maxPriorityFeePerGas: toHex(maxPriorityNewFee),
+            };
+          } else {
+            throw e;
+          }
+        }
+      }
+
+      throw new Error('Failed to send after retries.');
+    };
+
+    const result: ISentBatches[] = await Promise.all(
       estimated.map(async (estimatedBatches): Promise<ISentBatches> => {
         const sentBatches: SentBatch[] = [];
 
         // send in same order as estimated
         for (const estimatedBatch of estimatedBatches.estimatedBatches) {
-          const batchChainId = estimatedBatch.chainId ?? chainId;
-
           // return error message as provided by estimate
           if (estimatedBatch.errorMessage) {
             sentBatches.push({
@@ -196,8 +257,6 @@ const EtherspotTransactionKitContextProvider = ({
             });
             continue;
           }
-
-          const etherspotModulaSdk = await getSdk(batchChainId);
 
           if (!estimatedBatch.userOp) {
             sentBatches.push({
@@ -208,11 +267,8 @@ const EtherspotTransactionKitContextProvider = ({
           }
 
           try {
-            const userOpHash = await etherspotModulaSdk.send(
-              estimatedBatch.userOp
-            );
-
-            sentBatches.push({ ...estimatedBatch, userOpHash });
+            const sent = await sendWithRetries(estimatedBatch);
+            sentBatches.push(sent);
           } catch (e) {
             const errorMessage = parseEtherspotErrorMessage(
               e,
