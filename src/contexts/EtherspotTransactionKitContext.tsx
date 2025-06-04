@@ -5,6 +5,7 @@ import {
   IBatches,
   IEstimatedBatches,
   ISentBatches,
+  SendOptions,
 } from '../types/EtherspotTransactionKit';
 import { TypePerId } from '../types/Helper';
 
@@ -13,7 +14,10 @@ export interface IEtherspotTransactionKitContext {
     chainId: number;
     batches: IBatches[];
     estimate: (batchesIds?: string[]) => Promise<IEstimatedBatches[]>;
-    send: (batchesIds?: string[]) => Promise<ISentBatches[]>;
+    send: (
+      batchesIds?: string[],
+      options?: SendOptions
+    ) => Promise<ISentBatches[]>;
     getTransactionHash: (
       userOpHash: string,
       txChainId: number,

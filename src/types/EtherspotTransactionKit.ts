@@ -201,3 +201,9 @@ export type FallbackInfo = {
   selector: string;
   handlerAddress: string;
 };
+
+export type SendOptions = {
+  retryOnFeeTooLow?: boolean;
+  maxRetries?: number;
+  feeMultiplier?: number;
+};
