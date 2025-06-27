@@ -8,6 +8,7 @@ import {
   MODULE_TYPE,
   ModuleInfo,
   SentBatch,
+  TransactionKit,
   useEtherspot,
   useEtherspotModules,
   useEtherspotTransactions,
@@ -28,7 +29,9 @@ import {
 import { BigNumber } from 'ethers';
 import React, { useEffect, useState } from 'react';
 import { AiFillCaretDown, AiFillCaretRight } from 'react-icons/ai';
-import { formatEther } from 'viem';
+import { createWalletClient, custom, formatEther } from 'viem';
+import { privateKeyToAccount } from 'viem/accounts';
+import { polygon } from 'viem/chains';
 
 const walletAddressByName = {
   Alice: '0x3E3e21928AC037DFF9D4E82839eF691c0ca37664',
@@ -137,6 +140,40 @@ const App = () => {
     },
     []
   );
+
+  const account = privateKeyToAccount(
+    `0x${process.env.REACT_APP_DEMO_WALLET_PK}` as `0x${string}`
+  );
+
+  const client = createWalletClient({
+    account,
+    chain: polygon,
+    transport: custom(window.ethereum!),
+  });
+
+  const hey = TransactionKit({
+    provider: client,
+    chainId: +(process.env.REACT_APP_CHAIN_ID as string),
+  });
+
+  const prout = async () =>
+    await hey
+      .transaction({
+        chainId: etherspotChainId,
+        to: '0x9F5D1446e1EbA9C6535432Ee07E25074E2f151e6',
+        value: BigInt(1),
+        data: '0x',
+      })
+      .estimate({});
+
+  useEffect(() => {
+    const fetchEstimate = async () => {
+      const hihi = await prout();
+      console.log('PROUT', hihi); // ✅ Now logs the resolved estimate result
+    };
+
+    fetchEstimate();
+  }, []);
 
   const [expanded, setExpanded] = React.useState<string[]>([]);
 

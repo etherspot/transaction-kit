@@ -103,7 +103,7 @@ export type IWalletType = 'provider' | 'etherspot';
 
 type EtherspotPromiseOrValue<T> = T | Promise<T>;
 
-interface UserOp {
+export interface UserOp {
   sender: EtherspotPromiseOrValue<string>;
   nonce: EtherspotPromiseOrValue<BigNumberish>;
   initCode: EtherspotPromiseOrValue<BytesLike>;
