@@ -17,7 +17,6 @@ const external = [
   'viem',
   '@etherspot/eip1271-verification-util',
   'viem/chains',
-  '@etherspot/data-utils',
 ];
 
 export default [

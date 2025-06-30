@@ -2,11 +2,18 @@
 import { ModularSdk, PaymasterApi } from '@etherspot/modular-sdk';
 import { BigNumber } from 'ethers';
 import { isAddress, parseEther } from 'viem';
+
+// types
+import { UserOp } from '../types/EtherspotTransactionKit';
+
+// provider
 import {
   EtherspotProvider,
   EtherspotProviderConfig,
-} from '../providers/EtherspotProvider';
-import { UserOp } from '../types/EtherspotTransactionKit';
+} from './EtherspotProvider';
+
+// utils
+import { EtherspotUtils } from './EtherspotUtils';
 
 interface BaseTransactionKit {
   reset(): this;
@@ -14,6 +21,7 @@ interface BaseTransactionKit {
   getProvider(): EtherspotProvider;
   setDebugMode(enabled: boolean): this;
   getState(): this;
+  getWalletAddress(chainId?: number): Promise<string | undefined>;
 }
 
 interface InitialState extends BaseTransactionKit {
@@ -128,6 +136,10 @@ export class EtherspotTransactionKit implements InitialState {
 
   private debugMode: boolean = false;
 
+  private walletAddresses: {
+    [chainId: number]: string;
+  } = {};
+
   // Current transaction builder state
   private tsx: TransactionBuilder = {};
 
@@ -167,6 +179,82 @@ export class EtherspotTransactionKit implements InitialState {
       if (!tsx[field as keyof TransactionBuilder]) {
         this.throwError(`Missing required field: ${field}`, tsx);
       }
+    }
+  }
+
+  /**
+   * Get wallet address for the 'etherspot' wallet type
+   */
+  async getWalletAddress(chainId?: number): Promise<string | undefined> {
+    const walletAddressChainId = chainId || this.etherspotProvider.getChainId();
+
+    // Check if the walletAddress is already in the instance
+    if (this.walletAddresses[walletAddressChainId]) {
+      this.log(
+        `Returning wallet address for chain ${walletAddressChainId}`,
+        this.walletAddresses[walletAddressChainId]
+      );
+      return this.walletAddresses[walletAddressChainId];
+    }
+
+    try {
+      // Get SDK instance for the chain
+      const etherspotModulaSdk =
+        await this.etherspotProvider.getSdk(walletAddressChainId);
+
+      let walletAddress: string | undefined;
+
+      try {
+        /**
+         * Try to get wallet address from SDK state first
+         * Currently `etherspotWallet` is marked as private on SDK
+         * Reference – https://github.com/etherspot/etherspot-prime-sdk/blob/master/src/sdk/sdk.ts#L31
+         */
+        walletAddress =
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-expect-error
+          etherspotModulaSdk?.etherspotWallet?.accountAddress;
+
+        if (walletAddress) {
+          this.log(
+            `Got wallet address from SDK state for chain ${walletAddressChainId}`,
+            walletAddress
+          );
+        }
+      } catch (e) {
+        this.log(
+          `Unable to get wallet address from SDK state for chain ${walletAddressChainId}`,
+          e
+        );
+      }
+
+      // If unable to get wallet address from SDK state, try getCounterFactualAddress
+      if (!walletAddress) {
+        try {
+          walletAddress = await etherspotModulaSdk.getCounterFactualAddress();
+          this.log(
+            `Got wallet address from getCounterFactualAddress for chain ${walletAddressChainId}`,
+            walletAddress
+          );
+        } catch (e) {
+          this.log(
+            `Unable to get wallet address using getCounterFactualAddress for chain ${walletAddressChainId}`,
+            e
+          );
+        }
+      }
+
+      if (walletAddress) {
+        this.walletAddresses[walletAddressChainId] = walletAddress;
+      }
+
+      return walletAddress;
+    } catch (error) {
+      this.log(
+        `Failed to get wallet address for chain ${walletAddressChainId}`,
+        error
+      );
+      return undefined;
     }
   }
 
@@ -613,9 +701,12 @@ export class EtherspotTransactionKit implements InitialState {
     this.containsSendingError = false;
     this.containsEstimatingError = false;
     this.tsx = {};
+    this.walletAddresses = {};
     this.etherspotProvider.clearAllCaches();
     return this;
   }
+
+  static utils = EtherspotUtils;
 }
 
 // Function for easier instantiation
