@@ -110,38 +110,6 @@ export class EtherspotProvider {
   }
 
   /**
-   * Set chain ID and return this
-   */
-  setChainId(chainId: number): this {
-    this.config.chainId = chainId;
-    return this;
-  }
-
-  /**
-   * Set provider and return this
-   */
-  setProvider(provider: WalletProviderLike): this {
-    this.config.provider = provider;
-    return this;
-  }
-
-  /**
-   * Set data API key and return this
-   */
-  setDataApiKey(apiKey: string): this {
-    this.config.dataApiKey = apiKey;
-    return this;
-  }
-
-  /**
-   * Set bundler API key and return this
-   */
-  setBundlerApiKey(apiKey: string): this {
-    this.config.bundlerApiKey = apiKey;
-    return this;
-  }
-
-  /**
    * Clear all cached SDK instances
    */
   clearSdkCache(): this {

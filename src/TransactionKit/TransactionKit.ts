@@ -1,10 +1,12 @@
 /* eslint-disable no-restricted-syntax */
 import { ModularSdk, PaymasterApi } from '@etherspot/modular-sdk';
-import { BigNumber } from 'ethers';
 import { isAddress, parseEther } from 'viem';
 
 // types
-import { UserOp } from '../types/EtherspotTransactionKit';
+import {
+  TransactionGasInfoForUserOp,
+  UserOp,
+} from '../types/TransactionKitTypes';
 
 // provider
 import {
@@ -15,34 +17,103 @@ import {
 // utils
 import { EtherspotUtils } from './EtherspotUtils';
 
-interface BaseTransactionKit {
-  reset(): this;
-  getSdk(): Promise<ModularSdk>;
-  getProvider(): EtherspotProvider;
-  setDebugMode(enabled: boolean): this;
-  getState(): this;
+interface InitialState {
+  // Methods that are chainable and to start with
+  nativeAmount(props: NativeAmountProps): NativeAmountState;
+  transaction(props: TransactionProps): TransactionState;
+
+  // Standalone methods (not chainable)
   getWalletAddress(chainId?: number): Promise<string | undefined>;
+  getState(): InstanceState;
+  setDebugMode(enabled: boolean): void;
+  getProvider(): EtherspotProvider;
+  getSdk(chainId?: number, forceNewInstance?: boolean): Promise<ModularSdk>;
+  reset(): void;
 }
 
-interface InitialState extends BaseTransactionKit {
-  transaction(props: TransactionProps): ValidState;
-  nativeAmount(props: NativeAmountProps): NativeAmountPartialState;
+interface NativeAmountState {
+  to(props: ToProps): NativeAmountWithToState;
+
+  // Callable methods at any time
+  getState(): InstanceState;
+  reset(): void;
 }
 
-interface NativeAmountPartialState extends BaseTransactionKit {
-  to(props: ToProps): ValidState;
+interface NativeAmountWithToState {
+  name(props: NameProps): NamedState;
+
+  // Callable methods at any time
+  getState(): InstanceState;
+  reset(): void;
 }
 
-interface ValidState extends BaseTransactionKit {
-  name(props: NameProps): ValidState;
-  remove(): ValidState;
-  update(): ValidState;
+interface TransactionState {
+  name(props: NameProps): NamedState;
+
+  // Callable methods at any time
+  getState(): InstanceState;
+  reset(): void;
+}
+
+interface NamedState {
+  remove(): void;
+  update(): UpdatedState;
   estimate(
     props?: EstimateSingleTransactionProps
-  ): Promise<SingleTransactionEstimate>;
+  ): Promise<SingleTransactionEstimate & EstimatedState>;
   send(
     props?: SendSingleTransactionProps
-  ): Promise<SingleTransactionSendResult>;
+  ): Promise<SingleTransactionSendResult & SentState>;
+
+  // Callable methods at any time
+  getState(): InstanceState;
+  reset(): void;
+}
+
+interface UpdatedState {
+  update(): UpdatedState;
+  estimate(
+    props?: EstimateSingleTransactionProps
+  ): Promise<SingleTransactionEstimate & EstimatedState>;
+  send(
+    props?: SendSingleTransactionProps
+  ): Promise<SingleTransactionSendResult & SentState>;
+
+  // Callable methods at any time
+  getState(): InstanceState;
+  reset(): void;
+}
+
+interface EstimatedState {
+  estimate(
+    props?: EstimateSingleTransactionProps
+  ): Promise<SingleTransactionEstimate & EstimatedState>;
+
+  // Callable methods at any time
+  getState(): InstanceState;
+  reset(): void;
+}
+
+interface SentState {
+  send(
+    props?: SendSingleTransactionProps
+  ): Promise<SingleTransactionSendResult & SentState>;
+
+  // Callable methods at any time
+  getState(): InstanceState;
+  reset(): void;
+}
+
+// Instance state data
+export interface InstanceState {
+  currentTransaction: TransactionBuilder;
+  hasValidTransaction: boolean;
+  namedTransactions: { [name: string]: TransactionBuilder };
+  isEstimating: boolean;
+  isSending: boolean;
+  containsSendingError: boolean;
+  containsEstimatingError: boolean;
+  walletAddresses: { [chainId: number]: string };
 }
 
 export interface EtherspotTransactionKitConfig extends EtherspotProviderConfig {
@@ -60,6 +131,8 @@ export interface TransactionBuilder {
 
 export interface EstimateSingleTransactionProps {
   paymasterDetails?: PaymasterApi;
+  gasDetails?: TransactionGasInfoForUserOp;
+  callGasLimit?: bigint;
 }
 
 export interface SendSingleTransactionProps {
@@ -72,7 +145,7 @@ export interface SingleTransactionEstimate {
   value?: string;
   data?: string;
   chainId?: number;
-  cost?: BigNumber;
+  cost?: bigint;
   userOp?: UserOp;
   errorMessage?: string;
   errorType?: 'ESTIMATION_ERROR' | 'VALIDATION_ERROR';
@@ -84,7 +157,7 @@ export interface SingleTransactionSendResult {
   value?: string;
   data?: string;
   chainId?: number;
-  cost?: BigNumber;
+  cost?: bigint;
   userOp?: UserOp;
   userOpHash?: string;
   errorMessage?: string;
@@ -143,6 +216,8 @@ export class EtherspotTransactionKit implements InitialState {
   // Current transaction builder state
   private tsx: TransactionBuilder = {};
 
+  private hasValidTransaction: boolean = false;
+
   constructor(config: EtherspotTransactionKitConfig) {
     this.etherspotProvider = new EtherspotProvider(config);
     this.debugMode = config.debugMode || false;
@@ -166,20 +241,6 @@ export class EtherspotTransactionKit implements InitialState {
   private throwError(message: string, context?: any): never {
     this.log(`ERROR: ${message}`, context);
     throw new Error(`EtherspotTransactionKit: ${message}`);
-  }
-
-  /**
-   * Validate required fields
-   */
-  private validateTransaction(
-    tsx: TransactionBuilder,
-    requiredFields: string[]
-  ): void {
-    for (const field of requiredFields) {
-      if (!tsx[field as keyof TransactionBuilder]) {
-        this.throwError(`Missing required field: ${field}`, tsx);
-      }
-    }
   }
 
   /**
@@ -261,7 +322,7 @@ export class EtherspotTransactionKit implements InitialState {
   /**
    * Specify native token amount to send
    */
-  nativeAmount({ amount, chainId = 1 }: NativeAmountProps): this {
+  nativeAmount({ amount, chainId = 1 }: NativeAmountProps): NativeAmountState {
     if (typeof amount !== 'number' || Number.isNaN(amount)) {
       this.throwError('nativeAmount(): amount must be a valid number.');
     }
@@ -269,6 +330,10 @@ export class EtherspotTransactionKit implements InitialState {
     if (amount <= 0) {
       this.throwError('nativeAmount(): amount must be greater than 0.');
     }
+
+    // Reset state
+    this.tsx = {};
+    this.hasValidTransaction = false;
 
     this.tsx.chainId = chainId;
     this.tsx.value = parseEther(String(amount));
@@ -279,7 +344,7 @@ export class EtherspotTransactionKit implements InitialState {
   /**
    * Specify destination address to send the nativeAmount to
    */
-  to({ address }: ToProps): this {
+  to({ address }: ToProps): NativeAmountWithToState {
     if (!address) {
       this.throwError('to(): address is required.');
     }
@@ -289,6 +354,8 @@ export class EtherspotTransactionKit implements InitialState {
     }
 
     this.tsx.to = address;
+    this.hasValidTransaction = true;
+
     return this;
   }
 
@@ -300,13 +367,7 @@ export class EtherspotTransactionKit implements InitialState {
     to,
     value = '0',
     data = '0x',
-  }: TransactionProps): this {
-    if (Object.keys(this.tsx).length > 0) {
-      this.throwError(
-        'transaction(): A transaction already exists. Use .update() to modify the current transaction.'
-      );
-    }
-
+  }: TransactionProps): TransactionState {
     if (!to) {
       this.throwError('transaction(): to is required.');
     }
@@ -331,10 +392,14 @@ export class EtherspotTransactionKit implements InitialState {
       );
     }
 
-    this.tsx.chainId = chainId;
-    this.tsx.to = to;
-    this.tsx.value = value;
-    this.tsx.data = data;
+    // Reset state for new transaction
+    this.tsx = {
+      chainId,
+      to,
+      value,
+      data,
+    };
+    this.hasValidTransaction = true;
 
     return this;
   }
@@ -342,7 +407,13 @@ export class EtherspotTransactionKit implements InitialState {
   /**
    * Name the transaction (tsx) in the instance
    */
-  name({ transactionName }: NameProps): this {
+  name({ transactionName }: NameProps): NamedState {
+    if (!this.hasValidTransaction) {
+      this.throwError(
+        'name(): Cannot name transaction. Call transaction() or nativeAmount().to() first.'
+      );
+    }
+
     if (typeof transactionName !== 'string' || transactionName.trim() === '') {
       this.throwError(
         'name(): transactionName is required and must be a non-empty string.'
@@ -356,23 +427,25 @@ export class EtherspotTransactionKit implements InitialState {
   /**
    * Remove the transaction (tsx) from the instance
    */
-  remove(): this {
-    if (!this.tsx || Object.keys(this.tsx).length === 0) {
-      this.throwError('remove(): No transaction to remove.');
+  remove(): void {
+    if (!this.hasValidTransaction || !this.tsx.transactionName) {
+      this.throwError(
+        'remove(): No named transaction to remove. Call name() first.'
+      );
     }
 
     this.log('remove(): Transaction cleared from instance.', this.tsx);
     this.tsx = {};
-    return this;
+    this.hasValidTransaction = false;
   }
 
   /**
-   * Updates (applies) the current transaction — as defined by last .transaction()
+   * Update the transaction
    */
-  update(): this {
-    if (!this.tsx || Object.keys(this.tsx).length === 0) {
+  update(): UpdatedState {
+    if (!this.hasValidTransaction || !this.tsx.transactionName) {
       this.throwError(
-        'update(): No transaction to update. Use .transaction(...) first.'
+        'update(): No named transaction to update. Call name() first.'
       );
     }
 
@@ -386,7 +459,22 @@ export class EtherspotTransactionKit implements InitialState {
    */
   async estimate({
     paymasterDetails,
-  }: EstimateSingleTransactionProps = {}): Promise<SingleTransactionEstimate> {
+    gasDetails,
+    callGasLimit,
+  }: EstimateSingleTransactionProps = {}): Promise<
+    SingleTransactionEstimate & EstimatedState
+  > {
+    if (!this.hasValidTransaction || !this.tsx.transactionName) {
+      const result = {
+        to: '',
+        chainId: this.etherspotProvider.getChainId(),
+        errorMessage: 'No named transaction to estimate. Call name() first.',
+        errorType: 'VALIDATION_ERROR' as const,
+        isSuccess: false,
+      };
+      return { ...result, ...this };
+    }
+
     this.isEstimating = true;
     this.containsEstimatingError = false;
 
@@ -398,7 +486,7 @@ export class EtherspotTransactionKit implements InitialState {
     ) => {
       this.isEstimating = false;
       this.containsEstimatingError = true;
-      return {
+      const result = {
         to: this.tsx.to || '',
         chainId: this.tsx.chainId || this.etherspotProvider.getChainId(),
         errorMessage,
@@ -406,18 +494,10 @@ export class EtherspotTransactionKit implements InitialState {
         isSuccess: false,
         ...partialResult,
       };
+      return { ...result, ...this };
     };
 
     try {
-      // If there was no transactionName set, generate a default one
-      if (!this.tsx.transactionName) {
-        const chainId = this.tsx.chainId || this.etherspotProvider.getChainId();
-        const index = Object.keys(this.namedTransactions).length + 1;
-        this.tsx.transactionName = `tx-${chainId}-${index}`;
-
-        this.log('Transaction default name:', this.tsx.transactionName);
-      }
-
       // Validation: Cannot have both value = '0' and data = '0x'
       if (this.tsx.value?.toString() === '0' && this.tsx.data === '0x') {
         return setErrorAndReturn(
@@ -457,13 +537,17 @@ export class EtherspotTransactionKit implements InitialState {
       // Estimate the transaction
       const userOp = await etherspotModulaSdk.estimate({
         paymasterDetails,
+        gasDetails,
+        callGasLimit,
       });
 
       this.log('Estimate userOp:', userOp);
 
       // Calculate total gas cost
       const totalGas = await etherspotModulaSdk.totalGasEstimated(userOp);
-      const cost = totalGas.mul(userOp.maxFeePerGas as BigNumber);
+      const totalGasBigInt = BigInt(totalGas.toString());
+      const maxFeePerGasBigInt = BigInt(userOp.maxFeePerGas.toString());
+      const cost = totalGasBigInt * maxFeePerGasBigInt;
 
       this.log('Single transaction estimated successfully', {
         to: this.tsx.to,
@@ -475,7 +559,7 @@ export class EtherspotTransactionKit implements InitialState {
       this.isEstimating = false;
       this.containsEstimatingError = false;
 
-      return {
+      const result = {
         to: this.tsx.to || '',
         value: this.tsx.value?.toString(),
         data: this.tsx.data,
@@ -484,6 +568,8 @@ export class EtherspotTransactionKit implements InitialState {
         userOp,
         isSuccess: true,
       };
+
+      return { ...result, ...this };
     } catch (error) {
       const errorMessage = parseEtherspotErrorMessage(
         error,
@@ -502,7 +588,21 @@ export class EtherspotTransactionKit implements InitialState {
   async send({
     paymasterDetails,
     userOpOverrides,
-  }: SendSingleTransactionProps = {}): Promise<SingleTransactionSendResult> {
+  }: SendSingleTransactionProps = {}): Promise<
+    SingleTransactionSendResult & SentState
+  > {
+    if (!this.hasValidTransaction || !this.tsx.transactionName) {
+      const result = {
+        to: '',
+        chainId: this.etherspotProvider.getChainId(),
+        errorMessage: 'No named transaction to send. Call name() first.',
+        errorType: 'VALIDATION_ERROR' as const,
+        isSuccess: false,
+      };
+
+      return { ...result, ...this };
+    }
+
     this.isSending = true;
     this.containsSendingError = false;
 
@@ -514,7 +614,7 @@ export class EtherspotTransactionKit implements InitialState {
     ) => {
       this.isSending = false;
       this.containsSendingError = true;
-      return {
+      const result = {
         to: this.tsx.to || '',
         chainId: this.tsx.chainId || this.etherspotProvider.getChainId(),
         errorMessage,
@@ -522,17 +622,11 @@ export class EtherspotTransactionKit implements InitialState {
         isSuccess: false,
         ...partialResult,
       };
+
+      return { ...result, ...this };
     };
 
     try {
-      if (!this.tsx.transactionName) {
-        const chainId = this.tsx.chainId || this.etherspotProvider.getChainId();
-        const index = Object.keys(this.namedTransactions).length + 1;
-        this.tsx.transactionName = `tx-${chainId}-${index}`;
-
-        this.log('Transaction default name:', this.tsx.transactionName);
-      }
-
       // Validation: Cannot have both value = '0' and data = '0x'
       if (this.tsx.value?.toString() === '0' && this.tsx.data === '0x') {
         return setErrorAndReturn(
@@ -592,14 +686,13 @@ export class EtherspotTransactionKit implements InitialState {
       }
 
       // Apply any user overrides to the UserOp
-      const finalUserOp = {
-        ...estimatedUserOp,
-        ...userOpOverrides,
-      };
+      const finalUserOp = { ...estimatedUserOp, ...userOpOverrides };
 
       // Calculate total gas cost (using the final UserOp values)
       const totalGas = await etherspotModulaSdk.totalGasEstimated(finalUserOp);
-      const cost = totalGas.mul(finalUserOp.maxFeePerGas as BigNumber);
+      const totalGasBigInt = BigInt(totalGas.toString());
+      const maxFeePerGasBigInt = BigInt(finalUserOp.maxFeePerGas.toString());
+      const cost = totalGasBigInt * maxFeePerGasBigInt;
 
       this.log('Single transaction estimated, now sending...', {
         to: this.tsx.to,
@@ -639,7 +732,7 @@ export class EtherspotTransactionKit implements InitialState {
       this.isSending = false;
       this.containsSendingError = false;
 
-      return {
+      const result = {
         to: this.tsx.to || '',
         value: this.tsx.value?.toString(),
         data: this.tsx.data,
@@ -649,6 +742,8 @@ export class EtherspotTransactionKit implements InitialState {
         userOpHash,
         isSuccess: true,
       };
+
+      return { ...result, ...this };
     } catch (error) {
       const errorMessage = parseEtherspotErrorMessage(
         error,
@@ -664,16 +759,24 @@ export class EtherspotTransactionKit implements InitialState {
   /**
    * Get current state of the transaction kit instance
    */
-  getState(): this {
-    return this;
+  getState(): InstanceState {
+    return {
+      currentTransaction: { ...this.tsx },
+      hasValidTransaction: this.hasValidTransaction,
+      namedTransactions: { ...this.namedTransactions },
+      isEstimating: this.isEstimating,
+      isSending: this.isSending,
+      containsSendingError: this.containsSendingError,
+      containsEstimatingError: this.containsEstimatingError,
+      walletAddresses: { ...this.walletAddresses },
+    };
   }
 
   /**
    * Enable/disable debug mode
    */
-  setDebugMode(enabled: boolean): this {
+  setDebugMode(enabled: boolean): void {
     this.debugMode = enabled;
-    return this;
   }
 
   /**
@@ -686,14 +789,17 @@ export class EtherspotTransactionKit implements InitialState {
   /**
    * Get the Etherspot Modular SDK instance
    */
-  async getSdk(chainId?: number, forceNewInstance?: boolean) {
+  async getSdk(
+    chainId?: number,
+    forceNewInstance?: boolean
+  ): Promise<ModularSdk> {
     return this.etherspotProvider.getSdk(chainId, forceNewInstance);
   }
 
   /**
-   * Reset all state and return the instance to its initial state
+   * Reset all state
    */
-  reset(): this {
+  reset(): void {
     // this.groupedBatchesPerId = {};
     this.namedTransactions = {};
     this.isEstimating = false;
@@ -701,17 +807,18 @@ export class EtherspotTransactionKit implements InitialState {
     this.containsSendingError = false;
     this.containsEstimatingError = false;
     this.tsx = {};
+    this.hasValidTransaction = false;
     this.walletAddresses = {};
     this.etherspotProvider.clearAllCaches();
-    return this;
   }
 
+  // Callable static EtherspotUtils without needing to instantiate the class
   static utils = EtherspotUtils;
 }
 
 // Function for easier instantiation
 export function TransactionKit(
   config: EtherspotTransactionKitConfig
-): EtherspotTransactionKit {
+): InitialState {
   return new EtherspotTransactionKit(config);
 }

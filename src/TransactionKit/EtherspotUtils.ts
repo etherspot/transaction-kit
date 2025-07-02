@@ -1,6 +1,6 @@
 import { isValidEip1271Signature } from '@etherspot/eip1271-verification-util';
-import { BigNumber, BigNumberish } from 'ethers';
 import {
+  Hex,
   formatUnits,
   checksumAddress as getAddress,
   isAddress,
@@ -30,15 +30,15 @@ export class EtherspotUtils {
     return isValidEip1271Signature(rpcUrls, address, hash, signature);
   }
 
-  static toBigNumber(
-    number: string | number,
-    decimals: number = 18
-  ): BigNumber {
-    return BigNumber.from(parseUnits(`${number}`, decimals));
+  static toBigNumber(number: string | number, decimals: number = 18): bigint {
+    return BigInt(parseUnits(`${number}`, decimals));
   }
 
-  static parseBigNumber(number: BigNumberish, decimals: number = 18): string {
-    return formatUnits(BigNumber.from(number).toBigInt(), decimals);
+  static parseBigNumber(
+    number: bigint | number | string | Hex,
+    decimals: number = 18
+  ): string {
+    return formatUnits(BigInt(number), decimals);
   }
 
   static isZeroAddress(address: string): boolean {

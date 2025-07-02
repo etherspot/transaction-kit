@@ -1,10 +1,10 @@
-import { PaymasterApi } from '@etherspot/modular-sdk';
-import { BigNumber, BigNumberish, BytesLike } from 'ethers';
+import { BytesLike, PaymasterApi } from '@etherspot/modular-sdk';
+import { BigNumberish } from '@etherspot/modular-sdk/dist/types/sdk/types/bignumber';
 
 export interface ITransaction {
   id?: string;
   to: string;
-  value?: BigNumberish;
+  value?: bigint;
   data?: string;
 }
 
@@ -16,7 +16,7 @@ export interface IBatch {
 
 export interface EstimatedBatch extends IBatch {
   errorMessage?: string;
-  cost?: BigNumber;
+  cost?: bigint;
   userOp?: UserOp;
 }
 
@@ -49,15 +49,19 @@ type EtherspotPromiseOrValue<T> = T | Promise<T>;
 export interface UserOp {
   sender: EtherspotPromiseOrValue<string>;
   nonce: EtherspotPromiseOrValue<BigNumberish>;
-  initCode: EtherspotPromiseOrValue<BytesLike>;
   callData: EtherspotPromiseOrValue<BytesLike>;
   callGasLimit: EtherspotPromiseOrValue<BigNumberish>;
   verificationGasLimit: EtherspotPromiseOrValue<BigNumberish>;
   preVerificationGas: EtherspotPromiseOrValue<BigNumberish>;
   maxFeePerGas: EtherspotPromiseOrValue<BigNumberish>;
   maxPriorityFeePerGas: EtherspotPromiseOrValue<BigNumberish>;
-  paymasterAndData: EtherspotPromiseOrValue<BytesLike>;
+  paymasterData: EtherspotPromiseOrValue<BytesLike>;
   signature: EtherspotPromiseOrValue<BytesLike>;
+  factory?: EtherspotPromiseOrValue<string>;
+  factoryData?: EtherspotPromiseOrValue<BytesLike>;
+  paymaster?: EtherspotPromiseOrValue<string>;
+  paymasterVerificationGasLimit?: EtherspotPromiseOrValue<BigNumberish>;
+  paymasterPostOpGasLimit?: EtherspotPromiseOrValue<BigNumberish>;
 }
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -84,4 +88,10 @@ export type SendOptions = {
   retryOnFeeTooLow?: boolean;
   maxRetries?: number;
   feeMultiplier?: number;
+};
+
+export type TransactionGasInfoForUserOp = {
+  gasLimit?: bigint;
+  maxFeePerGas?: bigint;
+  maxPriorityFeePerGas?: bigint;
 };
