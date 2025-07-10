@@ -10,7 +10,7 @@ import { privateKeyToAccount } from 'viem/accounts';
 import { polygon } from 'viem/chains';
 
 const account = privateKeyToAccount(
-  `0x${REACT_APP_DEMO_WALLET_PK}` as `0x${string}`
+  `0x${process.env.REACT_APP_DEMO_WALLET_PK}` as `0x${string}`
 );
 
 const client = createWalletClient({
