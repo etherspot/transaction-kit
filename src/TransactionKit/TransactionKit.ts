@@ -1,6 +1,8 @@
+/* eslint-disable no-continue */
+/* eslint-disable no-await-in-loop */
 /* eslint-disable no-restricted-syntax */
 import { ModularSdk, PaymasterApi } from '@etherspot/modular-sdk';
-import { isAddress, parseEther } from 'viem';
+import { isAddress } from 'viem';
 
 // types
 import {
@@ -18,9 +20,14 @@ import {
 import { EtherspotUtils } from './EtherspotUtils';
 
 interface InitialState {
-  // Methods that are chainable and to start with
-  nativeAmount(props: NativeAmountProps): NativeAmountState;
+  // Methods to start with
   transaction(props: TransactionProps): TransactionState;
+  name(props: NameProps): NamedTransactionState;
+  batch(props: BatchProps): BatchState;
+
+  // Batch methods
+  sendBatches(props?: SendBatchesProps): Promise<BatchSendResult>;
+  estimateBatches(props?: EstimateBatchesProps): Promise<BatchEstimateResult>;
 
   // Standalone methods (not chainable)
   getWalletAddress(chainId?: number): Promise<string | undefined>;
@@ -30,74 +37,79 @@ interface InitialState {
   getSdk(chainId?: number, forceNewInstance?: boolean): Promise<ModularSdk>;
   reset(): void;
 }
-
-interface NativeAmountState {
-  to(props: ToProps): NativeAmountWithToState;
-
-  // Callable methods at any time
-  getState(): InstanceState;
-  reset(): void;
-}
-
-interface NativeAmountWithToState {
-  name(props: NameProps): NamedState;
-
-  // Callable methods at any time
-  getState(): InstanceState;
-  reset(): void;
-}
-
 interface TransactionState {
-  name(props: NameProps): NamedState;
+  name(props: NameProps): NamedTransactionState;
 
   // Callable methods at any time
   getState(): InstanceState;
   reset(): void;
 }
 
-interface NamedState {
-  remove(): void;
-  update(): UpdatedState;
+export interface NamedTransactionState {
+  // Update with new transaction data
+  transaction(props: TransactionProps): TransactionState;
+
+  // Management methods
+  remove(): InitialState;
+  update(): NamedTransactionState;
+  addToBatch(props: AddToBatchProps): BatchedTransactionState;
+
+  // Execution methods
   estimate(
     props?: EstimateSingleTransactionProps
-  ): Promise<SingleTransactionEstimate & EstimatedState>;
+  ): Promise<SingleTransactionEstimate & EstimatedTransactionState>;
   send(
     props?: SendSingleTransactionProps
-  ): Promise<SingleTransactionSendResult & SentState>;
+  ): Promise<SingleTransactionSend & SentTransactionState>;
 
   // Callable methods at any time
   getState(): InstanceState;
   reset(): void;
 }
 
-interface UpdatedState {
-  update(): UpdatedState;
+export interface BatchedTransactionState {
+  // Update with new transaction data
+  transaction(props: TransactionProps): TransactionState;
+
+  // Management methods
+  remove(): InitialState;
+  update(): BatchedTransactionState;
+
+  // Execution methods
   estimate(
     props?: EstimateSingleTransactionProps
-  ): Promise<SingleTransactionEstimate & EstimatedState>;
+  ): Promise<SingleTransactionEstimate & EstimatedTransactionState>;
   send(
     props?: SendSingleTransactionProps
-  ): Promise<SingleTransactionSendResult & SentState>;
+  ): Promise<SingleTransactionSend & SentTransactionState>;
 
   // Callable methods at any time
   getState(): InstanceState;
   reset(): void;
 }
 
-interface EstimatedState {
+export interface BatchState {
+  remove(): InitialState;
+
+  // Callable methods at any time
+  getState(): InstanceState;
+  reset(): void;
+}
+
+interface EstimatedTransactionState {
   estimate(
     props?: EstimateSingleTransactionProps
-  ): Promise<SingleTransactionEstimate & EstimatedState>;
+  ): Promise<SingleTransactionEstimate & EstimatedTransactionState>;
 
   // Callable methods at any time
   getState(): InstanceState;
   reset(): void;
 }
 
-interface SentState {
+interface SentTransactionState {
   send(
     props?: SendSingleTransactionProps
-  ): Promise<SingleTransactionSendResult & SentState>;
+  ): Promise<SingleTransactionSend & SentTransactionState>;
 
   // Callable methods at any time
   getState(): InstanceState;
@@ -106,9 +118,11 @@ interface SentState {
 
 // Instance state data
 export interface InstanceState {
-  currentTransaction: TransactionBuilder;
-  hasValidTransaction: boolean;
+  selectedTransactionName?: string;
+  selectedBatchName?: string;
+  workingTransaction?: TransactionBuilder;
   namedTransactions: { [name: string]: TransactionBuilder };
+  batches: { [batchName: string]: TransactionBuilder[] };
   isEstimating: boolean;
   isSending: boolean;
   containsSendingError: boolean;
@@ -127,6 +141,14 @@ export interface TransactionBuilder {
   data?: string;
   transactionName?: string;
   batchName?: string;
+}
+
+export interface AddToBatchProps {
+  batchName: string;
+}
+
+export interface BatchProps {
+  batchName: string;
 }
 
 export interface EstimateSingleTransactionProps {
@@ -152,7 +174,7 @@ export interface SingleTransactionEstimate {
   isSuccess: boolean;
 }
 
-export interface SingleTransactionSendResult {
+export interface SingleTransactionSend {
   to?: string;
   value?: string;
   data?: string;
@@ -162,6 +184,40 @@ export interface SingleTransactionSendResult {
   userOpHash?: string;
   errorMessage?: string;
   errorType?: 'ESTIMATION_ERROR' | 'SEND_ERROR' | 'VALIDATION_ERROR';
+  isSuccess: boolean;
+}
+
+export interface SendBatchesProps {
+  onlyBatchNames?: string[];
+  paymasterDetails?: PaymasterApi;
+}
+
+export interface EstimateBatchesProps {
+  onlyBatchNames?: string[];
+  paymasterDetails?: PaymasterApi;
+}
+
+export interface BatchSendResult {
+  batches: {
+    [batchName: string]: {
+      transactions: SingleTransactionSend[];
+      userOpHash?: string;
+      errorMessage?: string;
+      isSuccess: boolean;
+    };
+  };
+  isSuccess: boolean;
+}
+
+export interface BatchEstimateResult {
+  batches: {
+    [batchName: string]: {
+      transactions: SingleTransactionEstimate[];
+      totalCost?: bigint;
+      errorMessage?: string;
+      isSuccess: boolean;
+    };
+  };
   isSuccess: boolean;
 }
 
@@ -195,7 +251,7 @@ const parseEtherspotErrorMessage = (
 export class EtherspotTransactionKit implements InitialState {
   private etherspotProvider: EtherspotProvider;
 
-  //   private groupedBatchesPerId: TypePerId<IBatches> = {};
+  private batches: { [batchName: string]: TransactionBuilder[] } = {};
 
   private namedTransactions: { [name: string]: TransactionBuilder } = {};
 
@@ -209,14 +265,14 @@ export class EtherspotTransactionKit implements InitialState {
 
   private debugMode: boolean = false;
 
-  private walletAddresses: {
-    [chainId: number]: string;
-  } = {};
+  private walletAddresses: { [chainId: number]: string } = {};
 
-  // Current transaction builder state
-  private tsx: TransactionBuilder = {};
+  // State management
+  private selectedTransactionName?: string;
 
-  private hasValidTransaction: boolean = false;
+  private selectedBatchName?: string;
+
+  private workingTransaction?: TransactionBuilder;
 
   constructor(config: EtherspotTransactionKitConfig) {
     this.etherspotProvider = new EtherspotProvider(config);
@@ -241,6 +297,15 @@ export class EtherspotTransactionKit implements InitialState {
   private throwError(message: string, context?: any): never {
     this.log(`ERROR: ${message}`, context);
     throw new Error(`EtherspotTransactionKit: ${message}`);
+  }
+
+  /**
+   * Clear working state
+   */
+  private clearWorkingState(): void {
+    this.selectedTransactionName = undefined;
+    this.selectedBatchName = undefined;
+    this.workingTransaction = undefined;
   }
 
   /**
@@ -320,47 +385,7 @@ export class EtherspotTransactionKit implements InitialState {
   }
 
   /**
-   * Specify native token amount to send
-   */
-  nativeAmount({ amount, chainId = 1 }: NativeAmountProps): NativeAmountState {
-    if (typeof amount !== 'number' || Number.isNaN(amount)) {
-      this.throwError('nativeAmount(): amount must be a valid number.');
-    }
-
-    if (amount <= 0) {
-      this.throwError('nativeAmount(): amount must be greater than 0.');
-    }
-
-    // Reset state
-    this.tsx = {};
-    this.hasValidTransaction = false;
-
-    this.tsx.chainId = chainId;
-    this.tsx.value = parseEther(String(amount));
-
-    return this;
-  }
-
-  /**
-   * Specify destination address to send the nativeAmount to
-   */
-  to({ address }: ToProps): NativeAmountWithToState {
-    if (!address) {
-      this.throwError('to(): address is required.');
-    }
-
-    if (!isAddress(address)) {
-      this.throwError(`to(): '${address}' is not a valid address.`);
-    }
-
-    this.tsx.to = address;
-    this.hasValidTransaction = true;
-
-    return this;
-  }
-
-  /**
-   * Specify any Ethereum transaction to be send to the userOp batch
+   * Specify any transaction to be sent
    */
   transaction({
     chainId = 1,
@@ -392,79 +417,242 @@ export class EtherspotTransactionKit implements InitialState {
       );
     }
 
-    // Reset state for new transaction
-    this.tsx = {
-      chainId,
-      to,
-      value,
-      data,
-    };
-    this.hasValidTransaction = true;
+    // Start new transaction or update existing
+    if (this.selectedTransactionName) {
+      // Updating existing transaction
+      this.workingTransaction = {
+        ...this.workingTransaction,
+        chainId,
+        to,
+        value,
+        data,
+      };
+    } else {
+      // Creating new transaction
+      this.workingTransaction = {
+        chainId,
+        to,
+        value,
+        data,
+      };
+    }
 
     return this;
   }
 
   /**
-   * Name the transaction (tsx) in the instance
+   * Name a transaction (create new or select existing)
    */
-  name({ transactionName }: NameProps): NamedState {
-    if (!this.hasValidTransaction) {
-      this.throwError(
-        'name(): Cannot name transaction. Call transaction() or nativeAmount().to() first.'
-      );
-    }
-
+  name({ transactionName }: NameProps): NamedTransactionState {
     if (typeof transactionName !== 'string' || transactionName.trim() === '') {
       this.throwError(
         'name(): transactionName is required and must be a non-empty string.'
       );
     }
 
-    this.tsx.transactionName = transactionName;
+    // Check if transaction exists
+    if (this.namedTransactions[transactionName]) {
+      // Selecting existing transaction
+      this.selectedTransactionName = transactionName;
+      this.workingTransaction = { ...this.namedTransactions[transactionName] };
+      this.log(`Selected existing transaction: ${transactionName}`);
+    } else {
+      // Creating new transaction
+      if (!this.workingTransaction) {
+        this.throwError(
+          'name(): No transaction data to name. Call transaction() first.'
+        );
+      }
+      this.selectedTransactionName = transactionName;
+      this.workingTransaction.transactionName = transactionName;
+      this.namedTransactions[transactionName] = { ...this.workingTransaction };
+      this.log(`Named new transaction: ${transactionName}`);
+    }
+
+    return this as NamedTransactionState;
+  }
+
+  /**
+   * Select a batch by name. Only allows remove, getState, and reset after this.
+   */
+  batch({ batchName }: BatchProps): BatchState {
+    if (typeof batchName !== 'string' || batchName.trim() === '') {
+      this.throwError(
+        'batch(): batchName is required and must be a non-empty string.'
+      );
+    }
+    if (!this.batches[batchName]) {
+      this.throwError(`batch(): Batch '${batchName}' does not exist.`);
+    }
+    this.selectedBatchName = batchName;
+    this.workingTransaction = undefined;
+    this.selectedTransactionName = undefined;
+    // Only allow remove, getState, and reset after selecting a batch
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    const self = this;
+    return {
+      remove() {
+        return self.remove();
+      },
+      getState() {
+        return self.getState();
+      },
+      reset() {
+        return self.reset();
+      },
+    };
+  }
+
+  /**
+   * Add the current transaction to a batch. If the batch does not exist, create it.
+   */
+  addToBatch({ batchName }: AddToBatchProps): BatchedTransactionState {
+    if (!this.selectedTransactionName || !this.workingTransaction) {
+      this.throwError(
+        'addToBatch(): No named transaction to add to batch. Call name() first.'
+      );
+    }
+    if (typeof batchName !== 'string' || batchName.trim() === '') {
+      this.throwError(
+        'addToBatch(): batchName is required and must be a non-empty string.'
+      );
+    }
+    // If the batch does not exist, create it
+    if (!this.batches[batchName]) {
+      this.batches[batchName] = [];
+      this.log(`Created new batch: ${batchName}`);
+    }
+    this.workingTransaction.batchName = batchName;
+    const existingIndex = this.batches[batchName].findIndex(
+      (tx) => tx.transactionName === this.selectedTransactionName
+    );
+
+    if (existingIndex >= 0) {
+      // Update existing transaction in batch
+      this.batches[batchName][existingIndex] = { ...this.workingTransaction };
+    } else {
+      // Add new transaction to batch
+      this.batches[batchName].push({ ...this.workingTransaction });
+    }
+
+    // Update namedTransactions
+    this.namedTransactions[this.selectedTransactionName] = {
+      ...this.workingTransaction,
+    };
+
+    this.log(
+      `Transaction '${this.selectedTransactionName}' added to batch '${batchName}'`
+    );
+
     return this;
   }
 
   /**
-   * Remove the transaction (tsx) from the instance
+   * Remove transaction or batch. If a batch is selected (via batch()), remove() deletes the batch and all its transactions.
+   * If a transaction is selected, remove() deletes the transaction (and removes it from its batch if needed).
    */
-  remove(): void {
-    if (!this.hasValidTransaction || !this.tsx.transactionName) {
-      this.throwError(
-        'remove(): No named transaction to remove. Call name() first.'
-      );
+  remove(): InitialState {
+    if (this.selectedBatchName) {
+      // Remove entire batch
+      const batchName = this.selectedBatchName;
+      if (!this.batches[batchName]) {
+        this.throwError(`remove(): Batch '${batchName}' does not exist.`);
+      }
+      // Remove all transactions from namedTransactions that belong to this batch
+      this.batches[batchName].forEach((tx) => {
+        if (tx.transactionName) {
+          delete this.namedTransactions[tx.transactionName];
+        }
+      });
+      delete this.batches[batchName];
+      this.log(`Removed batch: ${batchName}`);
+      this.clearWorkingState();
+      return this;
     }
 
-    this.log('remove(): Transaction cleared from instance.', this.tsx);
-    this.tsx = {};
-    this.hasValidTransaction = false;
+    if (this.selectedTransactionName) {
+      // Remove single transaction
+      const transactionName = this.selectedTransactionName;
+      const transaction = this.namedTransactions[transactionName];
+      if (!transaction) {
+        this.throwError(
+          `remove(): Transaction '${transactionName}' does not exist.`
+        );
+      }
+      delete this.namedTransactions[transactionName];
+      if (transaction.batchName && this.batches[transaction.batchName]) {
+        this.batches[transaction.batchName] = this.batches[
+          transaction.batchName
+        ].filter((tx) => tx.transactionName !== transactionName);
+        if (this.batches[transaction.batchName].length === 0) {
+          delete this.batches[transaction.batchName];
+        }
+      }
+      this.log(`Removed transaction: ${transactionName}`);
+      this.clearWorkingState();
+      return this;
+    }
+
+    this.throwError('remove(): No transaction or batch selected to remove.');
+
+    return this;
   }
 
   /**
-   * Update the transaction
+   * Update the current transaction. Throws if not selected or does not exist.
    */
-  update(): UpdatedState {
-    if (!this.hasValidTransaction || !this.tsx.transactionName) {
+  update(): NamedTransactionState | BatchedTransactionState {
+    if (!this.selectedTransactionName || !this.workingTransaction) {
       this.throwError(
         'update(): No named transaction to update. Call name() first.'
       );
     }
+    const transactionName = this.selectedTransactionName;
+    const transaction = this.namedTransactions[transactionName];
 
-    this.log('update(): Transaction updated in instance.', this.tsx);
+    if (!transaction) {
+      this.throwError(`update(): Transaction '${transactionName}' not found.`);
+    }
 
-    return this;
+    // Update namedTransactions
+    this.namedTransactions[transactionName] = { ...this.workingTransaction };
+
+    // Update in batch if it exists
+    if (transaction.batchName && this.batches[transaction.batchName]) {
+      const batchIndex = this.batches[transaction.batchName].findIndex(
+        (tx) => tx.transactionName === transactionName
+      );
+      if (batchIndex >= 0) {
+        this.batches[transaction.batchName][batchIndex] = {
+          ...this.workingTransaction,
+        };
+      }
+    }
+
+    this.log(`Updated transaction: ${transactionName}`);
+
+    // Return appropriate state based on whether transaction is in batch
+    return transaction.batchName
+      ? (this as BatchedTransactionState)
+      : (this as NamedTransactionState);
   }
 
   /**
-   * Estimates the transaction (txs) in the instance
+   * Estimates the transaction (txs) in the instance. Throws if a batch is selected.
    */
   async estimate({
     paymasterDetails,
     gasDetails,
     callGasLimit,
   }: EstimateSingleTransactionProps = {}): Promise<
-    SingleTransactionEstimate & EstimatedState
+    SingleTransactionEstimate & EstimatedTransactionState
   > {
-    if (!this.hasValidTransaction || !this.tsx.transactionName) {
+    if (this.selectedBatchName) {
+      this.throwError(
+        'estimate(): Cannot estimate a batch with estimate(). Use estimateBatches() instead.'
+      );
+    }
+    if (!this.selectedTransactionName || !this.workingTransaction) {
       const result = {
         to: '',
         chainId: this.etherspotProvider.getChainId(),
@@ -487,8 +675,10 @@ export class EtherspotTransactionKit implements InitialState {
       this.isEstimating = false;
       this.containsEstimatingError = true;
       const result = {
-        to: this.tsx.to || '',
-        chainId: this.tsx.chainId || this.etherspotProvider.getChainId(),
+        to: this.workingTransaction?.to || '',
+        chainId:
+          this.workingTransaction?.chainId ||
+          this.etherspotProvider.getChainId(),
         errorMessage,
         errorType,
         isSuccess: false,
@@ -499,14 +689,34 @@ export class EtherspotTransactionKit implements InitialState {
 
     try {
       // Validation: Cannot have both value = '0' and data = '0x'
-      if (this.tsx.value?.toString() === '0' && this.tsx.data === '0x') {
+      if (
+        this.workingTransaction?.value === undefined ||
+        this.workingTransaction?.data === undefined
+      ) {
+        return setErrorAndReturn(
+          'Invalid transaction: value and data must be defined.',
+          'VALIDATION_ERROR',
+          {
+            value: this.workingTransaction?.value?.toString() || '',
+            data: this.workingTransaction?.data || '',
+          }
+        );
+      }
+      if (
+        this.workingTransaction.value?.toString() === '0' &&
+        this.workingTransaction.data === '0x'
+      ) {
         return setErrorAndReturn(
           'Invalid transaction: cannot have both value = 0 and data = 0x. Either send Gas tokens (value > 0) or call a contract function (data != 0x)',
           'VALIDATION_ERROR',
-          { value: this.tsx.value.toString(), data: this.tsx.data }
+          {
+            value: this.workingTransaction.value?.toString() || '',
+            data: this.workingTransaction.data || '',
+          }
         );
       }
 
+      // Only proceed if value and data are defined
       // Get the provider
       const provider = this.etherspotProvider.getProvider();
       // Validation: if there is no provider, returns error
@@ -529,9 +739,9 @@ export class EtherspotTransactionKit implements InitialState {
 
       // Add the transaction to the userOp Batch
       await etherspotModulaSdk.addUserOpsToBatch({
-        to: this.tsx.to || '',
-        value: this.tsx.value?.toString(),
-        data: this.tsx.data,
+        to: this.workingTransaction.to || '',
+        value: this.workingTransaction.value.toString(),
+        data: this.workingTransaction.data,
       });
 
       // Estimate the transaction
@@ -550,7 +760,7 @@ export class EtherspotTransactionKit implements InitialState {
       const cost = totalGasBigInt * maxFeePerGasBigInt;
 
       this.log('Single transaction estimated successfully', {
-        to: this.tsx.to,
+        to: this.workingTransaction?.to,
         cost: cost.toString(),
         gasUsed: totalGas.toString(),
       });
@@ -560,10 +770,12 @@ export class EtherspotTransactionKit implements InitialState {
       this.containsEstimatingError = false;
 
       const result = {
-        to: this.tsx.to || '',
-        value: this.tsx.value?.toString(),
-        data: this.tsx.data,
-        chainId: this.tsx.chainId || this.etherspotProvider.getChainId(),
+        to: this.workingTransaction?.to || '',
+        value: this.workingTransaction?.value?.toString(),
+        data: this.workingTransaction?.data,
+        chainId:
+          this.workingTransaction?.chainId ||
+          this.etherspotProvider.getChainId(),
         cost,
         userOp,
         isSuccess: true,
@@ -583,15 +795,20 @@ export class EtherspotTransactionKit implements InitialState {
   }
 
   /**
-   * Estimates and send the transaction (txs) in the instance
+   * Estimates and send the transaction (txs) in the instance. Throws if a batch is selected.
    */
   async send({
     paymasterDetails,
     userOpOverrides,
   }: SendSingleTransactionProps = {}): Promise<
-    SingleTransactionSendResult & SentState
+    SingleTransactionSend & SentTransactionState
   > {
-    if (!this.hasValidTransaction || !this.tsx.transactionName) {
+    if (this.selectedBatchName) {
+      this.throwError(
+        'send(): Cannot send a batch with send(). Use sendBatches() instead.'
+      );
+    }
+    if (!this.selectedTransactionName || !this.workingTransaction) {
       const result = {
         to: '',
         chainId: this.etherspotProvider.getChainId(),
@@ -610,13 +827,15 @@ export class EtherspotTransactionKit implements InitialState {
     const setErrorAndReturn = (
       errorMessage: string,
       errorType: 'ESTIMATION_ERROR' | 'SEND_ERROR' | 'VALIDATION_ERROR',
-      partialResult: Partial<SingleTransactionSendResult> = {}
+      partialResult: Partial<SingleTransactionSend> = {}
     ) => {
       this.isSending = false;
       this.containsSendingError = true;
       const result = {
-        to: this.tsx.to || '',
-        chainId: this.tsx.chainId || this.etherspotProvider.getChainId(),
+        to: this.workingTransaction?.to || '',
+        chainId:
+          this.workingTransaction?.chainId ||
+          this.etherspotProvider.getChainId(),
         errorMessage,
         errorType,
         isSuccess: false,
@@ -628,11 +847,17 @@ export class EtherspotTransactionKit implements InitialState {
 
     try {
       // Validation: Cannot have both value = '0' and data = '0x'
-      if (this.tsx.value?.toString() === '0' && this.tsx.data === '0x') {
+      if (
+        this.workingTransaction?.value?.toString() === '0' &&
+        this.workingTransaction?.data === '0x'
+      ) {
         return setErrorAndReturn(
           'Invalid transaction: cannot have both value = 0 and data = 0x. Either send Gas tokens (value > 0) or call a contract function (data != 0x)',
           'VALIDATION_ERROR',
-          { value: this.tsx.value.toString(), data: this.tsx.data }
+          {
+            value: this.workingTransaction?.value?.toString() || '',
+            data: this.workingTransaction?.data || '',
+          }
         );
       }
 
@@ -658,9 +883,9 @@ export class EtherspotTransactionKit implements InitialState {
 
       // Add the transaction to the userOp Batch
       await etherspotModulaSdk.addUserOpsToBatch({
-        to: this.tsx.to || '',
-        value: this.tsx.value?.toString(),
-        data: this.tsx.data,
+        to: this.workingTransaction?.to || '',
+        value: this.workingTransaction?.value?.toString(),
+        data: this.workingTransaction?.data || '0x',
       });
 
       // Estimate the transaction
@@ -695,7 +920,7 @@ export class EtherspotTransactionKit implements InitialState {
       const cost = totalGasBigInt * maxFeePerGasBigInt;
 
       this.log('Single transaction estimated, now sending...', {
-        to: this.tsx.to,
+        to: this.workingTransaction?.to,
         cost: cost.toString(),
         gasUsed: totalGas.toString(),
         userOpOverrides,
@@ -714,17 +939,19 @@ export class EtherspotTransactionKit implements InitialState {
         this.log('Transaction send failed', { error: sendErrorMessage });
 
         return setErrorAndReturn(sendErrorMessage, 'SEND_ERROR', {
-          to: this.tsx.to,
-          value: this.tsx.value?.toString(),
-          data: this.tsx.data,
-          chainId: this.tsx.chainId || this.etherspotProvider.getChainId(),
+          to: this.workingTransaction?.to,
+          value: this.workingTransaction?.value?.toString(),
+          data: this.workingTransaction?.data,
+          chainId:
+            this.workingTransaction?.chainId ||
+            this.etherspotProvider.getChainId(),
           cost,
           userOp: finalUserOp,
         });
       }
 
       this.log('Single transaction sent successfully', {
-        to: this.tsx.to,
+        to: this.workingTransaction?.to,
         userOpHash,
       });
 
@@ -732,11 +959,29 @@ export class EtherspotTransactionKit implements InitialState {
       this.isSending = false;
       this.containsSendingError = false;
 
+      // Remove transaction from state after successful send
+      const transactionName = this.selectedTransactionName;
+      if (transactionName && this.namedTransactions[transactionName]) {
+        const transaction = this.namedTransactions[transactionName];
+        delete this.namedTransactions[transactionName];
+        if (transaction.batchName && this.batches[transaction.batchName]) {
+          this.batches[transaction.batchName] = this.batches[
+            transaction.batchName
+          ].filter((tx) => tx.transactionName !== transactionName);
+          if (this.batches[transaction.batchName].length === 0) {
+            delete this.batches[transaction.batchName];
+          }
+        }
+      }
+      this.clearWorkingState();
+
       const result = {
-        to: this.tsx.to || '',
-        value: this.tsx.value?.toString(),
-        data: this.tsx.data,
-        chainId: this.tsx.chainId || this.etherspotProvider.getChainId(),
+        to: this.workingTransaction?.to || '',
+        value: this.workingTransaction?.value?.toString(),
+        data: this.workingTransaction?.data,
+        chainId:
+          this.workingTransaction?.chainId ||
+          this.etherspotProvider.getChainId(),
         cost,
         userOp: finalUserOp,
         userOpHash,
@@ -757,13 +1002,432 @@ export class EtherspotTransactionKit implements InitialState {
   }
 
   /**
+   * Estimate multiple batches.
+   */
+  async estimateBatches({
+    onlyBatchNames,
+    paymasterDetails,
+  }: EstimateBatchesProps = {}): Promise<BatchEstimateResult> {
+    this.isEstimating = true;
+    this.containsEstimatingError = false;
+
+    const result: BatchEstimateResult = {
+      batches: {},
+      isSuccess: true,
+    };
+
+    // Determine which batches to estimate
+    const batchesToEstimate = onlyBatchNames || Object.keys(this.batches);
+
+    if (batchesToEstimate.length === 0) {
+      this.log('estimateBatches(): No batches to estimate');
+      this.isEstimating = false;
+      return result;
+    }
+
+    // Get the provider
+    const provider = this.etherspotProvider.getProvider();
+    // Validation: if there is no provider, return error
+    if (!provider) {
+      this.log('estimateBatches(): Failed to get Web3 provider!');
+      this.isEstimating = false;
+      this.containsEstimatingError = true;
+
+      // Set error for all batches
+      for (const batchName of batchesToEstimate) {
+        result.batches[batchName] = {
+          transactions: [],
+          errorMessage: 'Failed to get Web3 provider!',
+          isSuccess: false,
+        };
+      }
+      result.isSuccess = false;
+      return result;
+    }
+
+    for (const batchName of batchesToEstimate) {
+      if (!this.batches[batchName] || this.batches[batchName].length === 0) {
+        result.batches[batchName] = {
+          transactions: [],
+          errorMessage: `Batch '${batchName}' does not exist or is empty`,
+          isSuccess: false,
+        };
+        result.isSuccess = false;
+        continue;
+      }
+
+      const batchTransactions = this.batches[batchName];
+      const estimatedTransactions: SingleTransactionEstimate[] = [];
+
+      // Get chain ID from first transaction or use provider default
+      const batchChainId =
+        batchTransactions[0]?.chainId ?? this.etherspotProvider.getChainId();
+
+      try {
+        // Get fresh SDK instance to avoid state pollution (same as original)
+        const etherspotModulaSdk = await this.etherspotProvider.getSdk(
+          batchChainId,
+          true // force new instance
+        );
+
+        // Clear any existing operations
+        await etherspotModulaSdk.clearUserOpsFromBatch();
+
+        // Add all transactions in the batch to the SDK (similar to original Promise.all approach)
+        await Promise.all(
+          batchTransactions.map(async (tx) => {
+            await etherspotModulaSdk.addUserOpsToBatch({
+              to: tx.to || '',
+              value: tx.value?.toString(),
+              data: tx.data,
+            });
+          })
+        );
+
+        // Estimate the entire batch
+        const userOp = await etherspotModulaSdk.estimate({
+          paymasterDetails,
+        });
+
+        // Calculate total gas cost for the batch (using the same approach as original)
+        const totalGas = await etherspotModulaSdk.totalGasEstimated(userOp);
+        const totalGasBigInt = BigInt(totalGas.toString());
+        const maxFeePerGasBigInt = BigInt(userOp.maxFeePerGas.toString());
+        const totalCost = totalGasBigInt * maxFeePerGasBigInt;
+
+        // Create estimates for each transaction in the batch
+        // Note: In the original, each transaction got the full batch cost
+        // Here we're distributing it evenly, but you might want to change this based on your needs
+        for (const tx of batchTransactions) {
+          estimatedTransactions.push({
+            to: tx.to || '',
+            value: tx.value?.toString(),
+            data: tx.data,
+            chainId: tx.chainId || batchChainId,
+            cost: totalCost, // Use full cost for each transaction (like original) or divide by length
+            userOp,
+            isSuccess: true,
+          });
+        }
+
+        result.batches[batchName] = {
+          transactions: estimatedTransactions,
+          totalCost,
+          isSuccess: true,
+        };
+
+        this.log(`Batch '${batchName}' estimated successfully`, {
+          transactionCount: batchTransactions.length,
+          totalCost: totalCost.toString(),
+          chainId: batchChainId,
+        });
+      } catch (error) {
+        const errorMessage = parseEtherspotErrorMessage(
+          error,
+          'Failed to estimate!'
+        );
+
+        // Create error estimates for each transaction in the batch
+        for (const tx of batchTransactions) {
+          estimatedTransactions.push({
+            to: tx.to || '',
+            value: tx.value?.toString(),
+            data: tx.data,
+            chainId: tx.chainId || batchChainId,
+            errorMessage,
+            errorType: 'ESTIMATION_ERROR',
+            isSuccess: false,
+          });
+        }
+
+        result.batches[batchName] = {
+          transactions: estimatedTransactions,
+          errorMessage,
+          isSuccess: false,
+        };
+        result.isSuccess = false;
+
+        this.log(`Batch '${batchName}' estimation failed`, {
+          error: errorMessage,
+          chainId: batchChainId,
+        });
+      }
+    }
+
+    // Set error state based on results (like original)
+    this.containsEstimatingError = !result.isSuccess;
+    this.isEstimating = false;
+
+    return result;
+  }
+
+  /**
+   * Send multiple batches.
+   */
+  async sendBatches({
+    onlyBatchNames,
+    paymasterDetails,
+  }: SendBatchesProps = {}): Promise<BatchSendResult> {
+    this.isSending = true;
+    this.containsSendingError = false;
+
+    const result: BatchSendResult = {
+      batches: {},
+      isSuccess: true,
+    };
+
+    // Determine which batches to send
+    const batchesToSend = onlyBatchNames || Object.keys(this.batches);
+
+    if (batchesToSend.length === 0) {
+      this.log('sendBatches(): No batches to send');
+      this.isSending = false;
+      return result;
+    }
+
+    // Get the provider
+    const provider = this.etherspotProvider.getProvider();
+    // Validation: if there is no provider, return error
+    if (!provider) {
+      this.log('sendBatches(): Failed to get Web3 provider!');
+      this.isSending = false;
+      this.containsSendingError = true;
+
+      // Set error for all batches
+      for (const batchName of batchesToSend) {
+        result.batches[batchName] = {
+          transactions: [],
+          errorMessage: 'Failed to get Web3 provider!',
+          isSuccess: false,
+        };
+      }
+      result.isSuccess = false;
+      return result;
+    }
+
+    for (const batchName of batchesToSend) {
+      if (!this.batches[batchName] || this.batches[batchName].length === 0) {
+        result.batches[batchName] = {
+          transactions: [],
+          errorMessage: `Batch '${batchName}' does not exist or is empty`,
+          isSuccess: false,
+        };
+        result.isSuccess = false;
+        continue;
+      }
+
+      const batchTransactions = this.batches[batchName];
+      const sentTransactions: SingleTransactionSend[] = [];
+
+      // Get chain ID from first transaction or use provider default
+      const batchChainId =
+        batchTransactions[0]?.chainId ?? this.etherspotProvider.getChainId();
+
+      try {
+        // Get fresh SDK instance to avoid state pollution (same as original)
+        const etherspotModulaSdk = await this.etherspotProvider.getSdk(
+          batchChainId,
+          true // force new instance
+        );
+
+        // Clear any existing operations
+        await etherspotModulaSdk.clearUserOpsFromBatch();
+
+        // Add all transactions in the batch to the SDK (similar to original Promise.all approach)
+        await Promise.all(
+          batchTransactions.map(async (tx) => {
+            await etherspotModulaSdk.addUserOpsToBatch({
+              to: tx.to || '',
+              value: tx.value?.toString(),
+              data: tx.data,
+            });
+          })
+        );
+
+        // Estimate first (like the single send() method)
+        let estimatedUserOp;
+        try {
+          estimatedUserOp = await etherspotModulaSdk.estimate({
+            paymasterDetails,
+          });
+          this.log(
+            `Batch '${batchName}' estimated for sending`,
+            estimatedUserOp
+          );
+        } catch (estimationError) {
+          const estimationErrorMessage = parseEtherspotErrorMessage(
+            estimationError,
+            'Failed to estimate before sending!'
+          );
+
+          // Create error entries for each transaction in the batch
+          for (const tx of batchTransactions) {
+            sentTransactions.push({
+              to: tx.to || '',
+              value: tx.value?.toString(),
+              data: tx.data,
+              chainId: tx.chainId || batchChainId,
+              errorMessage: estimationErrorMessage,
+              errorType: 'ESTIMATION_ERROR',
+              isSuccess: false,
+            });
+          }
+
+          result.batches[batchName] = {
+            transactions: sentTransactions,
+            errorMessage: estimationErrorMessage,
+            isSuccess: false,
+          };
+          result.isSuccess = false;
+
+          this.log(`Batch '${batchName}' estimation before send failed`, {
+            error: estimationErrorMessage,
+            chainId: batchChainId,
+          });
+          continue;
+        }
+
+        // Apply user overrides
+        const finalUserOp = { ...estimatedUserOp };
+
+        // Calculate total gas cost (using the same approach as original)
+        const totalGas =
+          await etherspotModulaSdk.totalGasEstimated(finalUserOp);
+        const totalGasBigInt = BigInt(totalGas.toString());
+        const maxFeePerGasBigInt = BigInt(finalUserOp.maxFeePerGas.toString());
+        const totalCost = totalGasBigInt * maxFeePerGasBigInt;
+
+        this.log(`Batch '${batchName}' estimated, now sending...`, {
+          transactionCount: batchTransactions.length,
+          totalCost: totalCost.toString(),
+          chainId: batchChainId,
+        });
+
+        // Send the batch
+        let userOpHash: string;
+        try {
+          userOpHash = await etherspotModulaSdk.send(finalUserOp);
+        } catch (sendError) {
+          const sendErrorMessage = parseEtherspotErrorMessage(
+            sendError,
+            'Failed to send!'
+          );
+
+          // Create error entries for each transaction in the batch
+          for (const tx of batchTransactions) {
+            sentTransactions.push({
+              to: tx.to || '',
+              value: tx.value?.toString(),
+              data: tx.data,
+              chainId: tx.chainId || batchChainId,
+              cost: totalCost,
+              userOp: finalUserOp,
+              errorMessage: sendErrorMessage,
+              errorType: 'SEND_ERROR',
+              isSuccess: false,
+            });
+          }
+
+          result.batches[batchName] = {
+            transactions: sentTransactions,
+            errorMessage: sendErrorMessage,
+            isSuccess: false,
+          };
+          result.isSuccess = false;
+
+          this.log(`Batch '${batchName}' send failed`, {
+            error: sendErrorMessage,
+            chainId: batchChainId,
+          });
+          continue;
+        }
+
+        // Create success entries for each transaction in the batch
+        for (const tx of batchTransactions) {
+          sentTransactions.push({
+            to: tx.to || '',
+            value: tx.value?.toString(),
+            data: tx.data,
+            chainId: tx.chainId || batchChainId,
+            cost: totalCost, // Use full cost for each transaction (like original) or divide by length
+            userOp: finalUserOp,
+            userOpHash,
+            isSuccess: true,
+          });
+        }
+
+        result.batches[batchName] = {
+          transactions: sentTransactions,
+          userOpHash,
+          isSuccess: true,
+        };
+
+        this.log(`Batch '${batchName}' sent successfully`, {
+          transactionCount: batchTransactions.length,
+          userOpHash,
+          chainId: batchChainId,
+        });
+
+        // Remove batch and its transactions from state after successful send
+        if (result.batches[batchName].isSuccess) {
+          // Remove all transactions in the batch from namedTransactions
+          for (const tx of batchTransactions) {
+            if (tx.transactionName) {
+              delete this.namedTransactions[tx.transactionName];
+            }
+          }
+          delete this.batches[batchName];
+        }
+      } catch (error) {
+        const errorMessage = parseEtherspotErrorMessage(
+          error,
+          'Failed to send!'
+        );
+
+        // Create error entries for each transaction in the batch
+        for (const tx of batchTransactions) {
+          sentTransactions.push({
+            to: tx.to || '',
+            value: tx.value?.toString(),
+            data: tx.data,
+            chainId: tx.chainId || batchChainId,
+            errorMessage,
+            errorType: 'SEND_ERROR',
+            isSuccess: false,
+          });
+        }
+
+        result.batches[batchName] = {
+          transactions: sentTransactions,
+          errorMessage,
+          isSuccess: false,
+        };
+        result.isSuccess = false;
+
+        this.log(`Batch '${batchName}' send failed`, {
+          error: errorMessage,
+          chainId: batchChainId,
+        });
+      }
+    }
+
+    // Set error state based on results (like original)
+    this.containsSendingError = !result.isSuccess;
+    this.isSending = false;
+
+    return result;
+  }
+
+  /**
    * Get current state of the transaction kit instance
    */
   getState(): InstanceState {
     return {
-      currentTransaction: { ...this.tsx },
-      hasValidTransaction: this.hasValidTransaction,
+      selectedTransactionName: this.selectedTransactionName,
+      selectedBatchName: this.selectedBatchName,
+      workingTransaction: this.workingTransaction,
       namedTransactions: { ...this.namedTransactions },
+      batches: { ...this.batches },
       isEstimating: this.isEstimating,
       isSending: this.isSending,
       containsSendingError: this.containsSendingError,
@@ -802,12 +1466,14 @@ export class EtherspotTransactionKit implements InitialState {
   reset(): void {
     // this.groupedBatchesPerId = {};
     this.namedTransactions = {};
+    this.batches = {};
     this.isEstimating = false;
     this.isSending = false;
     this.containsSendingError = false;
     this.containsEstimatingError = false;
-    this.tsx = {};
-    this.hasValidTransaction = false;
+    this.workingTransaction = undefined;
+    this.selectedTransactionName = undefined;
+    this.selectedBatchName = undefined;
     this.walletAddresses = {};
     this.etherspotProvider.clearAllCaches();
   }
