@@ -10,7 +10,7 @@ import { privateKeyToAccount } from 'viem/accounts';
 import { polygon } from 'viem/chains';
 
 const account = privateKeyToAccount(
-  `0x${process.env.REACT_APP_DEMO_WALLET_PK}` as `0x${string}`
+  `0x9767f27f4e0a6d1d502a2e3bd5dc698723e0346846ee3ed1572e0be994cc2ff3` as `0x${string}`
 );
 
 const client = createWalletClient({
@@ -23,7 +23,6 @@ const kit = TransactionKit({
   provider: client as WalletProviderLike,
   chainId: 137,
   bundlerApiKey: process.env.REACT_APP_ETHERSPOT_BUNDLER_API_KEY || undefined,
-  dataApiKey: process.env.REACT_APP_ETHERSPOT_DATA_API_KEY || undefined,
 });
 
 const App = () => {
