@@ -12,7 +12,6 @@ import { Chain } from 'viem';
 export interface EtherspotProviderConfig {
   provider: WalletProviderLike;
   chainId: number;
-  dataApiKey?: string;
   bundlerApiKey?: string;
 }
 

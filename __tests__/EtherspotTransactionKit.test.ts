@@ -24,7 +24,6 @@ beforeEach(() => {
   mockConfig = {
     provider: {} as any,
     chainId: 1,
-    dataApiKey: 'test-data-key',
     bundlerApiKey: 'test-bundler-key',
     debugMode: false,
   };
@@ -50,7 +49,6 @@ describe('EtherspotTransactionKit', () => {
   const mockConfig = {
     provider: {} as any,
     chainId: 1,
-    dataApiKey: 'test-data-key',
     bundlerApiKey: 'test-bundler-key',
     debugMode: false,
   };
@@ -443,12 +441,9 @@ describe('EtherspotTransactionKit', () => {
     it('should handle provider returning null/undefined', async () => {
       // @ts-ignore
       mockProvider.getProvider.mockReturnValue(null);
-
-      const result = await transactionKit.estimate();
-
-      expect(result.isSuccess).toBe(false);
-      expect(result.errorType).toBe('VALIDATION_ERROR');
-      expect(result.errorMessage).toBe('Failed to get Web3 provider!');
+      await expect(transactionKit.estimate()).rejects.toThrow(
+        'estimate(): No Web3 provider available. This is a critical configuration error.'
+      );
     });
 
     it('should pass through gas details and call gas limit', async () => {
@@ -526,15 +521,12 @@ describe('EtherspotTransactionKit', () => {
       ).toBe(true);
     });
 
-    it('should return error if no provider', async () => {
+    it('should throw if no provider', async () => {
       // @ts-ignore
       mockProvider.getProvider.mockReturnValue(null);
-
-      const result = await transactionKit.estimate();
-
-      expect(result.isSuccess).toBe(false);
-      expect(result.errorType).toBe('VALIDATION_ERROR');
-      expect(result.errorMessage).toBe('Failed to get Web3 provider!');
+      await expect(transactionKit.estimate()).rejects.toThrow(
+        'estimate(): No Web3 provider available. This is a critical configuration error.'
+      );
     });
 
     it('should handle estimation errors', async () => {
@@ -611,12 +603,9 @@ describe('EtherspotTransactionKit', () => {
     it('should handle provider returning null/undefined', async () => {
       // @ts-ignore
       mockProvider.getProvider.mockReturnValue(null);
-
-      const result = await transactionKit.send();
-
-      expect(result.isSuccess).toBe(false);
-      expect(result.errorType).toBe('VALIDATION_ERROR');
-      expect(result.errorMessage).toBe('Failed to get Web3 provider!');
+      await expect(transactionKit.send()).rejects.toThrow(
+        'send(): No Web3 provider available. This is a critical configuration error.'
+      );
     });
 
     it('should handle totalGasEstimated error after successful estimation', async () => {
@@ -719,6 +708,14 @@ describe('EtherspotTransactionKit', () => {
 
       expect(result.isSuccess).toBe(false);
       expect(result.errorType).toBe('SEND_ERROR');
+    });
+
+    it('should throw if no provider', async () => {
+      // @ts-ignore
+      mockProvider.getProvider.mockReturnValue(null);
+      await expect(transactionKit.send()).rejects.toThrow(
+        'send(): No Web3 provider available. This is a critical configuration error.'
+      );
     });
   });
 
@@ -1088,6 +1085,22 @@ describe('Batch operations', () => {
     expect(result.batches['batch1'].isSuccess).toBe(false);
     expect(result.batches['batch1'].errorMessage).toContain(
       'does not exist or is empty'
+    );
+  });
+
+  it('should throw if no provider in estimateBatches', async () => {
+    // @ts-ignore
+    transactionKit.getProvider().getProvider.mockReturnValue(null);
+    await expect(transactionKit.estimateBatches()).rejects.toThrow(
+      'estimateBatches(): No Web3 provider available. This is a critical configuration error.'
+    );
+  });
+
+  it('should throw if no provider in sendBatches', async () => {
+    // @ts-ignore
+    transactionKit.getProvider().getProvider.mockReturnValue(null);
+    await expect(transactionKit.sendBatches()).rejects.toThrow(
+      'sendBatches(): No Web3 provider available. This is a critical configuration error.'
     );
   });
 });

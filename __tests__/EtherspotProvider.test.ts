@@ -65,7 +65,6 @@ describe('EtherspotProvider', () => {
     config = {
       provider: mockProvider,
       chainId: 1,
-      dataApiKey: 'test-data-key',
       bundlerApiKey: 'test-bundler-key',
     };
 
@@ -86,7 +85,6 @@ describe('EtherspotProvider', () => {
     it('should update config with new values', () => {
       const newConfig = {
         chainId: 137,
-        dataApiKey: 'new-data-key',
       };
 
       const result = etherspotProvider.updateConfig(newConfig);
@@ -421,7 +419,7 @@ describe('EtherspotProvider', () => {
     });
 
     it('should return updated config after changes', () => {
-      const newConfig = { chainId: 56, dataApiKey: 'new-key' };
+      const newConfig = { chainId: 56 };
       etherspotProvider.updateConfig(newConfig);
 
       expect(etherspotProvider.getConfig()).toEqual({
@@ -465,22 +463,10 @@ describe('EtherspotProvider', () => {
   });
 
   describe('Error scenarios', () => {
-    it('should handle undefined dataApiKey', () => {
-      const configWithoutDataKey = {
-        provider: mockProvider,
-        chainId: 1,
-        bundlerApiKey: 'test-bundler-key',
-      };
-      const provider = new EtherspotProvider(configWithoutDataKey);
-
-      expect(provider.getConfig().dataApiKey).toBeUndefined();
-    });
-
     it('should handle undefined bundlerApiKey', () => {
       const configWithoutBundlerKey = {
         provider: mockProvider,
         chainId: 1,
-        dataApiKey: 'test-data-key',
       };
       const provider = new EtherspotProvider(configWithoutBundlerKey);
 

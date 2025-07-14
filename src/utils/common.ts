@@ -1,10 +1,10 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { sortBy } from 'lodash';
 import { toHex } from 'viem';
 
 // types
 import { TypePerId } from '../types/Helper';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const getObjectSortedByKeys = (object: TypePerId<any>) =>
   sortBy(Object.keys(object).map((key) => +key)).map((key) => object[key]);
 
