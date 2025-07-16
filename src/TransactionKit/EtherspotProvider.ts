@@ -8,12 +8,7 @@ import {
 } from '@etherspot/modular-sdk';
 import { isEqual } from 'lodash';
 import { Chain } from 'viem';
-
-export interface EtherspotProviderConfig {
-  provider: WalletProviderLike;
-  chainId: number;
-  bundlerApiKey?: string;
-}
+import { EtherspotProviderConfig } from '../types/types';
 
 export class EtherspotProvider {
   private sdkPerChain: { [chainId: number]: ModularSdk | Promise<ModularSdk> } =
@@ -23,12 +18,18 @@ export class EtherspotProvider {
 
   private config: EtherspotProviderConfig;
 
+  /**
+   * Creates a new EtherspotProvider instance.
+   * @param config - The provider configuration.
+   */
   constructor(config: EtherspotProviderConfig) {
     this.config = config;
   }
 
   /**
-   * Update the provider configuration
+   * Updates the provider configuration.
+   * @param newConfig - Partial configuration to merge with the current config.
+   * @returns The EtherspotProvider instance (for chaining).
    */
   updateConfig(newConfig: Partial<EtherspotProviderConfig>): this {
     this.config = { ...this.config, ...newConfig };
@@ -36,7 +37,12 @@ export class EtherspotProvider {
   }
 
   /**
-   * Get SDK instance for a specific chain
+   * Gets an SDK instance for a specific chain.
+   * @param sdkChainId - The chain ID for the SDK instance (defaults to current config chainId).
+   * @param forceNewInstance - If true, forces creation of a new SDK instance.
+   * @param customChain - Optional custom chain configuration.
+   * @returns A promise that resolves to a ModularSdk instance.
+   * @throws {Error} If the SDK cannot be initialized after 3 attempts to get the counter factual address.
    */
   async getSdk(
     sdkChainId: number = this.config.chainId,
@@ -95,21 +101,24 @@ export class EtherspotProvider {
   }
 
   /**
-   * Get current provider
+   * Gets the current provider.
+   * @returns The WalletProviderLike instance.
    */
   getProvider(): WalletProviderLike {
     return this.config.provider;
   }
 
   /**
-   * Get current chain ID
+   * Gets the current chain ID.
+   * @returns The chain ID as a number.
    */
   getChainId(): number {
     return this.config.chainId;
   }
 
   /**
-   * Clear all cached SDK instances
+   * Clears all cached SDK instances.
+   * @returns The EtherspotProvider instance (for chaining).
    */
   clearSdkCache(): this {
     this.sdkPerChain = {};
@@ -117,7 +126,8 @@ export class EtherspotProvider {
   }
 
   /**
-   * Clear all caches
+   * Clears all caches (SDK and provider).
+   * @returns The EtherspotProvider instance (for chaining).
    */
   clearAllCaches(): this {
     this.clearSdkCache();
@@ -125,14 +135,15 @@ export class EtherspotProvider {
   }
 
   /**
-   * Get all config values
+   * Gets a copy of the current provider configuration.
+   * @returns The EtherspotProviderConfig object.
    */
   getConfig(): EtherspotProviderConfig {
     return { ...this.config };
   }
 
   /**
-   * Destroy the provider and clean up resources
+   * Destroys the provider and cleans up resources.
    */
   destroy(): void {
     this.sdkPerChain = {};
