@@ -6,4 +6,3 @@ if (typeof window !== 'undefined')
 export * from './TransactionKit/EtherspotProvider';
 export * from './TransactionKit/EtherspotUtils';
 export * from './TransactionKit/TransactionKit';
-export * from './types/TransactionKitTypes';
