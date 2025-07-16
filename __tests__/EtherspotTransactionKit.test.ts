@@ -404,7 +404,7 @@ describe('EtherspotTransactionKit', () => {
 
       const result = await transactionKit.estimate();
 
-      expect(result.isSuccess).toBe(true);
+      expect(result.isEstimatedSuccessfully).toBe(true);
       expect(result.userOp).toEqual(mockUserOp);
       expect(result.cost).toBeDefined();
       expect(mockSdk.clearUserOpsFromBatch).toHaveBeenCalled();
@@ -473,7 +473,7 @@ describe('EtherspotTransactionKit', () => {
 
       const result = await transactionKit.estimate();
 
-      expect(result.isSuccess).toBe(false);
+      expect(result.isEstimatedSuccessfully).toBe(false);
       expect(result.errorType).toBe('ESTIMATION_ERROR');
     });
 
@@ -482,7 +482,7 @@ describe('EtherspotTransactionKit', () => {
 
       const result = await transactionKit.estimate();
 
-      expect(result.isSuccess).toBe(false);
+      expect(result.isEstimatedSuccessfully).toBe(false);
       expect(result.errorType).toBe('ESTIMATION_ERROR');
     });
 
@@ -491,14 +491,14 @@ describe('EtherspotTransactionKit', () => {
 
       const result = await emptyKit.estimate();
 
-      expect(result.isSuccess).toBe(false);
+      expect(result.isEstimatedSuccessfully).toBe(false);
       expect(result.errorType).toBe('VALIDATION_ERROR');
       expect(result.errorMessage).toBe(
         'No named transaction to estimate. Call name() first.'
       );
     });
 
-    it('should return error for invalid transaction (value = 0 and data = 0x)', async () => {
+    it('should allow transaction with value = 0 and data = 0x', async () => {
       const kit = new EtherspotTransactionKit(mockConfig);
       kit.transaction({
         to: '0x1234567890123456789012345678901234567890',
@@ -509,16 +509,9 @@ describe('EtherspotTransactionKit', () => {
 
       const result = await kit.estimate();
 
-      expect(result.isSuccess).toBe(false);
-      expect(result.errorType).toBe('VALIDATION_ERROR');
-      // Accept either error message: value/data undefined or both zero
-      const msg = result.errorMessage || '';
-      expect(
-        msg.includes(
-          'Invalid transaction: cannot have both value = 0 and data = 0x'
-        ) ||
-          msg.includes('Invalid transaction: value and data must be defined.')
-      ).toBe(true);
+      // Should not return a validation error
+      expect(result.errorType).not.toBe('VALIDATION_ERROR');
+      // Should proceed to estimation (success or estimation error, but not validation error)
     });
 
     it('should throw if no provider', async () => {
@@ -534,7 +527,7 @@ describe('EtherspotTransactionKit', () => {
 
       const result = await transactionKit.estimate();
 
-      expect(result.isSuccess).toBe(false);
+      expect(result.isEstimatedSuccessfully).toBe(false);
       expect(result.errorType).toBe('ESTIMATION_ERROR');
     });
 
@@ -543,7 +536,7 @@ describe('EtherspotTransactionKit', () => {
 
       const result = await transactionKit.estimate();
 
-      expect(result.isSuccess).toBe(false);
+      expect(result.isEstimatedSuccessfully).toBe(false);
       expect(result.errorType).toBe('ESTIMATION_ERROR');
     });
   });
@@ -571,7 +564,8 @@ describe('EtherspotTransactionKit', () => {
 
       const result = await transactionKit.send();
 
-      expect(result.isSuccess).toBe(true);
+      expect(result.isEstimatedSuccessfully).toBe(true);
+      expect(result.isSentSuccessfully).toBe(true);
       expect(result.userOpHash).toBe(mockUserOpHash);
       expect(result.userOp).toEqual(mockUserOp);
     });
@@ -597,7 +591,8 @@ describe('EtherspotTransactionKit', () => {
         ...mockUserOp,
         ...userOpOverrides,
       });
-      expect(result.isSuccess).toBe(true);
+      expect(result.isEstimatedSuccessfully).toBe(true);
+      expect(result.isSentSuccessfully).toBe(true);
     });
 
     it('should handle provider returning null/undefined', async () => {
@@ -616,7 +611,7 @@ describe('EtherspotTransactionKit', () => {
 
       const result = await transactionKit.send();
 
-      expect(result.isSuccess).toBe(false);
+      expect(result.isSentSuccessfully).toBe(false);
       expect(result.errorType).toBe('SEND_ERROR');
     });
 
@@ -651,14 +646,14 @@ describe('EtherspotTransactionKit', () => {
 
       const result = await emptyKit.send();
 
-      expect(result.isSuccess).toBe(false);
+      expect(result.isSentSuccessfully).toBe(false);
       expect(result.errorType).toBe('VALIDATION_ERROR');
       expect(result.errorMessage).toBe(
         'No named transaction to send. Call name() first.'
       );
     });
 
-    it('should return error for invalid transaction', async () => {
+    it('should allow sending transaction with value = 0 and data = 0x', async () => {
       transactionKit.transaction({
         to: '0x1234567890123456789012345678901234567890',
         value: '0',
@@ -666,10 +661,16 @@ describe('EtherspotTransactionKit', () => {
       });
       transactionKit.name({ transactionName: 'test' });
 
+      // Mock SDK to allow send
+      mockSdk.estimate.mockResolvedValue({ maxFeePerGas: '0x77359400' });
+      mockSdk.totalGasEstimated.mockResolvedValue(BigInt('21000') as any);
+      mockSdk.send.mockResolvedValue('0xhash');
+
       const result = await transactionKit.send();
 
-      expect(result.isSuccess).toBe(false);
-      expect(result.errorType).toBe('SEND_ERROR');
+      // Should not return a validation error
+      expect(result.errorType).not.toBe('VALIDATION_ERROR');
+      // Should proceed to send (success or send error, but not validation error)
     });
 
     it('should handle estimation errors before sending', async () => {
@@ -677,7 +678,7 @@ describe('EtherspotTransactionKit', () => {
 
       const result = await transactionKit.send();
 
-      expect(result.isSuccess).toBe(false);
+      expect(result.isEstimatedSuccessfully).toBe(false);
       expect(result.errorType).toBe('ESTIMATION_ERROR');
       expect(result.errorMessage).toBe('Estimation failed');
     });
@@ -694,7 +695,7 @@ describe('EtherspotTransactionKit', () => {
 
       const result = await transactionKit.send();
 
-      expect(result.isSuccess).toBe(false);
+      expect(result.isSentSuccessfully).toBe(false);
       expect(result.errorType).toBe('SEND_ERROR');
       expect(result.errorMessage).toBe('Send failed');
     });
@@ -706,7 +707,7 @@ describe('EtherspotTransactionKit', () => {
 
       const result = await transactionKit.send();
 
-      expect(result.isSuccess).toBe(false);
+      expect(result.isSentSuccessfully).toBe(false);
       expect(result.errorType).toBe('SEND_ERROR');
     });
 
@@ -1013,9 +1014,9 @@ describe('Batch operations', () => {
     mockSdk.estimate.mockResolvedValue({ maxFeePerGas: '0x77359400' });
     mockSdk.totalGasEstimated.mockResolvedValue(BigInt('21000'));
     const result = await transactionKit.estimateBatches();
-    expect(result.isSuccess).toBe(true);
+    expect(result.isEstimatedSuccessfully).toBe(true);
     expect(result.batches['batch1'].transactions).toHaveLength(2);
-    expect(result.batches['batch1'].isSuccess).toBe(true);
+    expect(result.batches['batch1'].isEstimatedSuccessfully).toBe(true);
   });
 
   it('should send batches and remove them from state on success', async () => {
@@ -1025,8 +1026,8 @@ describe('Batch operations', () => {
     mockSdk.totalGasEstimated.mockResolvedValue(BigInt('21000'));
     mockSdk.send.mockResolvedValue('0xhash');
     const result = await transactionKit.sendBatches();
-    expect(result.isSuccess).toBe(true);
-    expect(result.batches['batch1'].isSuccess).toBe(true);
+    expect(result.isEstimatedSuccessfully).toBe(true);
+    expect(result.isSentSuccessfully).toBe(true);
     // After successful send, batch and transactions should be removed
     const state = transactionKit.getState();
     expect(state.batches['batch1']).toBeUndefined();
@@ -1041,8 +1042,9 @@ describe('Batch operations', () => {
     mockSdk.totalGasEstimated.mockResolvedValue(BigInt('21000'));
     mockSdk.send.mockRejectedValue(new Error('Send failed'));
     const result = await transactionKit.sendBatches();
-    expect(result.isSuccess).toBe(false);
-    expect(result.batches['batch1'].isSuccess).toBe(false);
+    expect(result.isSentSuccessfully).toBe(false);
+    expect(result.batches['batch1'].isEstimatedSuccessfully).toBe(true);
+    expect(result.batches['batch1'].isSentSuccessfully).toBe(false);
     // Batch and transactions should remain
     const state = transactionKit.getState();
     expect(state.batches['batch1']).toBeDefined();
@@ -1054,8 +1056,8 @@ describe('Batch operations', () => {
     const result = await transactionKit.sendBatches({
       onlyBatchNames: ['doesnotexist'],
     });
-    expect(result.isSuccess).toBe(false);
-    expect(result.batches['doesnotexist'].isSuccess).toBe(false);
+    expect(result.isSentSuccessfully).toBe(false);
+    expect(result.batches['doesnotexist'].isEstimatedSuccessfully).toBe(false);
     expect(result.batches['doesnotexist'].errorMessage).toContain(
       'does not exist'
     );
@@ -1065,8 +1067,8 @@ describe('Batch operations', () => {
     const result = await transactionKit.estimateBatches({
       onlyBatchNames: ['doesnotexist'],
     });
-    expect(result.isSuccess).toBe(false);
-    expect(result.batches['doesnotexist'].isSuccess).toBe(false);
+    expect(result.isEstimatedSuccessfully).toBe(false);
+    expect(result.batches['doesnotexist'].isEstimatedSuccessfully).toBe(false);
     expect(result.batches['doesnotexist'].errorMessage).toContain(
       'does not exist'
     );
@@ -1081,8 +1083,9 @@ describe('Batch operations', () => {
     const result = await transactionKit.sendBatches({
       onlyBatchNames: ['batch1'],
     });
-    expect(result.isSuccess).toBe(false);
-    expect(result.batches['batch1'].isSuccess).toBe(false);
+    expect(result.isSentSuccessfully).toBe(false);
+    expect(result.batches['batch1'].isEstimatedSuccessfully).toBe(false);
+    expect(result.batches['batch1'].isSentSuccessfully).toBe(false);
     expect(result.batches['batch1'].errorMessage).toContain(
       'does not exist or is empty'
     );

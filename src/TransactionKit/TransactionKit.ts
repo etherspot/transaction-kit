@@ -16,105 +16,105 @@ import {
 // utils
 import { EtherspotUtils } from './EtherspotUtils';
 
-interface InitialState {
+interface IInitial {
   // Methods to start with
-  transaction(props: TransactionProps): TransactionState;
-  name(props: NameProps): NamedTransactionState;
-  batch(props: BatchProps): BatchState;
+  transaction(props: TransactionParams): ITransaction;
+  name(props: NameParams): INamedTransaction;
+  batch(props: BatchParams): IBatch;
 
   // Batch methods
-  sendBatches(props?: SendBatchesProps): Promise<BatchSendResult>;
-  estimateBatches(props?: EstimateBatchesProps): Promise<BatchEstimateResult>;
+  sendBatches(props?: SendBatchesParams): Promise<BatchSendResult>;
+  estimateBatches(props?: EstimateBatchesParams): Promise<BatchEstimateResult>;
 
   // Standalone methods (not chainable)
   getWalletAddress(chainId?: number): Promise<string | undefined>;
-  getState(): InstanceState;
+  getState(): IInstance;
   setDebugMode(enabled: boolean): void;
   getProvider(): EtherspotProvider;
   getSdk(chainId?: number, forceNewInstance?: boolean): Promise<ModularSdk>;
   reset(): void;
 }
-interface TransactionState {
-  name(props: NameProps): NamedTransactionState;
+interface ITransaction {
+  name(props: NameParams): INamedTransaction;
 
   // Callable methods at any time
-  getState(): InstanceState;
+  getState(): IInstance;
   reset(): void;
 }
 
-export interface NamedTransactionState {
+export interface INamedTransaction {
   // Update with new transaction data
-  transaction(props: TransactionProps): TransactionState;
+  transaction(props: TransactionParams): ITransaction;
 
   // Management methods
-  remove(): InitialState;
-  update(): NamedTransactionState;
-  addToBatch(props: AddToBatchProps): BatchedTransactionState;
+  remove(): IInitial;
+  update(): INamedTransaction;
+  addToBatch(props: AddToBatchParams): IBatchedTransaction;
 
   // Execution methods
   estimate(
-    props?: EstimateSingleTransactionProps
-  ): Promise<SingleTransactionEstimate & EstimatedTransactionState>;
+    props?: EstimateSingleTransactionParams
+  ): Promise<TransactionEstimateResult & IEstimatedTransaction>;
   send(
-    props?: SendSingleTransactionProps
-  ): Promise<SingleTransactionSend & SentTransactionState>;
+    props?: SendSingleTransactionParams
+  ): Promise<TransactionSendResult & ISentTransaction>;
 
   // Callable methods at any time
-  getState(): InstanceState;
+  getState(): IInstance;
   reset(): void;
 }
 
-export interface BatchedTransactionState {
+export interface IBatchedTransaction {
   // Update with new transaction data
-  transaction(props: TransactionProps): TransactionState;
+  transaction(props: TransactionParams): ITransaction;
 
   // Management methods
-  remove(): InitialState;
-  update(): BatchedTransactionState;
+  remove(): IInitial;
+  update(): IBatchedTransaction;
 
   // Execution methods
   estimate(
-    props?: EstimateSingleTransactionProps
-  ): Promise<SingleTransactionEstimate & EstimatedTransactionState>;
+    props?: EstimateSingleTransactionParams
+  ): Promise<TransactionEstimateResult & IEstimatedTransaction>;
   send(
-    props?: SendSingleTransactionProps
-  ): Promise<SingleTransactionSend & SentTransactionState>;
+    props?: SendSingleTransactionParams
+  ): Promise<TransactionSendResult & ISentTransaction>;
 
   // Callable methods at any time
-  getState(): InstanceState;
+  getState(): IInstance;
   reset(): void;
 }
 
-export interface BatchState {
-  remove(): InitialState;
+export interface IBatch {
+  remove(): IInitial;
 
   // Callable methods at any time
-  getState(): InstanceState;
+  getState(): IInstance;
   reset(): void;
 }
 
-interface EstimatedTransactionState {
+interface IEstimatedTransaction {
   estimate(
-    props?: EstimateSingleTransactionProps
-  ): Promise<SingleTransactionEstimate & EstimatedTransactionState>;
+    props?: EstimateSingleTransactionParams
+  ): Promise<TransactionEstimateResult & IEstimatedTransaction>;
 
   // Callable methods at any time
-  getState(): InstanceState;
+  getState(): IInstance;
   reset(): void;
 }
 
-interface SentTransactionState {
+interface ISentTransaction {
   send(
-    props?: SendSingleTransactionProps
-  ): Promise<SingleTransactionSend & SentTransactionState>;
+    props?: SendSingleTransactionParams
+  ): Promise<TransactionSendResult & ISentTransaction>;
 
   // Callable methods at any time
-  getState(): InstanceState;
+  getState(): IInstance;
   reset(): void;
 }
 
 // Instance state data
-export interface InstanceState {
+export interface IInstance {
   selectedTransactionName?: string;
   selectedBatchName?: string;
   workingTransaction?: TransactionBuilder;
@@ -140,26 +140,26 @@ export interface TransactionBuilder {
   batchName?: string;
 }
 
-export interface AddToBatchProps {
+export interface AddToBatchParams {
   batchName: string;
 }
 
-export interface BatchProps {
+export interface BatchParams {
   batchName: string;
 }
 
-export interface EstimateSingleTransactionProps {
+export interface EstimateSingleTransactionParams {
   paymasterDetails?: PaymasterApi;
   gasDetails?: TransactionGasInfoForUserOp;
   callGasLimit?: bigint;
 }
 
-export interface SendSingleTransactionProps {
+export interface SendSingleTransactionParams {
   paymasterDetails?: PaymasterApi;
   userOpOverrides?: Partial<UserOp>;
 }
 
-export interface SingleTransactionEstimate {
+export interface TransactionEstimateResult {
   to?: string;
   value?: string;
   data?: string;
@@ -168,10 +168,10 @@ export interface SingleTransactionEstimate {
   userOp?: UserOp;
   errorMessage?: string;
   errorType?: 'ESTIMATION_ERROR' | 'VALIDATION_ERROR';
-  isSuccess: boolean;
+  isEstimatedSuccessfully: boolean;
 }
 
-export interface SingleTransactionSend {
+export interface TransactionSendResult {
   to?: string;
   value?: string;
   data?: string;
@@ -181,61 +181,64 @@ export interface SingleTransactionSend {
   userOpHash?: string;
   errorMessage?: string;
   errorType?: 'ESTIMATION_ERROR' | 'SEND_ERROR' | 'VALIDATION_ERROR';
-  isSuccess: boolean;
-}
-
-export interface SendBatchesProps {
-  onlyBatchNames?: string[];
-  paymasterDetails?: PaymasterApi;
-}
-
-export interface EstimateBatchesProps {
-  onlyBatchNames?: string[];
-  paymasterDetails?: PaymasterApi;
+  isEstimatedSuccessfully: boolean;
+  isSentSuccessfully: boolean;
 }
 
 export interface BatchSendResult {
   batches: {
     [batchName: string]: {
-      transactions: SingleTransactionSend[];
+      transactions: TransactionSendResult[];
       userOpHash?: string;
       errorMessage?: string;
-      isSuccess: boolean;
+      isEstimatedSuccessfully: boolean;
+      isSentSuccessfully: boolean;
     };
   };
-  isSuccess: boolean;
+  isEstimatedSuccessfully: boolean;
+  isSentSuccessfully: boolean;
 }
 
 export interface BatchEstimateResult {
   batches: {
     [batchName: string]: {
-      transactions: SingleTransactionEstimate[];
+      transactions: TransactionEstimateResult[];
       totalCost?: bigint;
       errorMessage?: string;
-      isSuccess: boolean;
+      isEstimatedSuccessfully: boolean;
     };
   };
-  isSuccess: boolean;
+  isEstimatedSuccessfully: boolean;
 }
 
-export interface NativeAmountProps {
+export interface NativeAmountParams {
   amount: number;
   chainId?: number;
 }
 
-export interface ToProps {
+export interface ToParams {
   address: string;
 }
 
-export interface TransactionProps {
+export interface TransactionParams {
   chainId?: number;
   to: string;
   value?: bigint | string;
   data?: string;
 }
 
-export interface NameProps {
+export interface NameParams {
   transactionName: string;
+}
+
+export interface SendBatchesParams {
+  onlyBatchNames?: string[];
+  paymasterDetails?: PaymasterApi;
+}
+
+export interface EstimateBatchesParams {
+  onlyBatchNames?: string[];
+  paymasterDetails?: PaymasterApi;
 }
 
 const parseEtherspotErrorMessage = (
@@ -245,7 +248,7 @@ const parseEtherspotErrorMessage = (
   return (e instanceof Error && e.message) || defaultMessage;
 };
 
-export class EtherspotTransactionKit implements InitialState {
+export class EtherspotTransactionKit implements IInitial {
   private etherspotProvider: EtherspotProvider;
 
   private batches: { [batchName: string]: TransactionBuilder[] } = {};
@@ -362,7 +365,7 @@ export class EtherspotTransactionKit implements InitialState {
     to,
     value = '0',
     data = '0x',
-  }: TransactionProps): TransactionState {
+  }: TransactionParams): ITransaction {
     if (!to) {
       this.throwError('transaction(): to is required.');
     }
@@ -421,7 +424,7 @@ export class EtherspotTransactionKit implements InitialState {
   /**
    * Name a transaction (create new or select existing)
    */
-  name({ transactionName }: NameProps): NamedTransactionState {
+  name({ transactionName }: NameParams): INamedTransaction {
     if (typeof transactionName !== 'string' || transactionName.trim() === '') {
       this.throwError(
         'name(): transactionName is required and must be a non-empty string.'
@@ -447,13 +450,13 @@ export class EtherspotTransactionKit implements InitialState {
       this.log(`name(): Named new transaction: ${transactionName}`);
     }
 
-    return this as NamedTransactionState;
+    return this as INamedTransaction;
   }
 
   /**
    * Select a batch by name. Only allows remove, getState, and reset after this.
    */
-  batch({ batchName }: BatchProps): BatchState {
+  batch({ batchName }: BatchParams): IBatch {
     if (typeof batchName !== 'string' || batchName.trim() === '') {
       this.throwError(
         'batch(): batchName is required and must be a non-empty string.'
@@ -485,7 +488,7 @@ export class EtherspotTransactionKit implements InitialState {
   /**
    * Add the current transaction to a batch. If the batch does not exist, create it.
    */
-  addToBatch({ batchName }: AddToBatchProps): BatchedTransactionState {
+  addToBatch({ batchName }: AddToBatchParams): IBatchedTransaction {
     if (!this.selectedTransactionName || !this.workingTransaction) {
       this.throwError(
         'addToBatch(): No named transaction to add to batch. Call name() first.'
@@ -530,7 +533,7 @@ export class EtherspotTransactionKit implements InitialState {
    * Remove transaction or batch. If a batch is selected (via batch()), remove() deletes the batch and all its transactions.
    * If a transaction is selected, remove() deletes the transaction (and removes it from its batch if needed).
    */
-  remove(): InitialState {
+  remove(): IInitial {
     if (this.selectedBatchName) {
       // Remove entire batch
       const batchName = this.selectedBatchName;
@@ -588,7 +591,7 @@ export class EtherspotTransactionKit implements InitialState {
   /**
    * Update the current transaction. Throws if not selected or does not exist.
    */
-  update(): NamedTransactionState | BatchedTransactionState {
+  update(): INamedTransaction | IBatchedTransaction {
     if (!this.selectedTransactionName || !this.workingTransaction) {
       this.throwError(
         'update(): No named transaction to update. Call name() first.'
@@ -620,8 +623,8 @@ export class EtherspotTransactionKit implements InitialState {
 
     // Return appropriate state based on whether transaction is in batch
     return transaction.batchName
-      ? (this as BatchedTransactionState)
-      : (this as NamedTransactionState);
+      ? (this as IBatchedTransaction)
+      : (this as INamedTransaction);
   }
 
   /**
@@ -631,8 +634,8 @@ export class EtherspotTransactionKit implements InitialState {
     paymasterDetails,
     gasDetails,
     callGasLimit,
-  }: EstimateSingleTransactionProps = {}): Promise<
-    SingleTransactionEstimate & EstimatedTransactionState
+  }: EstimateSingleTransactionParams = {}): Promise<
+    TransactionEstimateResult & IEstimatedTransaction
   > {
     if (this.selectedBatchName) {
       this.log('estimate(): Batch selected, throwing error.');
@@ -646,7 +649,7 @@ export class EtherspotTransactionKit implements InitialState {
         chainId: this.etherspotProvider.getChainId(),
         errorMessage: 'No named transaction to estimate. Call name() first.',
         errorType: 'VALIDATION_ERROR' as const,
-        isSuccess: false,
+        isEstimatedSuccessfully: false,
       };
       this.log(
         'estimate(): No named transaction, returning error result.',
@@ -676,7 +679,7 @@ export class EtherspotTransactionKit implements InitialState {
     const setErrorAndReturn = (
       errorMessage: string,
       errorType: 'ESTIMATION_ERROR' | 'VALIDATION_ERROR',
-      partialResult: Partial<SingleTransactionEstimate> = {}
+      partialResult: Partial<TransactionEstimateResult> = {}
     ) => {
       this.isEstimating = false;
       this.containsEstimatingError = true;
@@ -687,7 +690,7 @@ export class EtherspotTransactionKit implements InitialState {
           this.etherspotProvider.getChainId(),
         errorMessage,
         errorType,
-        isSuccess: false,
+        isEstimatedSuccessfully: false,
         ...partialResult,
       };
       this.log('estimate(): Returning error result.', result);
@@ -707,20 +710,6 @@ export class EtherspotTransactionKit implements InitialState {
           {
             value: this.workingTransaction?.value?.toString() || '',
             data: this.workingTransaction?.data || '',
-          }
-        );
-      }
-      if (
-        this.workingTransaction.value?.toString() === '0' &&
-        this.workingTransaction.data === '0x'
-      ) {
-        this.log('estimate(): value=0 and data=0x, returning error.');
-        return setErrorAndReturn(
-          'Invalid transaction: cannot have both value = 0 and data = 0x. Either send Gas tokens (value > 0) or call a contract function (data != 0x)',
-          'VALIDATION_ERROR',
-          {
-            value: this.workingTransaction.value?.toString() || '',
-            data: this.workingTransaction.data || '',
           }
         );
       }
@@ -788,7 +777,7 @@ export class EtherspotTransactionKit implements InitialState {
           this.etherspotProvider.getChainId(),
         cost,
         userOp,
-        isSuccess: true,
+        isEstimatedSuccessfully: true,
       };
       this.log('estimate(): Returning success result.', result);
       return { ...result, ...this };
@@ -812,8 +801,8 @@ export class EtherspotTransactionKit implements InitialState {
   async send({
     paymasterDetails,
     userOpOverrides,
-  }: SendSingleTransactionProps = {}): Promise<
-    SingleTransactionSend & SentTransactionState
+  }: SendSingleTransactionParams = {}): Promise<
+    TransactionSendResult & ISentTransaction
   > {
     if (this.selectedBatchName) {
       this.log('send(): Batch selected, throwing error.');
@@ -827,7 +816,8 @@ export class EtherspotTransactionKit implements InitialState {
         chainId: this.etherspotProvider.getChainId(),
         errorMessage: 'No named transaction to send. Call name() first.',
         errorType: 'VALIDATION_ERROR' as const,
-        isSuccess: false,
+        isEstimatedSuccessfully: false,
+        isSentSuccessfully: false,
       };
       this.log('send(): No named transaction, returning error result.', result);
       return { ...result, ...this };
@@ -854,7 +844,7 @@ export class EtherspotTransactionKit implements InitialState {
     const setErrorAndReturn = (
       errorMessage: string,
       errorType: 'ESTIMATION_ERROR' | 'SEND_ERROR' | 'VALIDATION_ERROR',
-      partialResult: Partial<SingleTransactionSend> = {}
+      partialResult: Partial<TransactionSendResult> = {}
     ) => {
       this.isSending = false;
       this.containsSendingError = true;
@@ -865,7 +855,8 @@ export class EtherspotTransactionKit implements InitialState {
           this.etherspotProvider.getChainId(),
         errorMessage,
         errorType,
-        isSuccess: false,
+        isEstimatedSuccessfully: false,
+        isSentSuccessfully: false,
         ...partialResult,
       };
       this.log('send(): Returning error result.', result);
@@ -873,22 +864,6 @@ export class EtherspotTransactionKit implements InitialState {
     };
 
     try {
-      // Validation: Cannot have both value = '0' and data = '0x'
-      if (
-        this.workingTransaction?.value?.toString() === '0' &&
-        this.workingTransaction?.data === '0x'
-      ) {
-        this.log('send(): value=0 and data=0x, returning error.');
-        return setErrorAndReturn(
-          'Invalid transaction: cannot have both value = 0 and data = 0x. Either send Gas tokens (value > 0) or call a contract function (data != 0x)',
-          'VALIDATION_ERROR',
-          {
-            value: this.workingTransaction?.value?.toString() || '',
-            data: this.workingTransaction?.data || '',
-          }
-        );
-      }
-
       // Get fresh SDK instance to avoid state pollution
       this.log('send(): Getting SDK...');
       const etherspotModulaSdk = await this.etherspotProvider.getSdk(
@@ -982,6 +957,8 @@ export class EtherspotTransactionKit implements InitialState {
             this.etherspotProvider.getChainId(),
           cost,
           userOp: finalUserOp,
+          isEstimatedSuccessfully: true,
+          isSentSuccessfully: false,
         });
       }
 
@@ -1020,7 +997,8 @@ export class EtherspotTransactionKit implements InitialState {
         cost,
         userOp: finalUserOp,
         userOpHash,
-        isSuccess: true,
+        isEstimatedSuccessfully: true,
+        isSentSuccessfully: true,
       };
       this.log('send(): Returning success result.', result);
       return { ...result, ...this };
@@ -1041,13 +1019,13 @@ export class EtherspotTransactionKit implements InitialState {
   async estimateBatches({
     onlyBatchNames,
     paymasterDetails,
-  }: EstimateBatchesProps = {}): Promise<BatchEstimateResult> {
+  }: EstimateBatchesParams = {}): Promise<BatchEstimateResult> {
     this.isEstimating = true;
     this.containsEstimatingError = false;
 
     const result: BatchEstimateResult = {
       batches: {},
-      isSuccess: true,
+      isEstimatedSuccessfully: true,
     };
 
     // Determine which batches to estimate
@@ -1074,19 +1052,19 @@ export class EtherspotTransactionKit implements InitialState {
     }
 
     await Promise.all(
-      batchesToEstimate.map(async (batchName) => {
+      batchesToEstimate.map(async (batchName: string) => {
         if (!this.batches[batchName] || this.batches[batchName].length === 0) {
           result.batches[batchName] = {
             transactions: [],
             errorMessage: `Batch '${batchName}' does not exist or is empty`,
-            isSuccess: false,
+            isEstimatedSuccessfully: false,
           };
-          result.isSuccess = false;
+          result.isEstimatedSuccessfully = false;
           return;
         }
 
         const batchTransactions = this.batches[batchName];
-        const estimatedTransactions: SingleTransactionEstimate[] = [];
+        const estimatedTransactions: TransactionEstimateResult[] = [];
 
         // Get chain ID from first transaction or use provider default
         const batchChainId =
@@ -1172,7 +1150,7 @@ export class EtherspotTransactionKit implements InitialState {
               chainId: tx.chainId || batchChainId,
               cost: totalCost,
               userOp,
-              isSuccess: true,
+              isEstimatedSuccessfully: true,
             };
             estimatedTransactions.push(resultObj);
             this.log(
@@ -1184,7 +1162,7 @@ export class EtherspotTransactionKit implements InitialState {
           result.batches[batchName] = {
             transactions: estimatedTransactions,
             totalCost,
-            isSuccess: true,
+            isEstimatedSuccessfully: true,
           };
 
           this.log(
@@ -1210,7 +1188,7 @@ export class EtherspotTransactionKit implements InitialState {
               chainId: tx.chainId || batchChainId,
               errorMessage,
               errorType: 'ESTIMATION_ERROR' as const,
-              isSuccess: false,
+              isEstimatedSuccessfully: false,
             };
             estimatedTransactions.push(resultObj);
             this.log(
@@ -1222,9 +1200,9 @@ export class EtherspotTransactionKit implements InitialState {
           result.batches[batchName] = {
             transactions: estimatedTransactions,
             errorMessage,
-            isSuccess: false,
+            isEstimatedSuccessfully: false,
           };
-          result.isSuccess = false;
+          result.isEstimatedSuccessfully = false;
 
           this.log(
             `estimateBatches(): Batch '${batchName}' estimation failed`,
@@ -1238,7 +1216,7 @@ export class EtherspotTransactionKit implements InitialState {
     );
 
     // Set error state based on results (like original)
-    this.containsEstimatingError = !result.isSuccess;
+    this.containsEstimatingError = !result.isEstimatedSuccessfully;
     this.isEstimating = false;
 
     return result;
@@ -1250,13 +1228,14 @@ export class EtherspotTransactionKit implements InitialState {
   async sendBatches({
     onlyBatchNames,
     paymasterDetails,
-  }: SendBatchesProps = {}): Promise<BatchSendResult> {
+  }: SendBatchesParams = {}): Promise<BatchSendResult> {
     this.isSending = true;
     this.containsSendingError = false;
 
     const result: BatchSendResult = {
       batches: {},
-      isSuccess: true,
+      isEstimatedSuccessfully: true,
+      isSentSuccessfully: true,
     };
 
     // Determine which batches to send
@@ -1283,19 +1262,21 @@ export class EtherspotTransactionKit implements InitialState {
     }
 
     await Promise.all(
-      batchesToSend.map(async (batchName) => {
+      batchesToSend.map(async (batchName: string) => {
         if (!this.batches[batchName] || this.batches[batchName].length === 0) {
           result.batches[batchName] = {
             transactions: [],
             errorMessage: `Batch '${batchName}' does not exist or is empty`,
-            isSuccess: false,
+            isEstimatedSuccessfully: false,
+            isSentSuccessfully: false,
           };
-          result.isSuccess = false;
+          result.isEstimatedSuccessfully = false;
+          result.isSentSuccessfully = false;
           return;
         }
 
         const batchTransactions = this.batches[batchName];
-        const sentTransactions: SingleTransactionSend[] = [];
+        const sentTransactions: TransactionSendResult[] = [];
 
         // Get chain ID from first transaction or use provider default
         const batchChainId =
@@ -1370,7 +1351,8 @@ export class EtherspotTransactionKit implements InitialState {
                 chainId: tx.chainId || batchChainId,
                 errorMessage: estimationErrorMessage,
                 errorType: 'ESTIMATION_ERROR',
-                isSuccess: false,
+                isEstimatedSuccessfully: false,
+                isSentSuccessfully: false,
               });
               this.log(
                 `sendBatches(): Batch '${batchName}': Transaction '${tx.transactionName}' failed to estimate: ${estimationErrorMessage}`,
@@ -1381,9 +1363,11 @@ export class EtherspotTransactionKit implements InitialState {
             result.batches[batchName] = {
               transactions: sentTransactions,
               errorMessage: estimationErrorMessage,
-              isSuccess: false,
+              isEstimatedSuccessfully: false,
+              isSentSuccessfully: false,
             };
-            result.isSuccess = false;
+            result.isEstimatedSuccessfully = false;
+            result.isSentSuccessfully = false;
 
             this.log(
               `sendBatches(): Batch '${batchName}' estimation before send failed`,
@@ -1453,7 +1437,8 @@ export class EtherspotTransactionKit implements InitialState {
                 userOp: finalUserOp,
                 errorMessage: sendErrorMessage,
                 errorType: 'SEND_ERROR',
-                isSuccess: false,
+                isEstimatedSuccessfully: true,
+                isSentSuccessfully: false,
               });
               this.log(
                 `sendBatches(): Batch '${batchName}': Transaction '${tx.transactionName}' failed to send: ${sendErrorMessage}`,
@@ -1463,10 +1448,12 @@ export class EtherspotTransactionKit implements InitialState {
 
             result.batches[batchName] = {
               transactions: sentTransactions,
+              userOpHash: undefined,
               errorMessage: sendErrorMessage,
-              isSuccess: false,
+              isEstimatedSuccessfully: true,
+              isSentSuccessfully: false,
             };
-            result.isSuccess = false;
+            result.isSentSuccessfully = false;
 
             this.log(`sendBatches(): Batch '${batchName}' send failed`, {
               error: sendErrorMessage,
@@ -1485,7 +1472,8 @@ export class EtherspotTransactionKit implements InitialState {
               cost: totalCost, // Use full cost for each transaction (like original) or divide by length
               userOp: finalUserOp,
               userOpHash,
-              isSuccess: true,
+              isEstimatedSuccessfully: true,
+              isSentSuccessfully: true,
             };
             sentTransactions.push(resultObj);
             this.log(
@@ -1497,7 +1485,8 @@ export class EtherspotTransactionKit implements InitialState {
           result.batches[batchName] = {
             transactions: sentTransactions,
             userOpHash,
-            isSuccess: true,
+            isEstimatedSuccessfully: true,
+            isSentSuccessfully: true,
           };
 
           this.log(`sendBatches(): Batch '${batchName}' sent successfully`, {
@@ -1507,7 +1496,7 @@ export class EtherspotTransactionKit implements InitialState {
           });
 
           // Remove batch and its transactions from state after successful send
-          if (result.batches[batchName].isSuccess) {
+          if (result.batches[batchName].isSentSuccessfully) {
             // Remove all transactions in the batch from namedTransactions
             batchTransactions.forEach((tx) => {
               if (tx.transactionName) {
@@ -1531,7 +1520,8 @@ export class EtherspotTransactionKit implements InitialState {
               chainId: tx.chainId || batchChainId,
               errorMessage,
               errorType: 'SEND_ERROR',
-              isSuccess: false,
+              isEstimatedSuccessfully: true,
+              isSentSuccessfully: false,
             });
             this.log(
               `sendBatches(): Batch '${batchName}': Transaction '${tx.transactionName}' failed to send: ${errorMessage}`,
@@ -1542,9 +1532,10 @@ export class EtherspotTransactionKit implements InitialState {
           result.batches[batchName] = {
             transactions: sentTransactions,
             errorMessage,
-            isSuccess: false,
+            isEstimatedSuccessfully: true,
+            isSentSuccessfully: false,
           };
-          result.isSuccess = false;
+          result.isSentSuccessfully = false;
 
           this.log(`sendBatches(): Batch '${batchName}' send failed`, {
             error: errorMessage,
@@ -1555,7 +1546,7 @@ export class EtherspotTransactionKit implements InitialState {
     );
 
     // Set error state based on results (like original)
-    this.containsSendingError = !result.isSuccess;
+    this.containsSendingError = !result.isSentSuccessfully;
     this.isSending = false;
 
     return result;
@@ -1564,7 +1555,7 @@ export class EtherspotTransactionKit implements InitialState {
   /**
    * Get current state of the transaction kit instance
    */
-  getState(): InstanceState {
+  getState(): IInstance {
     const state = {
       selectedTransactionName: this.selectedTransactionName,
       selectedBatchName: this.selectedBatchName,
@@ -1635,6 +1626,6 @@ export class EtherspotTransactionKit implements InitialState {
 // Function for easier instantiation
 export function TransactionKit(
   config: EtherspotTransactionKitConfig
-): InitialState {
+): IInitial {
   return new EtherspotTransactionKit(config);
 }
