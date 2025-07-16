@@ -1,15 +1,18 @@
 import { ModularSdk, PaymasterApi } from '@etherspot/modular-sdk';
 import { isAddress, parseEther } from 'viem';
-import { EtherspotProvider } from '../src/TransactionKit/EtherspotProvider';
-import { EtherspotUtils } from '../src/TransactionKit/EtherspotUtils';
-import {
-  EtherspotTransactionKit,
-  TransactionKit,
-} from '../src/TransactionKit/TransactionKit';
+
+// EtherspotPovider
+import { EtherspotProvider } from '../lib/EtherspotProvider';
+
+// EtherspotUtils
+import { EtherspotUtils } from '../lib/EtherspotUtils';
+
+// TransactionKit
+import { EtherspotTransactionKit, TransactionKit } from '../lib/TransactionKit';
 
 // Mock dependencies
-jest.mock('../src/TransactionKit/EtherspotProvider');
-jest.mock('../src/TransactionKit/EtherspotUtils');
+jest.mock('../lib/EtherspotProvider');
+jest.mock('../lib/EtherspotUtils');
 jest.mock('@etherspot/modular-sdk');
 jest.mock('viem', () => ({
   isAddress: jest.fn(),

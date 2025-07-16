@@ -19,7 +19,7 @@ const external = [
 
 export default [
   {
-    input: 'src/index.ts',
+    input: 'lib/index.ts',
     output: [
       {
         file: packageJson.main,
@@ -35,7 +35,7 @@ export default [
     plugins: [
       typescript({
         tsconfig: 'tsconfig.json',
-        exclude: ['example/**', 'src/test/**'],
+        exclude: ['example/**', 'lib/test/**'],
       }),
       replace({
         preventAssignment: true,
@@ -49,7 +49,7 @@ export default [
     external,
     watch: {
       clearScreen: false,
-      include: 'src/**',
+      include: 'lib/**',
     },
   },
   {
@@ -59,7 +59,7 @@ export default [
     external,
     watch: {
       clearScreen: false,
-      include: 'src/**',
+      include: 'lib/**',
     },
   },
 ];

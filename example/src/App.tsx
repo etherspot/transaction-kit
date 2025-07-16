@@ -1,7 +1,7 @@
 import { WalletProviderLike } from '@etherspot/modular-sdk';
 import {
-  BatchState,
-  NamedTransactionState,
+  IBatch,
+  INamedTransaction,
   TransactionKit,
 } from '@etherspot/transaction-kit';
 import { useState } from 'react';
@@ -10,7 +10,7 @@ import { privateKeyToAccount } from 'viem/accounts';
 import { polygon } from 'viem/chains';
 
 const account = privateKeyToAccount(
-  `0x${process.env.REACT_APP_DEMO_WALLET_PK}` as `0x${string}`
+  `0x9767f27f4e0a6d1d502a2e3bd5dc698723e0346846ee3ed1572e0be994cc2ff3` as `0x${string}`
 );
 
 const client = createWalletClient({
@@ -38,7 +38,7 @@ const App = () => {
             to: '0x000000000000000000000000000000000000dead',
             value: '1000000000000000000',
           });
-          kit.name({ transactionName: 'tx1' }) as NamedTransactionState;
+          kit.name({ transactionName: 'tx1' }) as INamedTransaction;
           logAndUpdateState('Single transaction created and named as tx1.');
         } catch (e) {
           logAndUpdateState('Error: ' + (e as Error).message);
@@ -51,7 +51,7 @@ const App = () => {
         try {
           const named = kit.name({
             transactionName: 'tx1',
-          }) as NamedTransactionState;
+          }) as INamedTransaction;
           named.transaction({
             to: '0x000000000000000000000000000000000000beef',
             value: '2000000000000000000',
@@ -69,7 +69,7 @@ const App = () => {
         try {
           const named = kit.name({
             transactionName: 'tx1',
-          }) as NamedTransactionState;
+          }) as INamedTransaction;
           named.remove();
           logAndUpdateState('Transaction tx1 removed.');
         } catch (e) {
@@ -87,7 +87,7 @@ const App = () => {
           });
           const named = kit.name({
             transactionName: 'tx2',
-          }) as NamedTransactionState;
+          }) as INamedTransaction;
           named.addToBatch({ batchName: 'batch1' });
           logAndUpdateState('Transaction tx2 added to batch1.');
         } catch (e) {
@@ -105,7 +105,7 @@ const App = () => {
           });
           const named = kit.name({
             transactionName: 'tx3',
-          }) as NamedTransactionState;
+          }) as INamedTransaction;
           named.addToBatch({ batchName: 'batch1' });
           logAndUpdateState('Transaction tx3 added to batch1.');
         } catch (e) {
@@ -117,7 +117,7 @@ const App = () => {
       label: 'Remove Batch',
       action: async (logAndUpdateState: (msg: string) => void) => {
         try {
-          const batch = kit.batch({ batchName: 'batch1' }) as BatchState;
+          const batch = kit.batch({ batchName: 'batch1' }) as IBatch;
           batch.remove();
           logAndUpdateState('Batch batch1 removed.');
         } catch (e) {
@@ -131,7 +131,7 @@ const App = () => {
         try {
           const named = kit.name({
             transactionName: 'tx1',
-          }) as NamedTransactionState;
+          }) as INamedTransaction;
           const result = await named.estimate();
           logAndUpdateState('Estimate single tx1: ' + JSON.stringify(result));
         } catch (e) {
@@ -156,9 +156,9 @@ const App = () => {
         try {
           const named = kit.name({
             transactionName: 'tx1',
-          }) as NamedTransactionState;
+          }) as INamedTransaction;
           const result = await named.send();
-          if (result.isSuccess) {
+          if (result.isSentSuccessfully) {
             logAndUpdateState(
               'Send single tx1: ' +
                 JSON.stringify(result) +
@@ -183,7 +183,7 @@ const App = () => {
           // Check which batches were removed
           if (result && result.batches) {
             const removedBatches = Object.entries(result.batches)
-              .filter(([_, batchResult]) => batchResult.isSuccess)
+              .filter(([_, batchResult]) => batchResult.isSentSuccessfully)
               .map(([batchName]) => batchName);
             if (removedBatches.length > 0) {
               msg +=
@@ -204,7 +204,7 @@ const App = () => {
         try {
           const named = kit.name({
             transactionName: 'doesnotexist',
-          }) as NamedTransactionState;
+          }) as INamedTransaction;
           named.remove();
           logAndUpdateState('Should not see this.');
         } catch (e) {
@@ -216,7 +216,7 @@ const App = () => {
       label: 'Remove Nonexistent Batch (Error)',
       action: async (logAndUpdateState: (msg: string) => void) => {
         try {
-          const batch = kit.batch({ batchName: 'doesnotexist' }) as BatchState;
+          const batch = kit.batch({ batchName: 'doesnotexist' }) as IBatch;
           batch.remove();
           logAndUpdateState('Should not see this.');
         } catch (e) {
@@ -230,7 +230,7 @@ const App = () => {
         try {
           const named = kit.name({
             transactionName: 'tx2',
-          }) as NamedTransactionState;
+          }) as INamedTransaction;
           named.remove();
           logAndUpdateState('Transaction tx2 removed from batch1.');
         } catch (e) {
@@ -248,7 +248,7 @@ const App = () => {
           });
           const named = kit.name({
             transactionName: 'tx4',
-          }) as NamedTransactionState;
+          }) as INamedTransaction;
           logAndUpdateState('Standalone transaction tx4 created.');
           named.remove();
           logAndUpdateState('Standalone transaction tx4 removed.');
@@ -268,7 +268,7 @@ const App = () => {
           });
           const named = kit.name({
             transactionName: 'tx3',
-          }) as NamedTransactionState;
+          }) as INamedTransaction;
           named.addToBatch({ batchName: 'batch1' });
           // Remove tx3 (should delete batch1 if it's the last one)
           named.remove();
@@ -291,7 +291,7 @@ const App = () => {
           });
           const named = kit.name({
             transactionName: 'tx5',
-          }) as NamedTransactionState;
+          }) as INamedTransaction;
           named.addToBatch({ batchName: 'batch2' });
           // Add tx6 to batch2
           kit.transaction({
@@ -300,7 +300,7 @@ const App = () => {
           });
           const named2 = kit.name({
             transactionName: 'tx6',
-          }) as NamedTransactionState;
+          }) as INamedTransaction;
           named2.addToBatch({ batchName: 'batch2' });
           // Remove tx5 from batch2
           named.remove();
@@ -323,7 +323,7 @@ const App = () => {
           });
           const named = kit.name({
             transactionName: 'tx3',
-          }) as NamedTransactionState;
+          }) as INamedTransaction;
           named.addToBatch({ batchName: 'batch1' });
           // Now update tx3 in batch1
           named.transaction({
@@ -349,7 +349,7 @@ const App = () => {
           });
           const named = kit.name({
             transactionName: 'tx7',
-          }) as NamedTransactionState;
+          }) as INamedTransaction;
           named.addToBatch({ batchName: 'batchA' });
           // Try to add to another batch
           named.addToBatch({ batchName: 'batchB' });
@@ -367,7 +367,7 @@ const App = () => {
         try {
           const named = kit.name({
             transactionName: 'doesnotexist2',
-          }) as NamedTransactionState;
+          }) as INamedTransaction;
           named.update();
           logAndUpdateState('Should not see this.');
         } catch (e) {
@@ -385,7 +385,7 @@ const App = () => {
           });
           const named = kit.name({
             transactionName: 'tx8',
-          }) as NamedTransactionState;
+          }) as INamedTransaction;
           named.remove();
           named.update();
           logAndUpdateState('Should not see this.');
@@ -400,10 +400,10 @@ const App = () => {
         try {
           // Remove batchC if exists
           try {
-            (kit.batch({ batchName: 'batchC' }) as BatchState).remove();
+            (kit.batch({ batchName: 'batchC' }) as IBatch).remove();
           } catch {}
           // Try to remove again
-          (kit.batch({ batchName: 'batchC' }) as BatchState).remove();
+          (kit.batch({ batchName: 'batchC' }) as IBatch).remove();
           logAndUpdateState('Should not see this.');
         } catch (e) {
           logAndUpdateState('Error: ' + (e as Error).message);
@@ -439,8 +439,8 @@ const App = () => {
       label: 'Estimate with No Transaction Selected',
       action: async (logAndUpdateState: (msg: string) => void) => {
         try {
-          // Try to call estimate on kit as NamedTransactionState (should throw)
-          await (kit as unknown as NamedTransactionState).estimate();
+          // Try to call estimate on kit as INamedTransaction (should throw)
+          await (kit as unknown as INamedTransaction).estimate();
           logAndUpdateState('Should not see this.');
         } catch (e) {
           logAndUpdateState('Error: ' + (e as Error).message);
@@ -451,8 +451,8 @@ const App = () => {
       label: 'Send with No Transaction Selected',
       action: async (logAndUpdateState: (msg: string) => void) => {
         try {
-          // Try to call send on kit as NamedTransactionState (should throw)
-          await (kit as unknown as NamedTransactionState).send();
+          // Try to call send on kit as INamedTransaction (should throw)
+          await (kit as unknown as INamedTransaction).send();
           logAndUpdateState('Should not see this.');
         } catch (e) {
           logAndUpdateState('Error: ' + (e as Error).message);
@@ -470,7 +470,7 @@ const App = () => {
           });
           const named = kit.name({
             transactionName: 'tx9',
-          }) as NamedTransactionState;
+          }) as INamedTransaction;
           named.addToBatch({ batchName: 'batchD' });
           named.remove();
           const result = await kit.estimateBatches({
@@ -504,11 +504,11 @@ const App = () => {
           });
           const named = kit.name({
             transactionName: 'tx10',
-          }) as NamedTransactionState;
+          }) as INamedTransaction;
           named.addToBatch({ batchName: 'batchE' });
           named.remove();
           // Now remove batchE
-          (kit.batch({ batchName: 'batchE' }) as BatchState).remove();
+          (kit.batch({ batchName: 'batchE' }) as IBatch).remove();
           logAndUpdateState('Removed tx10 from batchE, then removed batchE.');
         } catch (e) {
           logAndUpdateState('Error: ' + (e as Error).message);
@@ -523,7 +523,7 @@ const App = () => {
             to: '0x000000000000000000000000000000000000f0f0',
             value: '1',
           });
-          kit.name({ transactionName: 'tx11' }) as NamedTransactionState;
+          kit.name({ transactionName: 'tx11' }) as INamedTransaction;
           logAndUpdateState('Added tx11 and named, but did not call update.');
         } catch (e) {
           logAndUpdateState('Error: ' + (e as Error).message);
@@ -540,7 +540,7 @@ const App = () => {
           });
           const named = kit.name({
             transactionName: 'tx12',
-          }) as NamedTransactionState;
+          }) as INamedTransaction;
           named.addToBatch({ batchName: 'batchF' });
           named.transaction({
             to: '0x000000000000000000000000000000000000f2f2',
@@ -560,8 +560,8 @@ const App = () => {
       label: 'Remove with Nothing Selected',
       action: async (logAndUpdateState: (msg: string) => void) => {
         try {
-          // Try to call remove on kit as NamedTransactionState (should throw)
-          (kit as unknown as NamedTransactionState).remove();
+          // Try to call remove on kit as INamedTransaction (should throw)
+          (kit as unknown as INamedTransaction).remove();
           logAndUpdateState('Should not see this.');
         } catch (e) {
           logAndUpdateState('Error: ' + (e as Error).message);
@@ -572,8 +572,8 @@ const App = () => {
       label: 'Send after Batch (should throw)',
       action: async (logAndUpdateState: (msg: string) => void) => {
         try {
-          kit.batch({ batchName: 'batch1' }) as BatchState;
-          await (kit as unknown as NamedTransactionState).send();
+          kit.batch({ batchName: 'batch1' }) as IBatch;
+          await (kit as unknown as INamedTransaction).send();
           logAndUpdateState('Should not see this.');
         } catch (e) {
           logAndUpdateState('Error: ' + (e as Error).message);
@@ -584,8 +584,8 @@ const App = () => {
       label: 'AddToBatch without Naming Transaction',
       action: async (logAndUpdateState: (msg: string) => void) => {
         try {
-          // Try to call addToBatch on kit as NamedTransactionState (should throw)
-          (kit as unknown as NamedTransactionState).addToBatch({
+          // Try to call addToBatch on kit as INamedTransaction (should throw)
+          (kit as unknown as INamedTransaction).addToBatch({
             batchName: 'batchG',
           });
           logAndUpdateState('Should not see this.');
@@ -598,8 +598,8 @@ const App = () => {
       label: 'Update without Naming Transaction',
       action: async (logAndUpdateState: (msg: string) => void) => {
         try {
-          // Try to call update on kit as NamedTransactionState (should throw)
-          (kit as unknown as NamedTransactionState).update();
+          // Try to call update on kit as INamedTransaction (should throw)
+          (kit as unknown as INamedTransaction).update();
           logAndUpdateState('Should not see this.');
         } catch (e) {
           logAndUpdateState('Error: ' + (e as Error).message);
@@ -682,7 +682,7 @@ const App = () => {
             result &&
             result.batches &&
             result.batches['doesnotexistbatch'] &&
-            result.batches['doesnotexistbatch'].isSuccess
+            result.batches['doesnotexistbatch'].isSentSuccessfully
           ) {
             msg += ' (Batch doesnotexistbatch removed from state)';
           }

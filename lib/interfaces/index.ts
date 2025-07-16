@@ -4,8 +4,16 @@ import {
   PaymasterApi,
   WalletProviderLike,
 } from '@etherspot/modular-sdk';
+
+// types
 import { BigNumberish } from '@etherspot/modular-sdk/dist/types/sdk/types/bignumber';
-import { EtherspotProvider } from '../TransactionKit/EtherspotProvider';
+
+// EtherspotProvider
+import { EtherspotProvider } from '../EtherspotProvider';
+
+export interface TypePerId<T> {
+  [id: string]: T;
+}
 
 // EtherspotProvider
 export interface EtherspotProviderConfig {

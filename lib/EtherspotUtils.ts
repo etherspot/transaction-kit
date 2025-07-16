@@ -9,7 +9,7 @@ import {
 } from 'viem';
 
 // utils
-import { addressesEqual } from '../utils/common';
+import { addressesEqual } from './utils';
 
 export class EtherspotUtils {
   /**

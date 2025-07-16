@@ -8,7 +8,9 @@ import {
 } from '@etherspot/modular-sdk';
 import { isEqual } from 'lodash';
 import { Chain } from 'viem';
-import { EtherspotProviderConfig } from '../types/types';
+
+// interfaces
+import { EtherspotProviderConfig } from './interfaces';
 
 export class EtherspotProvider {
   private sdkPerChain: { [chainId: number]: ModularSdk | Promise<ModularSdk> } =

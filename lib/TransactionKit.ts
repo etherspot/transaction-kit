@@ -1,12 +1,7 @@
 import { ModularSdk } from '@etherspot/modular-sdk';
 import { isAddress } from 'viem';
 
-// types
-
-// provider
-import { EtherspotProvider } from './EtherspotProvider';
-
-// utils
+// interfaces
 import {
   AddToBatchParams,
   BatchEstimateResult,
@@ -30,9 +25,14 @@ import {
   TransactionEstimateResult,
   TransactionParams,
   TransactionSendResult,
-} from '../types/types';
-import { log, parseEtherspotErrorMessage } from '../utils/utils';
+} from './interfaces';
+
+// EtherspotProvider
+import { EtherspotProvider } from './EtherspotProvider';
+
+// utils
 import { EtherspotUtils } from './EtherspotUtils';
+import { log, parseEtherspotErrorMessage } from './utils';
 
 export class EtherspotTransactionKit implements IInitial {
   private etherspotProvider: EtherspotProvider;

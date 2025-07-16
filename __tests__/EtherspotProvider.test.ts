@@ -5,10 +5,12 @@ import {
 } from '@etherspot/modular-sdk';
 import { isEqual } from 'lodash';
 import { Chain } from 'viem';
-import {
-  EtherspotProvider,
-  EtherspotProviderConfig,
-} from '../src/TransactionKit/EtherspotProvider';
+
+// EtherspotProvider
+import { EtherspotProvider } from '../lib/EtherspotProvider';
+
+// interfaces
+import { EtherspotProviderConfig } from '../lib/interfaces';
 
 // Mock dependencies
 jest.mock('@etherspot/modular-sdk', () => ({

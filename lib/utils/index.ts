@@ -1,8 +1,10 @@
 import { sortBy } from 'lodash';
 import { toHex } from 'viem';
 
+// interfaces
+import { TypePerId } from '../interfaces';
+
 // types
-import { TypePerId } from '../types/Helper';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const getObjectSortedByKeys = (object: TypePerId<any>) =>
@@ -45,4 +47,22 @@ export const switchWalletProviderToChain = async (
   }
 
   return { errorMessage: 'Failed to switch chain!' };
+};
+
+export const parseEtherspotErrorMessage = (
+  e: Error | unknown,
+  defaultMessage: string
+): string => {
+  return (e instanceof Error && e.message) || defaultMessage;
+};
+
+/**
+ * Debug utility to log messages
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const log = (message: string, data?: any, debugMode?: boolean): void => {
+  if (debugMode) {
+    // eslint-disable-next-line no-console
+    console.log(`[EtherspotTransactionKit] ${message}`, data || '');
+  }
 };
