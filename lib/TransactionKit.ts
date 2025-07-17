@@ -630,7 +630,7 @@ export class EtherspotTransactionKit implements IInitial {
     };
 
     try {
-      // Validation: Cannot have both value = '0' and data = '0x'
+      // Validation: value and data must be defined
       if (
         this.workingTransaction?.value === undefined ||
         this.workingTransaction?.data === undefined
