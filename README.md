@@ -206,6 +206,10 @@ const kit = TransactionKit({
 - `getState()` - Get current kit state
 - `setDebugMode()` - Enable/disable debug logging
 - `reset()` - Clear all transactions and batches
+- `getProvider()` - Get the underlying EtherspotProvider instance
+- `getSdk()` - Get the Modular SDK instance for a specific chain
+- `remove()` - Remove a named transaction or batch
+- `update()` - Update an existing named transaction or batched transaction
 
 ## 🤝 Contributing
 
