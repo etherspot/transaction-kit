@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.0.1] - 2025-01-27
+
+### Documentation
+
+- **Updated README.md**: Completely rewrote the README with comprehensive examples and better documentation of the library's features including method chaining, tree-shaking, and framework agnostic capabilities.
+
 ## [2.0.0] - 2025-07-10
 
 ## Breaking Changes
