@@ -1,5 +1,44 @@
 # Changelog
 
+## [2.0.0] - 2025-07-10
+
+## Breaking Changes
+
+### Architecture Changes
+
+- **Removed dependencies**: `Etherspot Data Utils` and `ethers` library are no longer included
+- **Removed React-specific features**: All `React` contexts and hooks have been removed
+- **Framework agnostic**: Now compatible with any `JavaScript`/`TypeScript` application (not React-specific)
+
+### Scope Reduction
+
+Transaction Kit now focuses exclusively on transaction management:
+
+**✅ What's included:**
+
+- Creating transactions
+- Updating transactions
+- Adding/removing transaction batches
+- Estimating gas for transactions and batches
+- Sending transactions and batches
+
+**❌ What's been removed:**
+
+- Asset management (getting assets, balances, history)
+- Module management
+- Asset price fetching
+- Token and NFT swapping functionality
+
+### API Changes
+
+- **New class-based API**: Replaced component-based architecture with a simplified `TransactionKit()` instance followed by method chaining
+- **No UI components**: All React components have been removed
+- **Simplified usage**: Just instantiate `TransactionKit()` and chain methods for all transaction operations
+
+### Migration Impact
+
+This is a major version change that significantly reduces the library's scope. If you were using the removed features (assets, balances, swaps, etc.), you'll need to implement these separately or use alternative libraries.
+
 ## [1.1.1] - 2025-06-04
 
 ### Added Changes

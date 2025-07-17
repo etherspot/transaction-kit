@@ -101,10 +101,9 @@
     "skipLibCheck": true /* Skip type checking all .d.ts files. */,
 
     /* Added */
-    "jsx": "react",
     "module": "ESNext",
     "declaration": true,
-    "rootDir": "src",
+    "rootDir": "lib",
     "declarationDir": "dist",
     "sourceMap": true,
     "outDir": "dist",
@@ -112,6 +111,6 @@
     "allowSyntheticDefaultImports": true,
     "emitDeclarationOnly": true
   },
-  "include": ["./src/**/*"],
+  "include": ["lib/**/*"],
   "exclude": ["node_modules"]
 }
