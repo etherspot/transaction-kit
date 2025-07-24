@@ -1,4 +1,4 @@
-import { ModularSdk } from '@etherspot/modular-sdk';
+import { ModularSdk, WalletProviderLike } from '@etherspot/modular-sdk';
 import { isAddress } from 'viem';
 
 // interfaces
@@ -589,7 +589,7 @@ export class EtherspotTransactionKit implements IInitial {
     }
 
     log('estimate(): Getting provider...', undefined, this.debugMode);
-    const provider = this.etherspotProvider.getProvider();
+    const provider = this.getProvider();
     log('estimate(): Got provider:', provider, this.debugMode);
     if (!provider) {
       log(
@@ -817,7 +817,7 @@ export class EtherspotTransactionKit implements IInitial {
     }
 
     log('send(): Getting provider...', undefined, this.debugMode);
-    const provider = this.etherspotProvider.getProvider();
+    const provider = this.getProvider();
     log('send(): Got provider:', provider, this.debugMode);
     if (!provider) {
       log(
@@ -1086,7 +1086,7 @@ export class EtherspotTransactionKit implements IInitial {
     }
 
     // Get the provider
-    const provider = this.etherspotProvider.getProvider();
+    const provider = this.getProvider();
     // Validation: if there is no provider, return error
     if (!provider) {
       log(
@@ -1357,7 +1357,7 @@ export class EtherspotTransactionKit implements IInitial {
     }
 
     // Get the provider
-    const provider = this.etherspotProvider.getProvider();
+    const provider = this.getProvider();
     // Validation: if there is no provider, return error
     if (!provider) {
       log(
@@ -1753,20 +1753,24 @@ export class EtherspotTransactionKit implements IInitial {
   }
 
   /**
-   * Returns the underlying EtherspotProvider instance used by this kit.
+   * Returns the underlying raw provider used by this kit (WalletProviderLike).
    *
-   * @returns The EtherspotProvider instance.
+   * @returns The WalletProviderLike instance.
    *
    * @remarks
-   * - Useful for advanced operations or direct provider access.
-   * - Does not mutate any internal state.
+   * - This is the provider you should use in your app for web3 interactions.
+   * - For advanced operations, use getEtherspotProvider().
    */
-  getProvider(): EtherspotProvider {
-    log(
-      'getProvider(): Returning provider',
-      this.etherspotProvider,
-      this.debugMode
-    );
+  getProvider(): WalletProviderLike {
+    return this.etherspotProvider.getProvider();
+  }
+
+  /**
+   * Returns the EtherspotProvider instance for advanced use.
+   *
+   * @returns The EtherspotProvider instance.
+   */
+  getEtherspotProvider(): EtherspotProvider {
     return this.etherspotProvider;
   }
 
@@ -1789,6 +1793,47 @@ export class EtherspotTransactionKit implements IInitial {
     const sdk = await this.etherspotProvider.getSdk(chainId, forceNewInstance);
     log('getSdk(): Returning SDK', sdk, this.debugMode);
     return sdk;
+  }
+
+  /**
+   * Polls for the transaction hash using a user operation hash and chain ID.
+   *
+   * @param userOpHash - The user operation hash to query.
+   * @param txChainId - The chain ID to use for the SDK.
+   * @param timeout - (Optional) Timeout in ms (default: 60000).
+   * @param retryInterval - (Optional) Polling interval in ms (default: 2000).
+   * @returns The transaction hash as a string, or null if not found in time.
+   */
+  public async getTransactionHash(
+    userOpHash: string,
+    txChainId: number,
+    timeout: number = 60 * 1000,
+    retryInterval: number = 2000
+  ): Promise<string | null> {
+    const etherspotModulaSdk = await this.getSdk(txChainId);
+
+    let transactionHash: string | null = null;
+    const timeoutTotal = Date.now() + timeout;
+
+    while (!transactionHash && Date.now() < timeoutTotal) {
+      await new Promise<void>((resolve) => setTimeout(resolve, retryInterval));
+      try {
+        transactionHash = await etherspotModulaSdk.getUserOpReceipt(userOpHash);
+      } catch (error) {
+        console.error(
+          'Error fetching transaction hash. Please check if the transaction has gone through, or try to send the transaction again:',
+          error
+        );
+      }
+    }
+
+    if (!transactionHash) {
+      console.warn(
+        'Failed to get the transaction hash within time limit. Please try again'
+      );
+    }
+
+    return transactionHash;
   }
 
   /**

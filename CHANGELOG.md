@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.0.2] - 2025-07-24
+
+### Added Changes
+
+- Added `getEtherspotProvider` to access directly the Etherspot Provider.
+- Added `getTransactionHash` to get a transaction hash with a userOp Hash and chain id.
+- Update of the `modular-sdk` version to 6.1.1.
+
 ## [2.0.1] - 2025-07-17
 
 ### Documentation

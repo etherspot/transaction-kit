@@ -9,6 +9,10 @@ import { createWalletClient, custom } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { polygon } from 'viem/chains';
 
+function bigIntReplacer(key: string, value: any) {
+  return typeof value === 'bigint' ? value.toString() : value;
+}
+
 const account = privateKeyToAccount(
   `0x${process.env.REACT_APP_DEMO_WALLET_PK}` as `0x${string}`
 );
@@ -133,7 +137,9 @@ const App = () => {
             transactionName: 'tx1',
           }) as INamedTransaction;
           const result = await named.estimate();
-          logAndUpdateState('Estimate single tx1: ' + JSON.stringify(result));
+          logAndUpdateState(
+            'Estimate single tx1: ' + JSON.stringify(result, bigIntReplacer)
+          );
         } catch (e) {
           logAndUpdateState('Error: ' + (e as Error).message);
         }
@@ -144,7 +150,9 @@ const App = () => {
       action: async (logAndUpdateState: (msg: string) => void) => {
         try {
           const result = await kit.estimateBatches();
-          logAndUpdateState('Estimate batches: ' + JSON.stringify(result));
+          logAndUpdateState(
+            'Estimate batches: ' + JSON.stringify(result, bigIntReplacer)
+          );
         } catch (e) {
           logAndUpdateState('Error: ' + (e as Error).message);
         }
@@ -161,12 +169,13 @@ const App = () => {
           if (result.isSentSuccessfully) {
             logAndUpdateState(
               'Send single tx1: ' +
-                JSON.stringify(result) +
+                JSON.stringify(result, bigIntReplacer) +
                 ' (tx1 removed from state)'
             );
           } else {
             logAndUpdateState(
-              'Send single tx1 failed: ' + JSON.stringify(result)
+              'Send single tx1 failed: ' +
+                JSON.stringify(result, bigIntReplacer)
             );
           }
         } catch (e) {
@@ -179,7 +188,7 @@ const App = () => {
       action: async (logAndUpdateState: (msg: string) => void) => {
         try {
           const result = await kit.sendBatches();
-          let msg = 'Send batches: ' + JSON.stringify(result);
+          let msg = 'Send batches: ' + JSON.stringify(result, bigIntReplacer);
           // Check which batches were removed
           if (result && result.batches) {
             const removedBatches = Object.entries(result.batches)
@@ -476,7 +485,9 @@ const App = () => {
           const result = await kit.estimateBatches({
             onlyBatchNames: ['batchD'],
           });
-          logAndUpdateState('Estimate empty batchD: ' + JSON.stringify(result));
+          logAndUpdateState(
+            'Estimate empty batchD: ' + JSON.stringify(result, bigIntReplacer)
+          );
         } catch (e) {
           logAndUpdateState('Error: ' + (e as Error).message);
         }
@@ -487,7 +498,9 @@ const App = () => {
       action: async (logAndUpdateState: (msg: string) => void) => {
         try {
           const result = await kit.sendBatches({ onlyBatchNames: ['batchD'] });
-          logAndUpdateState('Send empty batchD: ' + JSON.stringify(result));
+          logAndUpdateState(
+            'Send empty batchD: ' + JSON.stringify(result, bigIntReplacer)
+          );
         } catch (e) {
           logAndUpdateState('Error: ' + (e as Error).message);
         }
@@ -662,7 +675,8 @@ const App = () => {
             onlyBatchNames: ['doesnotexistbatch'],
           });
           logAndUpdateState(
-            'EstimateBatches with nonexistent batch: ' + JSON.stringify(result)
+            'EstimateBatches with nonexistent batch: ' +
+              JSON.stringify(result, bigIntReplacer)
           );
         } catch (e) {
           logAndUpdateState('Error: ' + (e as Error).message);
@@ -677,7 +691,8 @@ const App = () => {
             onlyBatchNames: ['doesnotexistbatch'],
           });
           let msg =
-            'SendBatches with nonexistent batch: ' + JSON.stringify(result);
+            'SendBatches with nonexistent batch: ' +
+            JSON.stringify(result, bigIntReplacer);
           if (
             result &&
             result.batches &&
@@ -698,7 +713,7 @@ const App = () => {
   const logAndUpdateState = (msg: string) => {
     setLogs((prev) => [
       msg,
-      'State: ' + JSON.stringify(kit.getState(), null, 2),
+      'State: ' + JSON.stringify(kit.getState(), bigIntReplacer, 2),
       ...prev,
     ]);
     setCurrentState(kit.getState());
@@ -742,7 +757,7 @@ const App = () => {
       <div style={{ marginTop: 24 }}>
         <h3>Current State</h3>
         <pre style={{ background: '#111', color: '#0f0', padding: 12 }}>
-          {JSON.stringify(currentState, null, 2)}
+          {JSON.stringify(currentState, bigIntReplacer, 2)}
         </pre>
       </div>
     </div>
