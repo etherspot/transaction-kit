@@ -82,7 +82,7 @@ export class EtherspotUtils {
       '0xFFfFfFffFFfffFFfFFfFFFFFffFFFffffFfFFFfF',
     ];
     return zeroAddresses.some((zeroAddress) =>
-      this.addressesEqual(zeroAddress, address)
+      EtherspotUtils.addressesEqual(zeroAddress, address)
     );
   }
 

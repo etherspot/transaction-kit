@@ -37,9 +37,16 @@ export interface IInitial {
   getWalletAddress(chainId?: number): Promise<string | undefined>;
   getState(): IInstance;
   setDebugMode(enabled: boolean): void;
-  getProvider(): EtherspotProvider;
+  getProvider(): WalletProviderLike;
+  getEtherspotProvider(): EtherspotProvider;
   getSdk(chainId?: number, forceNewInstance?: boolean): Promise<ModularSdk>;
   reset(): void;
+  getTransactionHash(
+    userOpHash: string,
+    txChainId: number,
+    timeout?: number,
+    retryInterval?: number
+  ): Promise<string | null>;
 }
 
 export interface ITransaction {

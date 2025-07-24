@@ -25,7 +25,7 @@
   "homepage": "https://github.com/etherspot/transaction-kit#readme",
   "dependencies": {
     "@etherspot/eip1271-verification-util": "0.1.2",
-    "@etherspot/modular-sdk": "6.1.0",
+    "@etherspot/modular-sdk": "^6.1.1",
     "buffer": "6.0.3",
     "lodash": "4.17.21",
     "viem": "2.21.54"
@@ -65,6 +65,5 @@
     "rollup": "3.29.5",
     "rollup-plugin-dts": "6.1.1",
     "typescript": "5.7.3"
-  },
-  "peerDependencies": {}
+  }
 }

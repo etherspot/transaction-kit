@@ -104,7 +104,7 @@ describe('EtherspotTransactionKit', () => {
   describe('Constructor', () => {
     it('should initialize with config', () => {
       expect(EtherspotProvider).toHaveBeenCalledWith(mockConfig);
-      expect(transactionKit.getProvider()).toBe(mockProvider);
+      expect(transactionKit.getEtherspotProvider()).toBe(mockProvider);
     });
 
     it('should set debug mode from config', () => {
@@ -796,7 +796,7 @@ describe('EtherspotTransactionKit', () => {
 
   describe('getProvider', () => {
     it('should return etherspot provider', () => {
-      const provider = transactionKit.getProvider();
+      const provider = transactionKit.getEtherspotProvider();
 
       expect(provider).toBe(mockProvider);
     });
@@ -963,7 +963,9 @@ describe('Batch operations', () => {
   beforeEach(() => {
     transactionKit = new EtherspotTransactionKit(mockConfig);
     // Re-mock SDK for each test
-    transactionKit.getProvider().getSdk = jest.fn().mockResolvedValue(mockSdk);
+    transactionKit.getEtherspotProvider().getSdk = jest
+      .fn()
+      .mockResolvedValue(mockSdk);
     mockSdk.clearUserOpsFromBatch.mockReset();
     mockSdk.addUserOpsToBatch.mockReset();
     mockSdk.estimate.mockReset();
@@ -1096,7 +1098,7 @@ describe('Batch operations', () => {
 
   it('should throw if no provider in estimateBatches', async () => {
     // @ts-ignore
-    transactionKit.getProvider().getProvider.mockReturnValue(null);
+    transactionKit.getProvider = jest.fn().mockReturnValue(null);
     await expect(transactionKit.estimateBatches()).rejects.toThrow(
       'estimateBatches(): No Web3 provider available. This is a critical configuration error.'
     );
@@ -1104,9 +1106,87 @@ describe('Batch operations', () => {
 
   it('should throw if no provider in sendBatches', async () => {
     // @ts-ignore
-    transactionKit.getProvider().getProvider.mockReturnValue(null);
+    transactionKit.getProvider = jest.fn().mockReturnValue(null);
     await expect(transactionKit.sendBatches()).rejects.toThrow(
       'sendBatches(): No Web3 provider available. This is a critical configuration error.'
     );
+  });
+});
+
+describe('getTransactionHash', () => {
+  let transactionKit: EtherspotTransactionKit;
+  let mockSdk: jest.Mocked<ModularSdk>;
+
+  const userOpHash = '0xuserOpHash';
+  const txChainId = 1;
+
+  beforeEach(() => {
+    transactionKit = new EtherspotTransactionKit({
+      provider: {} as any,
+      chainId: txChainId,
+      bundlerApiKey: 'test-bundler-key',
+      debugMode: false,
+    });
+    mockSdk = {
+      getUserOpReceipt: jest.fn(),
+    } as any;
+    // Override getSdk to always return our mockSdk
+    transactionKit.getSdk = jest.fn().mockResolvedValue(mockSdk);
+  });
+
+  it('returns transaction hash when available immediately', async () => {
+    (mockSdk.getUserOpReceipt as jest.Mock).mockResolvedValue('0xhash');
+    const result = await transactionKit.getTransactionHash(
+      userOpHash,
+      txChainId,
+      1000,
+      10
+    );
+    expect(result).toBe('0xhash');
+    expect(mockSdk.getUserOpReceipt).toHaveBeenCalledWith(userOpHash);
+  });
+
+  it('returns transaction hash after several polls', async () => {
+    let callCount = 0;
+    (mockSdk.getUserOpReceipt as jest.Mock).mockImplementation(() => {
+      callCount++;
+      return callCount === 3 ? '0xhash' : null;
+    });
+    const result = await transactionKit.getTransactionHash(
+      userOpHash,
+      txChainId,
+      100,
+      1
+    );
+    expect(result).toBe('0xhash');
+    expect(callCount).toBeGreaterThan(1);
+  });
+
+  it('returns null on timeout', async () => {
+    (mockSdk.getUserOpReceipt as jest.Mock).mockResolvedValue(null);
+    const result = await transactionKit.getTransactionHash(
+      userOpHash,
+      txChainId,
+      50,
+      10
+    );
+    expect(result).toBeNull();
+  });
+
+  it('handles SDK errors gracefully and continues polling', async () => {
+    let callCount = 0;
+    (mockSdk.getUserOpReceipt as jest.Mock).mockImplementation(() => {
+      callCount++;
+      if (callCount < 2) throw new Error('Temporary error');
+      return callCount === 3 ? '0xhash' : null;
+    });
+    const result = await transactionKit.getTransactionHash(
+      userOpHash,
+      txChainId,
+      100,
+      1
+    );
+    expect(result).toBe('0xhash');
+    expect(callCount).toBeGreaterThanOrEqual(3);
   });
 });
