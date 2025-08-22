@@ -125,12 +125,12 @@ export class EtherspotTransactionKit implements IInitial {
 
     try {
       // Get SDK instance for the chain
-      const etherspotModulaSdk =
+      const etherspotModularSdk =
         await this.etherspotProvider.getSdk(walletAddressChainId);
 
       let walletAddress: string | undefined;
       try {
-        walletAddress = await etherspotModulaSdk.getCounterFactualAddress();
+        walletAddress = await etherspotModularSdk.getCounterFactualAddress();
         log(
           `Got wallet address from getCounterFactualAddress for chain ${walletAddressChainId}`,
           walletAddress,
@@ -173,21 +173,27 @@ export class EtherspotTransactionKit implements IInitial {
    * - The transaction context is stored in the instance until it is named or added to a batch.
    */
   transaction({
-    chainId = 1,
+    chainId,
     to,
     value = '0',
     data = '0x',
   }: TransactionParams): ITransaction {
+    if (chainId === undefined || chainId === null) {
+      this.throwError(
+        'transaction(): chainId is required. Please specify the target network explicitly.'
+      );
+    }
+
+    if (typeof chainId !== 'number' || !Number.isInteger(chainId)) {
+      this.throwError('transaction(): chainId must be a valid number.');
+    }
+
     if (!to) {
       this.throwError('transaction(): to is required.');
     }
 
     if (!isAddress(to)) {
       this.throwError(`transaction(): '${to}' is not a valid address.`);
-    }
-
-    if (typeof chainId !== 'number' || !Number.isInteger(chainId)) {
-      this.throwError('transaction(): chainId must be a valid number.');
     }
 
     let parsedValue: bigint;
@@ -618,7 +624,7 @@ export class EtherspotTransactionKit implements IInitial {
       const result = {
         to: this.workingTransaction?.to || '',
         chainId:
-          this.workingTransaction?.chainId ||
+          this.workingTransaction?.chainId ??
           this.etherspotProvider.getChainId(),
         errorMessage,
         errorType,
@@ -653,11 +659,12 @@ export class EtherspotTransactionKit implements IInitial {
       // Only proceed if value and data are defined
       // Get fresh SDK instance to avoid state pollution
       log('estimate(): Getting SDK...', undefined, this.debugMode);
-      const etherspotModulaSdk = await this.etherspotProvider.getSdk(
-        this.etherspotProvider.getChainId(),
+      const transactionChainId = this.workingTransaction!.chainId;
+      const etherspotModularSdk = await this.etherspotProvider.getSdk(
+        transactionChainId,
         true
       );
-      log('estimate(): Got SDK:', etherspotModulaSdk, this.debugMode);
+      log('estimate(): Got SDK:', etherspotModularSdk, this.debugMode);
 
       // Clear any existing operations
       log(
@@ -665,7 +672,7 @@ export class EtherspotTransactionKit implements IInitial {
         undefined,
         this.debugMode
       );
-      await etherspotModulaSdk.clearUserOpsFromBatch();
+      await etherspotModularSdk.clearUserOpsFromBatch();
       log(
         'estimate(): Cleared user ops from batch.',
         undefined,
@@ -678,7 +685,7 @@ export class EtherspotTransactionKit implements IInitial {
         this.workingTransaction,
         this.debugMode
       );
-      await etherspotModulaSdk.addUserOpsToBatch({
+      await etherspotModularSdk.addUserOpsToBatch({
         to: this.workingTransaction.to || '',
         value: this.workingTransaction.value.toString(),
         data: this.workingTransaction.data,
@@ -687,7 +694,7 @@ export class EtherspotTransactionKit implements IInitial {
 
       // Estimate the transaction
       log('estimate(): Estimating user op...', undefined, this.debugMode);
-      const userOp = await etherspotModulaSdk.estimate({
+      const userOp = await etherspotModularSdk.estimate({
         paymasterDetails,
         gasDetails,
         callGasLimit,
@@ -696,7 +703,7 @@ export class EtherspotTransactionKit implements IInitial {
 
       // Calculate total gas cost
       log('estimate(): Calculating total gas...', undefined, this.debugMode);
-      const totalGas = await etherspotModulaSdk.totalGasEstimated(userOp);
+      const totalGas = await etherspotModularSdk.totalGasEstimated(userOp);
       log('estimate(): Got totalGas:', totalGas, this.debugMode);
       const totalGasBigInt = BigInt(totalGas.toString());
       const maxFeePerGasBigInt = BigInt(userOp.maxFeePerGas.toString());
@@ -721,9 +728,7 @@ export class EtherspotTransactionKit implements IInitial {
         to: this.workingTransaction?.to || '',
         value: this.workingTransaction?.value?.toString(),
         data: this.workingTransaction?.data,
-        chainId:
-          this.workingTransaction?.chainId ||
-          this.etherspotProvider.getChainId(),
+        chainId: this.workingTransaction!.chainId,
         cost,
         userOp,
         isEstimatedSuccessfully: true,
@@ -846,7 +851,7 @@ export class EtherspotTransactionKit implements IInitial {
       const result = {
         to: this.workingTransaction?.to || '',
         chainId:
-          this.workingTransaction?.chainId ||
+          this.workingTransaction?.chainId ??
           this.etherspotProvider.getChainId(),
         errorMessage,
         errorType,
@@ -861,15 +866,16 @@ export class EtherspotTransactionKit implements IInitial {
     try {
       // Get fresh SDK instance to avoid state pollution
       log('send(): Getting SDK...', undefined, this.debugMode);
-      const etherspotModulaSdk = await this.etherspotProvider.getSdk(
-        this.etherspotProvider.getChainId(),
+      const transactionChainId = this.workingTransaction!.chainId;
+      const etherspotModularSdk = await this.etherspotProvider.getSdk(
+        transactionChainId,
         true
       );
-      log('send(): Got SDK:', etherspotModulaSdk, this.debugMode);
+      log('send(): Got SDK:', etherspotModularSdk, this.debugMode);
 
       // Clear any existing operations
       log('send(): Clearing user ops from batch...', undefined, this.debugMode);
-      await etherspotModulaSdk.clearUserOpsFromBatch();
+      await etherspotModularSdk.clearUserOpsFromBatch();
       log('send(): Cleared user ops from batch.', undefined, this.debugMode);
 
       // Add the transaction to the userOp Batch
@@ -878,7 +884,7 @@ export class EtherspotTransactionKit implements IInitial {
         this.workingTransaction,
         this.debugMode
       );
-      await etherspotModulaSdk.addUserOpsToBatch({
+      await etherspotModularSdk.addUserOpsToBatch({
         to: this.workingTransaction?.to || '',
         value: this.workingTransaction?.value?.toString(),
         data: this.workingTransaction?.data || '0x',
@@ -889,7 +895,7 @@ export class EtherspotTransactionKit implements IInitial {
       let estimatedUserOp;
       try {
         log('send(): Estimating user op...', undefined, this.debugMode);
-        estimatedUserOp = await etherspotModulaSdk.estimate({
+        estimatedUserOp = await etherspotModularSdk.estimate({
           paymasterDetails,
         });
         log('send(): Got estimated userOp:', estimatedUserOp, this.debugMode);
@@ -923,7 +929,7 @@ export class EtherspotTransactionKit implements IInitial {
 
       // Calculate total gas cost (using the final UserOp values)
       log('send(): Calculating total gas...', undefined, this.debugMode);
-      const totalGas = await etherspotModulaSdk.totalGasEstimated(finalUserOp);
+      const totalGas = await etherspotModularSdk.totalGasEstimated(finalUserOp);
       log('send(): Got totalGas:', totalGas, this.debugMode);
       const totalGasBigInt = BigInt(totalGas.toString());
       const maxFeePerGasBigInt = BigInt(finalUserOp.maxFeePerGas.toString());
@@ -945,7 +951,7 @@ export class EtherspotTransactionKit implements IInitial {
       let userOpHash: string;
       try {
         log('send(): Sending userOp...', undefined, this.debugMode);
-        userOpHash = await etherspotModulaSdk.send(finalUserOp);
+        userOpHash = await etherspotModularSdk.send(finalUserOp);
         log('send(): Got userOpHash:', userOpHash, this.debugMode);
       } catch (sendError) {
         const sendErrorMessage = parseEtherspotErrorMessage(
@@ -965,7 +971,7 @@ export class EtherspotTransactionKit implements IInitial {
           value: this.workingTransaction?.value?.toString(),
           data: this.workingTransaction?.data,
           chainId:
-            this.workingTransaction?.chainId ||
+            this.workingTransaction?.chainId ??
             this.etherspotProvider.getChainId(),
           cost,
           userOp: finalUserOp,
@@ -987,6 +993,14 @@ export class EtherspotTransactionKit implements IInitial {
       this.isSending = false;
       this.containsSendingError = false;
 
+      // Save transaction data before clearing state
+      const successResult = {
+        to: this.workingTransaction?.to || '',
+        value: this.workingTransaction?.value?.toString(),
+        data: this.workingTransaction?.data,
+        chainId: this.workingTransaction!.chainId,
+      };
+
       // Remove transaction from state after successful send
       const transactionName = this.selectedTransactionName;
       if (transactionName && this.namedTransactions[transactionName]) {
@@ -1004,12 +1018,7 @@ export class EtherspotTransactionKit implements IInitial {
       this.clearWorkingState();
 
       const result = {
-        to: this.workingTransaction?.to || '',
-        value: this.workingTransaction?.value?.toString(),
-        data: this.workingTransaction?.data,
-        chainId:
-          this.workingTransaction?.chainId ||
-          this.etherspotProvider.getChainId(),
+        ...successResult,
         cost,
         userOp: finalUserOp,
         userOpHash,
@@ -1127,13 +1136,13 @@ export class EtherspotTransactionKit implements IInitial {
             undefined,
             this.debugMode
           );
-          const etherspotModulaSdk = await this.etherspotProvider.getSdk(
+          const etherspotModularSdk = await this.etherspotProvider.getSdk(
             batchChainId,
             true // force new instance
           );
           log(
             `estimateBatches(): Got SDK for batch ${batchName}:`,
-            etherspotModulaSdk,
+            etherspotModularSdk,
             this.debugMode
           );
 
@@ -1143,7 +1152,7 @@ export class EtherspotTransactionKit implements IInitial {
             undefined,
             this.debugMode
           );
-          await etherspotModulaSdk.clearUserOpsFromBatch();
+          await etherspotModularSdk.clearUserOpsFromBatch();
           log(
             `estimateBatches(): Cleared user ops from batch ${batchName}.`,
             undefined,
@@ -1163,7 +1172,7 @@ export class EtherspotTransactionKit implements IInitial {
                 undefined,
                 this.debugMode
               );
-              await etherspotModulaSdk.addUserOpsToBatch({
+              await etherspotModularSdk.addUserOpsToBatch({
                 to: tx.to || '',
                 value: tx.value?.toString(),
                 data: tx.data,
@@ -1187,7 +1196,7 @@ export class EtherspotTransactionKit implements IInitial {
             undefined,
             this.debugMode
           );
-          const userOp = await etherspotModulaSdk.estimate({
+          const userOp = await etherspotModularSdk.estimate({
             paymasterDetails,
           });
           log(
@@ -1202,7 +1211,7 @@ export class EtherspotTransactionKit implements IInitial {
             undefined,
             this.debugMode
           );
-          const totalGas = await etherspotModulaSdk.totalGasEstimated(userOp);
+          const totalGas = await etherspotModularSdk.totalGasEstimated(userOp);
           log(
             `estimateBatches(): Got totalGas for batch ${batchName}:`,
             totalGas,
@@ -1400,13 +1409,13 @@ export class EtherspotTransactionKit implements IInitial {
             undefined,
             this.debugMode
           );
-          const etherspotModulaSdk = await this.etherspotProvider.getSdk(
+          const etherspotModularSdk = await this.etherspotProvider.getSdk(
             batchChainId,
             true // force new instance
           );
           log(
             `sendBatches(): Got SDK for batch ${batchName}:`,
-            etherspotModulaSdk,
+            etherspotModularSdk,
             this.debugMode
           );
 
@@ -1416,7 +1425,7 @@ export class EtherspotTransactionKit implements IInitial {
             undefined,
             this.debugMode
           );
-          await etherspotModulaSdk.clearUserOpsFromBatch();
+          await etherspotModularSdk.clearUserOpsFromBatch();
           log(
             `sendBatches(): Cleared user ops from batch ${batchName}.`,
             undefined,
@@ -1436,7 +1445,7 @@ export class EtherspotTransactionKit implements IInitial {
                 undefined,
                 this.debugMode
               );
-              await etherspotModulaSdk.addUserOpsToBatch({
+              await etherspotModularSdk.addUserOpsToBatch({
                 to: tx.to || '',
                 value: tx.value?.toString(),
                 data: tx.data,
@@ -1462,7 +1471,7 @@ export class EtherspotTransactionKit implements IInitial {
               undefined,
               this.debugMode
             );
-            estimatedUserOp = await etherspotModulaSdk.estimate({
+            estimatedUserOp = await etherspotModularSdk.estimate({
               paymasterDetails,
             });
             log(
@@ -1524,7 +1533,7 @@ export class EtherspotTransactionKit implements IInitial {
             this.debugMode
           );
           const totalGas =
-            await etherspotModulaSdk.totalGasEstimated(finalUserOp);
+            await etherspotModularSdk.totalGasEstimated(finalUserOp);
           log(
             `sendBatches(): Got totalGas for batch ${batchName}:`,
             totalGas,
@@ -1559,7 +1568,7 @@ export class EtherspotTransactionKit implements IInitial {
               undefined,
               this.debugMode
             );
-            userOpHash = await etherspotModulaSdk.send(finalUserOp);
+            userOpHash = await etherspotModularSdk.send(finalUserOp);
             log(
               `sendBatches(): Got userOpHash for batch ${batchName}:`,
               userOpHash,
@@ -1810,7 +1819,7 @@ export class EtherspotTransactionKit implements IInitial {
     timeout: number = 60 * 1000,
     retryInterval: number = 2000
   ): Promise<string | null> {
-    const etherspotModulaSdk = await this.getSdk(txChainId);
+    const etherspotModularSdk = await this.getSdk(txChainId);
 
     let transactionHash: string | null = null;
     const timeoutTotal = Date.now() + timeout;
@@ -1818,7 +1827,8 @@ export class EtherspotTransactionKit implements IInitial {
     while (!transactionHash && Date.now() < timeoutTotal) {
       await new Promise<void>((resolve) => setTimeout(resolve, retryInterval));
       try {
-        transactionHash = await etherspotModulaSdk.getUserOpReceipt(userOpHash);
+        transactionHash =
+          await etherspotModularSdk.getUserOpReceipt(userOpHash);
       } catch (error) {
         console.error(
           'Error fetching transaction hash. Please check if the transaction has gone through, or try to send the transaction again:',

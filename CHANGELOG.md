@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.0.3] - 2025-08-22
+
+### Added Changes
+
+- `chainId` is mandatory in the `transaction()` method.
+- For `send` and `estimate`, the `etherspotModularSdk` is initialized using the transaction's `chainId` rather than the provider's `chainId`.
 ## [2.0.2] - 2025-07-24
 
 ### Added Changes

@@ -193,6 +193,7 @@ describe('EtherspotTransactionKit', () => {
 
     it('should use default values for optional parameters', () => {
       const txParams = {
+        chainId: 1,
         to: '0x1234567890123456789012345678901234567890',
       };
 
@@ -206,7 +207,7 @@ describe('EtherspotTransactionKit', () => {
 
     it('should throw error for missing to address', () => {
       expect(() => {
-        transactionKit.transaction({ to: '' });
+        transactionKit.transaction({ chainId: 1, to: '' });
       }).toThrow('transaction(): to is required.');
     });
 
@@ -214,7 +215,7 @@ describe('EtherspotTransactionKit', () => {
       (isAddress as unknown as jest.Mock).mockReturnValue(false);
 
       expect(() => {
-        transactionKit.transaction({ to: 'invalid-address' });
+        transactionKit.transaction({ chainId: 1, to: 'invalid-address' });
       }).toThrow(`transaction(): 'invalid-address' is not a valid address.`);
     });
 
@@ -230,6 +231,7 @@ describe('EtherspotTransactionKit', () => {
     it('should throw error for invalid value', () => {
       expect(() => {
         transactionKit.transaction({
+          chainId: 1,
           to: '0x1234567890123456789012345678901234567890',
           value: 'invalid',
         });
@@ -241,6 +243,7 @@ describe('EtherspotTransactionKit', () => {
     it('should throw error for negative value', () => {
       expect(() => {
         transactionKit.transaction({
+          chainId: 1,
           to: '0x1234567890123456789012345678901234567890',
           value: '-1',
         });
@@ -251,6 +254,7 @@ describe('EtherspotTransactionKit', () => {
 
     it('should accept bigint value', () => {
       const txParams = {
+        chainId: 1,
         to: '0x1234567890123456789012345678901234567890',
         value: BigInt(1000),
       };
@@ -266,6 +270,7 @@ describe('EtherspotTransactionKit', () => {
   describe('name', () => {
     beforeEach(() => {
       transactionKit.transaction({
+        chainId: 1,
         to: '0x1234567890123456789012345678901234567890',
       });
     });
@@ -319,6 +324,7 @@ describe('EtherspotTransactionKit', () => {
   describe('remove', () => {
     it('should remove named transaction', () => {
       transactionKit.transaction({
+        chainId: 1,
         to: '0x1234567890123456789012345678901234567890',
       });
       transactionKit.name({ transactionName: 'test' });
@@ -341,6 +347,7 @@ describe('EtherspotTransactionKit', () => {
 
     it('should throw error if transaction not named', () => {
       transactionKit.transaction({
+        chainId: 1,
         to: '0x1234567890123456789012345678901234567890',
       });
 
@@ -355,6 +362,7 @@ describe('EtherspotTransactionKit', () => {
   describe('update', () => {
     beforeEach(() => {
       transactionKit.transaction({
+        chainId: 1,
         to: '0x1234567890123456789012345678901234567890',
       });
       transactionKit.name({ transactionName: 'test' });
@@ -380,6 +388,7 @@ describe('EtherspotTransactionKit', () => {
   describe('estimate', () => {
     beforeEach(() => {
       transactionKit.transaction({
+        chainId: 1,
         to: '0x1234567890123456789012345678901234567890',
         value: '1000000000000000000',
         data: '0x1234',
@@ -504,6 +513,7 @@ describe('EtherspotTransactionKit', () => {
     it('should allow transaction with value = 0 and data = 0x', async () => {
       const kit = new EtherspotTransactionKit(mockConfig);
       kit.transaction({
+        chainId: 1,
         to: '0x1234567890123456789012345678901234567890',
         value: '0',
         data: '0x',
@@ -547,6 +557,7 @@ describe('EtherspotTransactionKit', () => {
   describe('send', () => {
     beforeEach(() => {
       transactionKit.transaction({
+        chainId: 1,
         to: '0x1234567890123456789012345678901234567890',
         value: '1000000000000000000',
         data: '0x1234',
@@ -658,6 +669,7 @@ describe('EtherspotTransactionKit', () => {
 
     it('should allow sending transaction with value = 0 and data = 0x', async () => {
       transactionKit.transaction({
+        chainId: 1,
         to: '0x1234567890123456789012345678901234567890',
         value: '0',
         data: '0x',
@@ -743,6 +755,7 @@ describe('EtherspotTransactionKit', () => {
 
     it('should return state with transaction', () => {
       transactionKit.transaction({
+        chainId: 1,
         to: '0x1234567890123456789012345678901234567890',
         value: '1000000000000000000',
       });
@@ -779,6 +792,7 @@ describe('EtherspotTransactionKit', () => {
       expect(() => {
         debugKit.setDebugMode(true);
         debugKit.transaction({
+          chainId: 1,
           to: '0x1234567890123456789012345678901234567890',
         });
         debugKit.name({ transactionName: 'debug-tx' });
@@ -828,6 +842,7 @@ describe('EtherspotTransactionKit', () => {
     it('should reset all state', () => {
       // Set up some state
       transactionKit.transaction({
+        chainId: 1,
         to: '0x1234567890123456789012345678901234567890',
       });
       transactionKit.name({ transactionName: 'test' });
@@ -870,6 +885,7 @@ describe('EtherspotTransactionKit', () => {
   describe('State management during operations', () => {
     beforeEach(() => {
       transactionKit.transaction({
+        chainId: 1,
         to: '0x1234567890123456789012345678901234567890',
         value: '1000000000000000000',
       });
@@ -929,23 +945,24 @@ describe('EtherspotTransactionKit', () => {
   });
 
   describe('Provider integration', () => {
-    it('should handle provider chain ID changes', () => {
+    it('should use explicit chainId from transaction call', () => {
       mockProvider.getChainId.mockReturnValue(5);
 
       transactionKit.transaction({
+        chainId: 1,
         to: '0x1234567890123456789012345678901234567890',
       });
 
       const state = transactionKit.getState();
       expect(state.workingTransaction?.chainId).toBe(1);
 
-      // Test with no explicit chainId
       transactionKit.transaction({
+        chainId: 137,
         to: '0x1234567890123456789012345678901234567890',
         value: '1',
       });
       const state2 = transactionKit.getState();
-      expect(state2.workingTransaction?.chainId).toBe(1); // Should use default
+      expect(state2.workingTransaction?.chainId).toBe(137);
     });
 
     it('should handle SDK instance errors gracefully', async () => {
@@ -972,12 +989,14 @@ describe('Batch operations', () => {
     mockSdk.send.mockReset();
     mockSdk.totalGasEstimated.mockReset();
     transactionKit.transaction({
+      chainId: 1,
       to: '0x1111111111111111111111111111111111111111',
       value: '1000000000000000000',
     });
     transactionKit.name({ transactionName: 'tx1' });
     transactionKit.addToBatch({ batchName: 'batch1' });
     transactionKit.transaction({
+      chainId: 1,
       to: '0x2222222222222222222222222222222222222222',
       value: '2000000000000000000',
     });
