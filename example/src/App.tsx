@@ -39,6 +39,7 @@ const App = () => {
       action: async (logAndUpdateState: (msg: string) => void) => {
         try {
           kit.transaction({
+            chainId: 137,
             to: '0x000000000000000000000000000000000000dead',
             value: '1000000000000000000',
           });
@@ -57,6 +58,7 @@ const App = () => {
             transactionName: 'tx1',
           }) as INamedTransaction;
           named.transaction({
+            chainId: 137,
             to: '0x000000000000000000000000000000000000beef',
             value: '2000000000000000000',
           });
@@ -86,6 +88,7 @@ const App = () => {
       action: async (logAndUpdateState: (msg: string) => void) => {
         try {
           kit.transaction({
+            chainId: 137,
             to: '0x000000000000000000000000000000000000cafe',
             value: '3000000000000000000',
           });
@@ -104,6 +107,7 @@ const App = () => {
       action: async (logAndUpdateState: (msg: string) => void) => {
         try {
           kit.transaction({
+            chainId: 137,
             to: '0x000000000000000000000000000000000000babe',
             value: '4000000000000000000',
           });
@@ -252,6 +256,7 @@ const App = () => {
       action: async (logAndUpdateState: (msg: string) => void) => {
         try {
           kit.transaction({
+            chainId: 137,
             to: '0x000000000000000000000000000000000000f00d',
             value: '5000000000000000000',
           });
@@ -272,6 +277,7 @@ const App = () => {
         try {
           // Ensure tx3 is in batch1
           kit.transaction({
+            chainId: 137,
             to: '0x000000000000000000000000000000000000babe',
             value: '4000000000000000000',
           });
@@ -295,6 +301,7 @@ const App = () => {
         try {
           // Add tx5 to batch2
           kit.transaction({
+            chainId: 137,
             to: '0x000000000000000000000000000000000000c0de',
             value: '6000000000000000000',
           });
@@ -304,6 +311,7 @@ const App = () => {
           named.addToBatch({ batchName: 'batch2' });
           // Add tx6 to batch2
           kit.transaction({
+            chainId: 137,
             to: '0x000000000000000000000000000000000000c0fe',
             value: '7000000000000000000',
           });
@@ -327,6 +335,7 @@ const App = () => {
         try {
           // Ensure tx3 is in batch1
           kit.transaction({
+            chainId: 137,
             to: '0x000000000000000000000000000000000000babe',
             value: '4000000000000000000',
           });
@@ -336,6 +345,7 @@ const App = () => {
           named.addToBatch({ batchName: 'batch1' });
           // Now update tx3 in batch1
           named.transaction({
+            chainId: 137,
             to: '0x000000000000000000000000000000000000feed',
             value: '8880000000000000000',
           });
@@ -353,6 +363,7 @@ const App = () => {
       action: async (logAndUpdateState: (msg: string) => void) => {
         try {
           kit.transaction({
+            chainId: 137,
             to: '0x000000000000000000000000000000000000aabb',
             value: '1000000000000000000',
           });
@@ -389,6 +400,7 @@ const App = () => {
       action: async (logAndUpdateState: (msg: string) => void) => {
         try {
           kit.transaction({
+            chainId: 137,
             to: '0x000000000000000000000000000000000000cafe',
             value: '123',
           });
@@ -423,7 +435,7 @@ const App = () => {
       label: 'Add Transaction with Invalid Address',
       action: async (logAndUpdateState: (msg: string) => void) => {
         try {
-          kit.transaction({ to: 'not-an-address', value: '1' });
+          kit.transaction({ chainId: 137, to: 'not-an-address', value: '1' });
           logAndUpdateState('Should not see this.');
         } catch (e) {
           logAndUpdateState('Error: ' + (e as Error).message);
@@ -435,6 +447,7 @@ const App = () => {
       action: async (logAndUpdateState: (msg: string) => void) => {
         try {
           kit.transaction({
+            chainId: 137,
             to: '0x000000000000000000000000000000000000dead',
             value: '-1',
           });
@@ -474,6 +487,7 @@ const App = () => {
         try {
           // Create empty batchD by adding and removing a tx
           kit.transaction({
+            chainId: 137,
             to: '0x000000000000000000000000000000000000dede',
             value: '1',
           });
@@ -512,6 +526,7 @@ const App = () => {
         try {
           // Add tx10 to batchE
           kit.transaction({
+            chainId: 137,
             to: '0x000000000000000000000000000000000000eeee',
             value: '1',
           });
@@ -533,6 +548,7 @@ const App = () => {
       action: async (logAndUpdateState: (msg: string) => void) => {
         try {
           kit.transaction({
+            chainId: 137,
             to: '0x000000000000000000000000000000000000f0f0',
             value: '1',
           });
@@ -548,6 +564,7 @@ const App = () => {
       action: async (logAndUpdateState: (msg: string) => void) => {
         try {
           kit.transaction({
+            chainId: 137,
             to: '0x000000000000000000000000000000000000f1f1',
             value: '1',
           });
@@ -556,6 +573,7 @@ const App = () => {
           }) as INamedTransaction;
           named.addToBatch({ batchName: 'batchF' });
           named.transaction({
+            chainId: 137,
             to: '0x000000000000000000000000000000000000f2f2',
             value: '2',
           });

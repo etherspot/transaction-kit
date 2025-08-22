@@ -236,7 +236,7 @@ export interface ToParams {
 }
 
 export interface TransactionParams {
-  chainId?: number;
+  chainId: number;
   to: string;
   value?: bigint | string;
   data?: string;
