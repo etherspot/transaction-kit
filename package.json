@@ -26,9 +26,10 @@
   "dependencies": {
     "@etherspot/eip1271-verification-util": "0.1.2",
     "@etherspot/modular-sdk": "6.1.1",
+    "@zerodev/sdk": "^5.5.3",
     "buffer": "6.0.3",
     "lodash": "4.17.21",
-    "viem": "2.21.54"
+    "viem": "^2.38.0"
   },
   "module": "dist/esm/index.js",
   "types": "dist/index.d.ts",

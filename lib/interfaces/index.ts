@@ -15,12 +15,34 @@ export interface TypePerId<T> {
   [id: string]: T;
 }
 
-// EtherspotProvider
-export interface EtherspotProviderConfig {
+// Wallet Mode Types
+export type WalletMode = 'modular' | 'delegatedEoa';
+
+// Base config shared by delegatedEoa and Modular modes
+interface BaseProviderConfig {
   provider: WalletProviderLike;
   chainId: number;
   bundlerApiKey?: string;
+  debugMode?: boolean;
 }
+
+// Modular mode specific config
+interface ModularModeConfig extends BaseProviderConfig {
+  walletMode?: 'modular';
+}
+
+// delegatedEoa mode specific config
+interface DelegatedEoaModeConfig extends BaseProviderConfig {
+  walletMode: 'delegatedEoa';
+  bundlerUrl?: string;
+  bundlerApiKeyFormat?: string;
+  privateKey?: string;
+}
+
+// EtherspotTransactionKitConfig
+export type EtherspotTransactionKitConfig =
+  | ModularModeConfig
+  | DelegatedEoaModeConfig;
 
 // TransactionKit
 export interface IInitial {
@@ -140,10 +162,6 @@ export interface IInstance {
   containsSendingError: boolean;
   containsEstimatingError: boolean;
   walletAddresses: { [chainId: number]: string };
-}
-
-export interface EtherspotTransactionKitConfig extends EtherspotProviderConfig {
-  debugMode?: boolean;
 }
 
 export interface TransactionBuilder {
