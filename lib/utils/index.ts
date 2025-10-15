@@ -66,3 +66,52 @@ export const log = (message: string, data?: any, debugMode?: boolean): void => {
     console.log(`[EtherspotTransactionKit] ${message}`, data || '');
   }
 };
+
+/**
+ * Comprehensive list of sensitive keys that should be redacted in any object.
+ * This centralizes all sensitive data handling in one place.
+ */
+const SENSITIVE_KEYS = ['privateKey', 'apiKey', 'bundlerApiKey'];
+
+/**
+ * Sanitizes any object by recursively sanitizing all properties and nested objects.
+ * This utility prevents accidental exposure of sensitive data in logs or public methods.
+ * Works for both simple configuration objects and complex class instances.
+ *
+ * @param obj - The object to sanitize
+ * @returns A sanitized copy of the object
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const sanitizeObject = (obj: any): any => {
+  if (!obj || typeof obj !== 'object') {
+    return obj;
+  }
+
+  // Handle arrays
+  if (Array.isArray(obj)) {
+    return obj.map((item) => sanitizeObject(item));
+  }
+
+  // Handle objects
+  const sanitized = { ...obj };
+
+  for (const key in sanitized) {
+    if (Object.prototype.hasOwnProperty.call(sanitized, key)) {
+      const value = sanitized[key];
+
+      // Check if this key should be redacted
+      if (
+        SENSITIVE_KEYS.includes(key) &&
+        value !== undefined &&
+        value !== null
+      ) {
+        sanitized[key] = '[REDACTED]';
+      } else if (typeof value === 'object' && value !== null) {
+        // Recursively sanitize nested objects
+        sanitized[key] = sanitizeObject(value);
+      }
+    }
+  }
+
+  return sanitized;
+};

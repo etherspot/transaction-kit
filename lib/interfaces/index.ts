@@ -4,6 +4,9 @@ import {
   PaymasterApi,
   WalletProviderLike,
 } from '@etherspot/modular-sdk';
+import { type PublicActions, type WalletActions } from 'viem';
+import { type BundlerClient } from 'viem/account-abstraction';
+import { SignAuthorizationReturnType } from 'viem/accounts';
 
 // types
 import { BigNumberish } from '@etherspot/modular-sdk/dist/types/sdk/types/bignumber';
@@ -18,25 +21,24 @@ export interface TypePerId<T> {
 // Wallet Mode Types
 export type WalletMode = 'modular' | 'delegatedEoa';
 
-// Base config shared by delegatedEoa and Modular modes
-interface BaseProviderConfig {
+// Modular mode specific config - requires a wallet provider
+export interface ModularModeConfig {
   provider: WalletProviderLike;
   chainId: number;
   bundlerApiKey?: string;
   debugMode?: boolean;
-}
-
-// Modular mode specific config
-interface ModularModeConfig extends BaseProviderConfig {
   walletMode?: 'modular';
 }
 
-// delegatedEoa mode specific config
-interface DelegatedEoaModeConfig extends BaseProviderConfig {
-  walletMode: 'delegatedEoa';
+// delegatedEoa mode specific config - requires a private key for EIP-7702 operations
+export interface DelegatedEoaModeConfig {
+  chainId: number;
+  bundlerApiKey?: string;
   bundlerUrl?: string;
   bundlerApiKeyFormat?: string;
-  privateKey?: string;
+  debugMode?: boolean;
+  walletMode: 'delegatedEoa';
+  privateKey: string;
 }
 
 // EtherspotTransactionKitConfig
@@ -57,6 +59,31 @@ export interface IInitial {
 
   // Standalone methods (not chainable)
   getWalletAddress(chainId?: number): Promise<string | undefined>;
+  isSmartWallet(chainId?: number): Promise<boolean | undefined>;
+  installSmartWallet({
+    chainId,
+    isExecuting,
+  }: {
+    chainId?: number;
+    isExecuting?: boolean;
+  }): Promise<{
+    authorization: SignAuthorizationReturnType | undefined;
+    isAlreadyInstalled: boolean;
+    eoaAddress: string;
+    delegateAddress: string;
+    userOpHash?: string;
+  }>;
+  uninstallSmartWallet?({
+    chainId,
+    isExecuting,
+  }: {
+    chainId?: number;
+    isExecuting?: boolean;
+  }): Promise<{
+    authorization: SignAuthorizationReturnType | undefined;
+    eoaAddress: string;
+    userOpHash?: string;
+  }>;
   getState(): IInstance;
   setDebugMode(enabled: boolean): void;
   getProvider(): WalletProviderLike;
@@ -299,6 +326,10 @@ export type TransactionGasInfoForUserOp = {
   maxFeePerGas?: bigint;
   maxPriorityFeePerGas?: bigint;
 };
+
+export type BundlerClientExtended = BundlerClient &
+  PublicActions &
+  WalletActions;
 
 // TO DO - use when modules are added to transaction kit
 // // eslint-disable-next-line @typescript-eslint/naming-convention

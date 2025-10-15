@@ -1,5 +1,11 @@
+/* eslint-disable quotes */
 import { ModularSdk, WalletProviderLike } from '@etherspot/modular-sdk';
+import {
+  KERNEL_V3_3,
+  KernelVersionToAddressesMap,
+} from '@zerodev/sdk/constants';
 import { isAddress } from 'viem';
+import { SignAuthorizationReturnType } from 'viem/accounts';
 
 // interfaces
 import {
@@ -25,14 +31,18 @@ import {
   TransactionEstimateResult,
   TransactionParams,
   TransactionSendResult,
+  UserOp,
 } from './interfaces';
 
 // EtherspotProvider
 import { EtherspotProvider } from './EtherspotProvider';
 
+/// network
+import { getChainFromId } from './network';
+
 // utils
 import { EtherspotUtils } from './EtherspotUtils';
-import { log, parseEtherspotErrorMessage } from './utils';
+import { log, parseEtherspotErrorMessage, sanitizeObject } from './utils';
 
 export class EtherspotTransactionKit implements IInitial {
   private etherspotProvider: EtherspotProvider;
@@ -96,18 +106,30 @@ export class EtherspotTransactionKit implements IInitial {
   }
 
   /**
-   * Retrieves the counterfactual wallet address for the current or specified chain.
+   * Returns a sanitized version of this instance.
+   * This getter automatically sanitizes sensitive data when accessed.
+   */
+  get sanitized() {
+    return sanitizeObject(this);
+  }
+
+  /**
+   * Retrieves the wallet address for the current or specified chain.
    *
-   * This method checks if the wallet address is already cached for the given chain. If not, it initializes the Etherspot SDK for the chain and attempts to fetch the counterfactual address. The result is cached for future calls. If the address cannot be retrieved, the method returns undefined.
+   * Behavior depends on wallet mode:
+   * - delegatedEoa: returns the EOA address from the delegated EOA account (derived from the configured private key). This is the sender address used for EIP-7702 flows. Does not require prior designation; simply reflects the EOA.
+   * - modular: initializes the Modular SDK for the chain and returns the counterfactual smart account address.
+   *
+   * Caches the resulting address per chain for subsequent calls.
    *
    * @param chainId - (Optional) The chain ID for which to retrieve the wallet address. If not provided, uses the provider's current chain ID.
-   * @returns The counterfactual wallet address as a string, or undefined if it cannot be retrieved.
-   * @throws {Error} If the SDK fails to initialize or the address cannot be fetched due to a critical error.
+   * @returns The wallet address as a string, or undefined if it cannot be retrieved.
+   * @throws {Error} For critical initialization errors (e.g., SDK init failure in modular mode).
    *
    * @remarks
-   * - This method is asynchronous and may perform network requests.
-   * - The address is cached per chain for efficiency.
-   * - If the SDK or address retrieval fails, the error is logged and undefined is returned.
+   * - Asynchronous; may perform network requests (particularly in modular mode).
+   * - Address is cached per chain.
+   * - In delegatedEoa mode this returns the EOA address; EIP-7702 installation status is independent and can be checked via isSmartWallet().
    */
   async getWalletAddress(chainId?: number): Promise<string | undefined> {
     log('getWalletAddress(): Called with chainId', chainId, this.debugMode);
@@ -123,32 +145,60 @@ export class EtherspotTransactionKit implements IInitial {
       return this.walletAddresses[walletAddressChainId];
     }
 
-    try {
-      // Get SDK instance for the chain
-      const etherspotModularSdk =
-        await this.etherspotProvider.getSdk(walletAddressChainId);
+    const walletMode = this.etherspotProvider.getWalletMode();
+    log(
+      `getWalletAddress(): Wallet mode: ${walletMode}`,
+      undefined,
+      this.debugMode
+    );
 
-      let walletAddress: string | undefined;
-      try {
-        walletAddress = await etherspotModularSdk.getCounterFactualAddress();
+    try {
+      if (walletMode === 'delegatedEoa') {
+        // DelegatedEoa mode: Get address from delegatedEoa account
+        const delegatedEoaAccount =
+          await this.etherspotProvider.getDelegatedEoaAccount(
+            walletAddressChainId
+          );
+
+        const walletAddress = delegatedEoaAccount.address;
         log(
-          `Got wallet address from getCounterFactualAddress for chain ${walletAddressChainId}`,
+          `Got wallet address from delegatedEoa account for chain ${walletAddressChainId}`,
           walletAddress,
           this.debugMode
         );
-      } catch (e) {
-        log(
-          `Unable to get wallet address using getCounterFactualAddress for chain ${walletAddressChainId}`,
-          e,
-          this.debugMode
-        );
-      }
 
-      if (walletAddress) {
-        this.walletAddresses[walletAddressChainId] = walletAddress;
-      }
+        if (walletAddress) {
+          this.walletAddresses[walletAddressChainId] = walletAddress;
+        }
 
-      return walletAddress;
+        return walletAddress;
+      } else {
+        // Modular mode: Get SDK instance for the chain
+        const etherspotModularSdk =
+          await this.etherspotProvider.getSdk(walletAddressChainId);
+
+        let walletAddress: string | undefined;
+        try {
+          walletAddress = await etherspotModularSdk.getCounterFactualAddress();
+          log(
+            `Got wallet address from getCounterFactualAddress for chain ${walletAddressChainId}`,
+            walletAddress,
+            this.debugMode
+          );
+        } catch (e) {
+          log(
+            `Unable to get wallet address using getCounterFactualAddress for chain ${walletAddressChainId}`,
+            e,
+            this.debugMode
+          );
+        }
+
+        if (walletAddress) {
+          this.walletAddresses[walletAddressChainId] = walletAddress;
+        }
+
+        return walletAddress;
+      }
     } catch (error) {
       log(
         `Failed to get wallet address for chain ${walletAddressChainId}`,
@@ -156,6 +206,393 @@ export class EtherspotTransactionKit implements IInitial {
         this.debugMode
       );
       return undefined;
+    }
+  }
+
+  /**
+   * This method verifies whether an EOA address has code deployed to it, which indicates
+   * it has been designated as a smart account using EIP-7702 delegation.
+   *
+   * @param chainId - (Optional) The chain ID to check on. If not provided, uses the provider's current chain ID.
+   * @returns A promise that resolves to true if the EOA has been designated, false otherwise, or undefined if check fails.
+   * @throws {Error} If called in 'modular' wallet mode (only available in 'delegatedEoa' mode).
+   *
+   * @remarks
+   * - Only available in 'delegatedEoa' wallet mode.
+   * - In EIP-7702, when an EOA designates a smart contract implementation, the EOA address gets code.
+   * - This method checks for the presence of code at the EOA address using the public client.
+   * - Returns false if the address has no code (regular EOA), true if it has code (designated EOA).
+   */
+  async isSmartWallet(chainId?: number): Promise<boolean | undefined> {
+    const walletMode = this.etherspotProvider.getWalletMode();
+
+    log('isSmartWallet(): Called with chainId', chainId, this.debugMode);
+    log(
+      `isSmartWallet(): Wallet mode: ${walletMode}`,
+      undefined,
+      this.debugMode
+    );
+
+    if (walletMode !== 'delegatedEoa') {
+      this.throwError(
+        "isSmartWallet() is only available in 'delegatedEoa' wallet mode. " +
+          `Current mode: '${walletMode}'. ` +
+          'This method checks if an EOA has been upgraded to a smart account using EIP-7702 delegation.'
+      );
+    }
+
+    const checkChainId = chainId || this.etherspotProvider.getChainId();
+
+    try {
+      // Get the delegatedEoa account to check the EOA address
+      const delegatedEoaAccount =
+        await this.etherspotProvider.getDelegatedEoaAccount(checkChainId);
+      const eoaAddress = delegatedEoaAccount.address;
+
+      log(
+        `isSmartWallet(): Checking if EOA ${eoaAddress} has been designated on chain ${checkChainId}`,
+        { eoaAddress },
+        this.debugMode
+      );
+
+      const publicClient =
+        await this.etherspotProvider.getPublicClient(checkChainId);
+
+      const senderCode = await publicClient.getCode({
+        address: eoaAddress,
+      });
+
+      log(
+        `isSmartWallet(): Got code at EOA address`,
+        { senderCode },
+        this.debugMode
+      );
+
+      const hasEIP7702Designation =
+        senderCode !== undefined &&
+        senderCode !== '0x' &&
+        senderCode.startsWith('0xef0100');
+
+      log(
+        `isSmartWallet(): EOA ${eoaAddress} ${hasEIP7702Designation ? 'HAS' : 'DOES NOT HAVE'} EIP-7702 designation`,
+        { senderCode, hasEIP7702Designation },
+        this.debugMode
+      );
+
+      return hasEIP7702Designation;
+    } catch (error) {
+      log(
+        `isSmartWallet(): Failed to check smart wallet status for chain ${checkChainId}`,
+        error,
+        this.debugMode
+      );
+      return undefined;
+    }
+  }
+
+  /**
+   * This method authorizes the EOA to delegate control to a Kernel smart account implementation and EIP-7702,
+   * enabling smart wallet features. The authorization is only signed if the EOA is not already designated.
+   *
+   * @param chainId - (Optional) The chain ID to install the smart wallet on. If not provided, uses the provider's current chain ID.
+   * @param isExecuting - (Optional) Whether to execute the installation transaction. Defaults to true.
+   * @returns A promise that resolves to an object containing:
+   *   - `authorization`: The signed authorization (if signed), or undefined if already installed
+   *   - `isAlreadyInstalled`: True if any EIP-7702 designation already exists; otherwise false
+   *   - `eoaAddress`: The EOA that is designated
+   *   - `delegateAddress`: The Kernel implementation address (v3.3)
+   *   - `txHash`: The UserOp hash if execution succeeded
+   * @throws {Error} If called in 'modular' wallet mode, the chain ID is unsupported, or signing fails.
+   *
+   * @remarks
+   * - Only available in 'delegatedEoa' wallet mode.
+   * - First checks for any existing 7702 designation; if present, returns early as already installed.
+   * - If not installed, signs a Kernel authorization, and if `isExecuting` is true, submits a no-op UserOp to activate.
+   * - If execution fails, the method returns the signed authorization so callers can retry submission externally.
+   */
+  async installSmartWallet({
+    chainId,
+    isExecuting = true,
+  }: {
+    chainId?: number;
+    isExecuting?: boolean;
+  } = {}): Promise<{
+    authorization: SignAuthorizationReturnType | undefined;
+    isAlreadyInstalled: boolean;
+    eoaAddress: string;
+    delegateAddress: string;
+    userOpHash?: string;
+  }> {
+    const walletMode = this.etherspotProvider.getWalletMode();
+    const installChainId = chainId || this.etherspotProvider.getChainId();
+
+    log(
+      'installSmartWallet(): Called',
+      { installChainId, isExecuting },
+      this.debugMode
+    );
+
+    if (walletMode !== 'delegatedEoa') {
+      this.throwError(
+        "installSmartWallet() is only available in 'delegatedEoa' wallet mode. " +
+          `Current mode: '${walletMode}'.`
+      );
+    }
+
+    try {
+      // Get required clients and addresses
+      const owner =
+        await this.etherspotProvider.getOwnerAccount(installChainId);
+      const bundlerClient =
+        await this.etherspotProvider.getBundlerClient(installChainId);
+      const eoaAddress = owner.address as `0x${string}`;
+      const delegateAddress = KernelVersionToAddressesMap[KERNEL_V3_3]
+        .accountImplementationAddress as `0x${string}`;
+
+      // Check if already installed
+      const isAlreadyInstalled = await this.isSmartWallet(installChainId);
+
+      if (isAlreadyInstalled) {
+        log(
+          'installSmartWallet(): Already installed',
+          { eoaAddress, delegateAddress },
+          this.debugMode
+        );
+        return {
+          authorization: undefined,
+          isAlreadyInstalled: true,
+          eoaAddress,
+          delegateAddress,
+        };
+      }
+
+      // Sign authorization only if needed
+      let authorization: SignAuthorizationReturnType | undefined;
+      if (!isAlreadyInstalled) {
+        authorization = await bundlerClient.signAuthorization({
+          account: owner,
+          contractAddress: delegateAddress,
+        });
+      }
+
+      log(
+        'installSmartWallet(): Authorization signed',
+        { authorization, eoaAddress, delegateAddress },
+        this.debugMode
+      );
+
+      // If not executing, just return the authorization
+      if (!isExecuting) {
+        return {
+          authorization,
+          isAlreadyInstalled: false,
+          eoaAddress,
+          delegateAddress,
+        };
+      }
+
+      // Execute UserOp with authorization
+      if (authorization) {
+        const delegatedEoaAccount =
+          await this.etherspotProvider.getDelegatedEoaAccount(installChainId);
+
+        try {
+          const userOpHash = await bundlerClient.sendUserOperation({
+            account: delegatedEoaAccount,
+            authorization,
+            calls: [
+              {
+                to: eoaAddress,
+                value: BigInt(0),
+                data: '0x' as `0x${string}`,
+              },
+            ],
+          });
+
+          log(
+            'installSmartWallet(): UserOp executed with EIP-7702 authorization',
+            { userOpHash },
+            this.debugMode
+          );
+
+          return {
+            authorization,
+            isAlreadyInstalled: false,
+            eoaAddress,
+            delegateAddress,
+            userOpHash,
+          };
+        } catch (executionError) {
+          // Return the signed authorization so the caller can retry
+          log(
+            'installSmartWallet(): UserOp execution failed, returning authorization for retry',
+            executionError,
+            this.debugMode
+          );
+
+          return {
+            authorization,
+            isAlreadyInstalled: false,
+            eoaAddress,
+            delegateAddress,
+          };
+        }
+      }
+
+      return {
+        authorization,
+        isAlreadyInstalled: false,
+        eoaAddress,
+        delegateAddress,
+      };
+    } catch (error) {
+      log('installSmartWallet(): Failed', error, this.debugMode);
+      throw error;
+    }
+  }
+
+  /**
+   * This method revokes the EOA's delegation to the smart account EIP-7702 implementation by authorizing
+   * delegation to the zero address, effectively reverting the EOA to its original state.
+   *
+   * @param chainId - (Optional) The chain ID to uninstall the smart wallet from. If not provided, uses the provider's current chain ID.
+   * @param isExecuting - (Optional) Whether to execute the uninstallation transaction. Defaults to true.
+   * @returns A promise that resolves to an object containing:
+   *   - `authorization`: The signed authorization object to clear delegation
+   *   - `eoaAddress`: The EOA address
+   *   - `txHash`: The transaction hash (if execution was successful)
+   * @throws {Error} If called in 'modular' wallet mode (only available in 'delegatedEoa' mode).
+   * @throws {Error} If the chain ID is not supported.
+   * @throws {Error} If authorization signing fails.
+   *
+   * @remarks
+   * - Only available in 'delegatedEoa' wallet mode.
+   * - This clears the EIP-7702 delegation by authorizing the zero address (0x0000...0000).
+   * - If isExecuting is true, executes a "dead" transaction (0xdeadbeef) with the authorization to revoke EIP-7702.
+   * - If isExecuting is false, only signs and returns the authorization for later use.
+   * - If userOp execution fails, the authorization is still returned so the caller can retry.
+   * - After uninstallation, the EOA will function as a regular externally owned account.
+   */
+  async uninstallSmartWallet({
+    chainId,
+    isExecuting = true,
+  }: {
+    chainId?: number;
+    isExecuting?: boolean;
+  } = {}): Promise<{
+    authorization: SignAuthorizationReturnType | undefined;
+    eoaAddress: string;
+    userOpHash?: string;
+  }> {
+    const walletMode = this.etherspotProvider.getWalletMode();
+    const uninstallChainId = chainId || this.etherspotProvider.getChainId();
+
+    log(
+      'uninstallSmartWallet(): Called',
+      { uninstallChainId, isExecuting },
+      this.debugMode
+    );
+
+    if (walletMode !== 'delegatedEoa') {
+      this.throwError(
+        "uninstallSmartWallet() is only available in 'delegatedEoa' wallet mode. " +
+          `Current mode: '${walletMode}'.`
+      );
+    }
+
+    try {
+      // Get required clients and addresses
+      const owner =
+        await this.etherspotProvider.getOwnerAccount(uninstallChainId);
+      const eoaAddress = owner.address as `0x${string}`;
+      const zeroAddress =
+        '0x0000000000000000000000000000000000000000' as `0x${string}`;
+
+      // Check if already installed
+      const isAlreadyInstalled = await this.isSmartWallet(uninstallChainId);
+
+      if (!isAlreadyInstalled) {
+        log(
+          'uninstallSmartWallet(): Wallet is not a smart wallet, no uninstall needed',
+          { eoaAddress },
+          this.debugMode
+        );
+        return {
+          authorization: undefined,
+          eoaAddress,
+        };
+      }
+
+      // Get wallet client from EtherspotProvider (uses bundler URL)
+      const walletClient =
+        await this.etherspotProvider.getWalletClient(uninstallChainId);
+
+      // Sign authorization to zero address to clear delegation
+      const authorization = await walletClient.signAuthorization({
+        account: owner,
+        address: zeroAddress,
+        executor: 'self',
+      });
+
+      log(
+        'uninstallSmartWallet(): Authorization signed',
+        { authorization, eoaAddress },
+        this.debugMode
+      );
+
+      // If not executing, just return the authorization
+      if (!isExecuting) {
+        return {
+          authorization,
+          eoaAddress,
+        };
+      }
+
+      // Execute UserOp with authorization
+      if (authorization) {
+        try {
+          const userOpHash = await walletClient.sendTransaction({
+            account: owner,
+            chain: getChainFromId(uninstallChainId),
+            authorizationList: [authorization],
+            to: owner.address,
+            data: '0xdeadbeef',
+            type: 'eip7702',
+          });
+
+          log(
+            'uninstallSmartWallet(): UserOp executed with EIP-7702 authorization',
+            { userOpHash },
+            this.debugMode
+          );
+
+          return {
+            authorization,
+            eoaAddress,
+            userOpHash,
+          };
+        } catch (executionError) {
+          // Return the signed authorization so the caller can retry
+          log(
+            'uninstallSmartWallet(): Send transaction execution failed, returning authorization for retry',
+            executionError,
+            this.debugMode
+          );
+
+          return {
+            authorization,
+            eoaAddress,
+          };
+        }
+      }
+
+      return {
+        authorization,
+        eoaAddress,
+      };
+    } catch (error) {
+      log('uninstallSmartWallet(): Failed', error, this.debugMode);
+      throw error;
     }
   }
 
@@ -524,12 +961,14 @@ export class EtherspotTransactionKit implements IInitial {
   /**
    * Estimates the gas and cost for the currently selected transaction.
    *
-   * This method validates the current transaction context and uses the Etherspot SDK to estimate the gas and cost for the transaction. It is designed to be called after a transaction has been specified and named. The method enforces several rules and will throw or return errors in specific scenarios.
+   * This method validates the current transaction context and performs an estimation using:
+   * - modular mode: the Etherspot Modular SDK batch and estimate flow
+   * - delegatedEoa mode: viem account abstraction with EIP-7702; requires prior designation
    *
    * @param params - (Optional) Estimation parameters:
-   *   - `paymasterDetails`: Paymaster API details for sponsored transactions.
-   *   - `gasDetails`: Custom gas settings for the user operation.
-   *   - `callGasLimit`: Optional override for the call gas limit.
+   *   - `paymasterDetails`: Paymaster API details for sponsored transactions (modular mode only)
+   *   - `gasDetails`: Custom gas settings for the user operation (modular mode only).
+   *   - `callGasLimit`: Optional override for the call gas limit (modular mode only).
    *
    * @returns A promise that resolves to a `TransactionEstimateResult` combined with `IEstimatedTransaction`, containing:
    *   - Transaction details (to, value, data, chainId)
@@ -539,7 +978,7 @@ export class EtherspotTransactionKit implements IInitial {
    *   - `isEstimatedSuccessfully` flag
    *
    * @throws {Error} If:
-   *   - A batch is currently selected (estimation of batches must use `estimateBatches()`).
+   *   - A batch is currently selected (use `estimateBatches()` instead).
    *   - There is no named transaction to estimate.
    *   - The provider is not available or misconfigured.
    *
@@ -560,6 +999,9 @@ export class EtherspotTransactionKit implements IInitial {
    * - **Usage:**
    *   - Call after specifying and naming a transaction.
    *   - For batch estimation, use `estimateBatches()` instead.
+   * - **delegatedEoa mode:**
+   *   - Requires the EOA to be designated (EIP-7702). If not, returns a validation error instructing to authorize first.
+   *   - `paymasterDetails` and manual `userOpOverrides` are not supported.
    */
   async estimate({
     paymasterDetails,
@@ -591,27 +1033,33 @@ export class EtherspotTransactionKit implements IInitial {
         result,
         this.debugMode
       );
-      return { ...result, ...this };
+      return { ...result, ...this.sanitized };
     }
 
-    log('estimate(): Getting provider...', undefined, this.debugMode);
-    const provider = this.getProvider();
-    log('estimate(): Got provider:', provider, this.debugMode);
-    if (!provider) {
-      log(
-        'estimate(): No Web3 provider available. This is a critical configuration error.',
-        undefined,
-        this.debugMode
-      );
-      this.isEstimating = false;
-      this.containsEstimatingError = true;
-      this.throwError(
-        'estimate(): No Web3 provider available. This is a critical configuration error.'
-      );
+    // Only validate provider in modular mode
+    const walletMode = this.etherspotProvider.getWalletMode();
+    if (walletMode === 'modular') {
+      log('estimate(): Getting provider...', undefined, this.debugMode);
+      const provider = this.getProvider();
+      log('estimate(): Got provider:', provider, this.debugMode);
+      if (!provider) {
+        log(
+          'estimate(): No Web3 provider available. This is a critical configuration error.',
+          undefined,
+          this.debugMode
+        );
+        this.isEstimating = false;
+        this.containsEstimatingError = true;
+        this.throwError(
+          'estimate(): No Web3 provider available. This is a critical configuration error.'
+        );
+      }
     }
 
     this.isEstimating = true;
     this.containsEstimatingError = false;
+
+    log(`estimate(): Wallet mode: ${walletMode}`, undefined, this.debugMode);
 
     // Helper function to set error state and return
     const setErrorAndReturn = (
@@ -632,7 +1080,7 @@ export class EtherspotTransactionKit implements IInitial {
         ...partialResult,
       };
       log('estimate(): Returning error result.', result, this.debugMode);
-      return { ...result, ...this };
+      return { ...result, ...this.sanitized };
     };
 
     try {
@@ -656,85 +1104,325 @@ export class EtherspotTransactionKit implements IInitial {
         );
       }
 
-      // Only proceed if value and data are defined
-      // Get fresh SDK instance to avoid state pollution
-      log('estimate(): Getting SDK...', undefined, this.debugMode);
       const transactionChainId = this.workingTransaction!.chainId;
-      const etherspotModularSdk = await this.etherspotProvider.getSdk(
-        transactionChainId,
-        true
-      );
-      log('estimate(): Got SDK:', etherspotModularSdk, this.debugMode);
 
-      // Clear any existing operations
-      log(
-        'estimate(): Clearing user ops from batch...',
-        undefined,
-        this.debugMode
-      );
-      await etherspotModularSdk.clearUserOpsFromBatch();
-      log(
-        'estimate(): Cleared user ops from batch.',
-        undefined,
-        this.debugMode
-      );
+      if (walletMode === 'delegatedEoa') {
+        // DelegatedEoa mode: Use viem account abstraction
+        log(
+          'estimate(): Using delegatedEoa mode for estimation',
+          undefined,
+          this.debugMode
+        );
 
-      // Add the transaction to the userOp Batch
-      log(
-        'estimate(): Adding user op to batch...',
-        this.workingTransaction,
-        this.debugMode
-      );
-      await etherspotModularSdk.addUserOpsToBatch({
-        to: this.workingTransaction.to || '',
-        value: this.workingTransaction.value.toString(),
-        data: this.workingTransaction.data,
-      });
-      log('estimate(): Added user op to batch.', undefined, this.debugMode);
+        // Validate that unsupported parameters are not provided in delegatedEoa mode
+        if (paymasterDetails) {
+          return setErrorAndReturn(
+            'paymasterDetails is not yet supported in delegatedEoa mode.',
+            'VALIDATION_ERROR',
+            {}
+          );
+        }
 
-      // Estimate the transaction
-      log('estimate(): Estimating user op...', undefined, this.debugMode);
-      const userOp = await etherspotModularSdk.estimate({
-        paymasterDetails,
-        gasDetails,
-        callGasLimit,
-      });
-      log('estimate(): Got userOp:', userOp, this.debugMode);
+        if (gasDetails) {
+          return setErrorAndReturn(
+            'gasDetails is not yet supported in delegatedEoa mode.',
+            'VALIDATION_ERROR',
+            {}
+          );
+        }
 
-      // Calculate total gas cost
-      log('estimate(): Calculating total gas...', undefined, this.debugMode);
-      const totalGas = await etherspotModularSdk.totalGasEstimated(userOp);
-      log('estimate(): Got totalGas:', totalGas, this.debugMode);
-      const totalGasBigInt = BigInt(totalGas.toString());
-      const maxFeePerGasBigInt = BigInt(userOp.maxFeePerGas.toString());
-      const cost = totalGasBigInt * maxFeePerGasBigInt;
-      log('estimate(): Calculated cost:', cost, this.debugMode);
+        if (callGasLimit) {
+          return setErrorAndReturn(
+            'callGasLimit is not yet supported in delegatedEoa mode.',
+            'VALIDATION_ERROR',
+            {}
+          );
+        }
 
-      log(
-        'estimate(): Single transaction estimated successfully',
-        {
-          to: this.workingTransaction?.to,
-          cost: cost.toString(),
-          gasUsed: totalGas.toString(),
-        },
-        this.debugMode
-      );
+        try {
+          // Get delegatedEoa account and bundler client
+          log(
+            'estimate(): Getting delegatedEoa account and bundler client...',
+            undefined,
+            this.debugMode
+          );
+          const delegatedEoaAccount =
+            await this.etherspotProvider.getDelegatedEoaAccount(
+              transactionChainId
+            );
+          const bundlerClient =
+            await this.etherspotProvider.getBundlerClient(transactionChainId);
 
-      // Success: reset error states
-      this.isEstimating = false;
-      this.containsEstimatingError = false;
+          log(
+            'estimate(): Got delegatedEoa account and bundler client',
+            { address: delegatedEoaAccount.address },
+            this.debugMode
+          );
 
-      const result = {
-        to: this.workingTransaction?.to || '',
-        value: this.workingTransaction?.value?.toString(),
-        data: this.workingTransaction?.data,
-        chainId: this.workingTransaction!.chainId,
-        cost,
-        userOp,
-        isEstimatedSuccessfully: true,
-      };
-      log('estimate(): Returning success result.', result, this.debugMode);
-      return { ...result, ...this };
+          // Check if EOA is designated (has EIP-7702 authorization)
+          const isSmartWalletDelegated =
+            await this.isSmartWallet(transactionChainId);
+          log(
+            `estimate(): EOA designation status: ${isSmartWalletDelegated ? 'designated' : 'NOT designated'}`,
+            { isSmartWalletDelegated },
+            this.debugMode
+          );
+
+          // If EOA is not designated, return error - user must authorize first
+          if (!isSmartWalletDelegated) {
+            log(
+              'estimate(): EOA is not designated. User must authorize EIP-7702 delegation first.',
+              { eoaAddress: delegatedEoaAccount.address },
+              this.debugMode
+            );
+            return setErrorAndReturn(
+              'EOA is not yet designated as a smart account. The EOA must first authorize EIP-7702 delegation before transactions can be estimated. ' +
+                'This is a one-time authorization that designates the EOA to use smart account functionality.',
+              'VALIDATION_ERROR',
+              {}
+            );
+          }
+
+          // Prepare the call
+          const call = {
+            to: (this.workingTransaction!.to || '') as `0x${string}`,
+            value: BigInt(this.workingTransaction!.value?.toString() || '0'),
+            data: (this.workingTransaction!.data || '0x') as `0x${string}`,
+          };
+
+          log('estimate(): Prepared call', call, this.debugMode);
+
+          // Estimate gas for the user operation
+          log('estimate(): Estimating gas...', undefined, this.debugMode);
+          const gasEstimate = await bundlerClient.estimateUserOperationGas({
+            account: delegatedEoaAccount,
+            calls: [call],
+          });
+
+          log(
+            'estimate(): Got gas estimate',
+            {
+              callGasLimit: gasEstimate.callGasLimit?.toString(),
+              verificationGasLimit:
+                gasEstimate.verificationGasLimit?.toString(),
+              preVerificationGas: gasEstimate.preVerificationGas?.toString(),
+              paymasterVerificationGasLimit:
+                gasEstimate.paymasterVerificationGasLimit?.toString(),
+              paymasterPostOpGasLimit:
+                gasEstimate.paymasterPostOpGasLimit?.toString(),
+            },
+            this.debugMode
+          );
+
+          // Always use manual fee calculation for consistency and reliability
+          const publicClient =
+            await this.etherspotProvider.getPublicClient(transactionChainId);
+
+          const maxFeePerGasResponse = await publicClient.estimateFeesPerGas();
+
+          const maxFeePerGas = maxFeePerGasResponse?.maxFeePerGas || BigInt(0);
+          const maxPriorityFeePerGas =
+            maxFeePerGasResponse?.maxPriorityFeePerGas || BigInt(0);
+
+          log(
+            'estimate(): Using manual fee calculation',
+            {
+              maxPriorityFeePerGas: maxPriorityFeePerGas.toString(),
+              maxFeePerGas: maxFeePerGas.toString(),
+            },
+            this.debugMode
+          );
+
+          // Calculate total gas cost using maxFeePerGas
+          const totalGasBigInt =
+            BigInt(gasEstimate.callGasLimit || 0) +
+            BigInt(gasEstimate.verificationGasLimit || 0) +
+            BigInt(gasEstimate.preVerificationGas || 0);
+
+          // Use maxFeePerGas for cost calculation
+          const cost = totalGasBigInt * maxFeePerGas;
+
+          log(
+            'estimate(): Calculated cost',
+            {
+              totalGas: totalGasBigInt.toString(),
+              maxFeePerGas: maxFeePerGas.toString(),
+              cost: cost.toString(),
+            },
+            this.debugMode
+          );
+
+          log(
+            'estimate(): Single transaction estimated successfully (delegatedEoa)',
+            {
+              to: this.workingTransaction?.to,
+              cost: cost.toString(),
+              gasUsed: totalGasBigInt.toString(),
+            },
+            this.debugMode
+          );
+
+          // Success: reset error states
+          this.isEstimating = false;
+          this.containsEstimatingError = false;
+
+          // Get the current nonce for the smart account
+          const nonce = await publicClient.getTransactionCount({
+            address: delegatedEoaAccount.address,
+            blockTag: 'pending',
+          });
+
+          // Encode the call data for the transaction
+          const callData = await delegatedEoaAccount.encodeCalls([call]);
+
+          log(
+            'estimate(): Got UserOp data',
+            {
+              nonce: nonce.toString(),
+              callData: callData,
+              sender: delegatedEoaAccount.address,
+            },
+            this.debugMode
+          );
+
+          // Create an UserOp object
+          const userOp: UserOp = {
+            sender: delegatedEoaAccount.address,
+            nonce: BigInt(nonce),
+            callData: callData,
+            callGasLimit: gasEstimate.callGasLimit || BigInt(0),
+            verificationGasLimit: gasEstimate.verificationGasLimit || BigInt(0),
+            preVerificationGas: gasEstimate.preVerificationGas || BigInt(0),
+            maxFeePerGas: maxFeePerGas, // Use proper EIP-1559 maxFeePerGas
+            maxPriorityFeePerGas: maxPriorityFeePerGas, // Use proper EIP-1559 maxPriorityFeePerGas
+            paymasterData: '0x', // Paymaster not supported in delegatedEoa mode
+            signature: '0x', // Will be set during actual send
+            factory: undefined,
+            factoryData: undefined,
+            paymaster: undefined, // Paymaster not supported in delegatedEoa mode
+            paymasterVerificationGasLimit:
+              gasEstimate.paymasterVerificationGasLimit || BigInt(0),
+            paymasterPostOpGasLimit:
+              gasEstimate.paymasterPostOpGasLimit || BigInt(0),
+          };
+
+          const result = {
+            to: this.workingTransaction?.to || '',
+            value: this.workingTransaction?.value?.toString(),
+            data: this.workingTransaction?.data,
+            chainId: this.workingTransaction!.chainId,
+            cost,
+            userOp,
+            isEstimatedSuccessfully: true,
+          };
+          log(
+            'estimate(): Returning success result (delegatedEoa)',
+            result,
+            this.debugMode
+          );
+          return { ...result, ...this.sanitized };
+        } catch (estimationError) {
+          const errorMessage = parseEtherspotErrorMessage(
+            estimationError,
+            'Failed to estimate transaction in delegatedEoa mode!'
+          );
+
+          log(
+            'estimate(): DelegatedEoa transaction estimation failed',
+            {
+              error: errorMessage,
+            },
+            this.debugMode
+          );
+
+          return setErrorAndReturn(errorMessage, 'ESTIMATION_ERROR', {});
+        }
+      } else {
+        // Modular mode: Use Etherspot SDK
+        log(
+          'estimate(): Using modular mode for estimation',
+          undefined,
+          this.debugMode
+        );
+
+        // Get fresh SDK instance to avoid state pollution
+        log('estimate(): Getting SDK...', undefined, this.debugMode);
+        const etherspotModularSdk = await this.etherspotProvider.getSdk(
+          transactionChainId,
+          true
+        );
+        log('estimate(): Got SDK:', etherspotModularSdk, this.debugMode);
+
+        // Clear any existing operations
+        log(
+          'estimate(): Clearing user ops from batch...',
+          undefined,
+          this.debugMode
+        );
+        await etherspotModularSdk.clearUserOpsFromBatch();
+        log(
+          'estimate(): Cleared user ops from batch.',
+          undefined,
+          this.debugMode
+        );
+
+        // Add the transaction to the userOp Batch
+        log(
+          'estimate(): Adding user op to batch...',
+          this.workingTransaction,
+          this.debugMode
+        );
+        await etherspotModularSdk.addUserOpsToBatch({
+          to: this.workingTransaction.to || '',
+          value: this.workingTransaction.value.toString(),
+          data: this.workingTransaction.data,
+        });
+        log('estimate(): Added user op to batch.', undefined, this.debugMode);
+
+        // Estimate the transaction
+        log('estimate(): Estimating user op...', undefined, this.debugMode);
+        const userOp = await etherspotModularSdk.estimate({
+          paymasterDetails,
+          gasDetails,
+          callGasLimit,
+        });
+        log('estimate(): Got userOp:', userOp, this.debugMode);
+
+        // Calculate total gas cost
+        log('estimate(): Calculating total gas...', undefined, this.debugMode);
+        const totalGas = await etherspotModularSdk.totalGasEstimated(userOp);
+        log('estimate(): Got totalGas:', totalGas, this.debugMode);
+        const totalGasBigInt = BigInt(totalGas.toString());
+        const maxFeePerGasBigInt = BigInt(userOp.maxFeePerGas.toString());
+        const cost = totalGasBigInt * maxFeePerGasBigInt;
+        log('estimate(): Calculated cost:', cost, this.debugMode);
+
+        log(
+          'estimate(): Single transaction estimated successfully',
+          {
+            to: this.workingTransaction?.to,
+            cost: cost.toString(),
+            gasUsed: totalGas.toString(),
+          },
+          this.debugMode
+        );
+
+        // Success: reset error states
+        this.isEstimating = false;
+        this.containsEstimatingError = false;
+
+        const result = {
+          to: this.workingTransaction?.to || '',
+          value: this.workingTransaction?.value?.toString(),
+          data: this.workingTransaction?.data,
+          chainId: this.workingTransaction!.chainId,
+          cost,
+          userOp,
+          isEstimatedSuccessfully: true,
+        };
+        log('estimate(): Returning success result.', result, this.debugMode);
+        return { ...result, ...this.sanitized };
+      }
     } catch (error) {
       const errorMessage = parseEtherspotErrorMessage(
         error,
@@ -756,11 +1444,13 @@ export class EtherspotTransactionKit implements IInitial {
   /**
    * Estimates and sends the currently selected transaction.
    *
-   * This method validates the current transaction context, estimates the transaction using the Etherspot SDK, and then sends it to the network. It is designed to be called after a transaction has been specified and named. The method enforces several rules and will throw or return errors in specific scenarios.
+   * This method validates the current transaction context, estimates, and submits the transaction using:
+   * - modular mode: the Etherspot Modular SDK batch and send flow
+   * - delegatedEoa mode: viem account abstraction with EIP-7702; requires prior designation
    *
    * @param params - (Optional) Send parameters:
-   *   - `paymasterDetails`: Paymaster API details for sponsored transactions.
-   *   - `userOpOverrides`: Optional overrides for the user operation fields.
+   *   - `paymasterDetails`: Paymaster API details for sponsored transactions. Not supported in delegatedEoa mode (validation error).
+   *   - `userOpOverrides`: Optional overrides for user operation fields. Not supported in delegatedEoa mode (validation error).
    *
    * @returns A promise that resolves to a `TransactionSendResult` combined with `ISentTransaction`, containing:
    *   - Transaction details (to, value, data, chainId)
@@ -770,7 +1460,7 @@ export class EtherspotTransactionKit implements IInitial {
    *   - `isEstimatedSuccessfully` and `isSentSuccessfully` flags
    *
    * @throws {Error} If:
-   *   - A batch is currently selected (sending of batches must use `sendBatches()`).
+   *   - A batch is currently selected (use `sendBatches()` instead).
    *   - There is no named transaction to send.
    *   - The provider is not available or misconfigured.
    *
@@ -791,6 +1481,10 @@ export class EtherspotTransactionKit implements IInitial {
    * - **Usage:**
    *   - Call after specifying and naming a transaction.
    *   - For batch sending, use `sendBatches()` instead.
+   * - **delegatedEoa mode:**
+   *   - Requires the EOA to be designated (EIP-7702). If not, returns a validation error instructing to authorize first.
+   *   - Obtains the delegated EOA account and bundler client to submit a UserOp.
+   *   - `paymasterDetails` and `userOpOverrides` are not supported.
    */
   async send({
     paymasterDetails,
@@ -818,27 +1512,33 @@ export class EtherspotTransactionKit implements IInitial {
         result,
         this.debugMode
       );
-      return { ...result, ...this };
+      return { ...result, ...this.sanitized };
     }
 
-    log('send(): Getting provider...', undefined, this.debugMode);
-    const provider = this.getProvider();
-    log('send(): Got provider:', provider, this.debugMode);
-    if (!provider) {
-      log(
-        'send(): No Web3 provider available. This is a critical configuration error.',
-        undefined,
-        this.debugMode
-      );
-      this.isSending = false;
-      this.containsSendingError = true;
-      this.throwError(
-        'send(): No Web3 provider available. This is a critical configuration error.'
-      );
+    // Only validate provider in modular mode
+    const walletMode = this.etherspotProvider.getWalletMode();
+    if (walletMode === 'modular') {
+      log('send(): Getting provider...', undefined, this.debugMode);
+      const provider = this.getProvider();
+      log('send(): Got provider:', provider, this.debugMode);
+      if (!provider) {
+        log(
+          'send(): No Web3 provider available. This is a critical configuration error.',
+          undefined,
+          this.debugMode
+        );
+        this.isSending = false;
+        this.containsSendingError = true;
+        this.throwError(
+          'send(): No Web3 provider available. This is a critical configuration error.'
+        );
+      }
     }
 
     this.isSending = true;
     this.containsSendingError = false;
+
+    log(`send(): Wallet mode: ${walletMode}`, undefined, this.debugMode);
 
     // Helper function to set error state and return
     const setErrorAndReturn = (
@@ -860,173 +1560,465 @@ export class EtherspotTransactionKit implements IInitial {
         ...partialResult,
       };
       log('send(): Returning error result.', result, this.debugMode);
-      return { ...result, ...this };
+      return { ...result, ...this.sanitized };
     };
 
     try {
-      // Get fresh SDK instance to avoid state pollution
-      log('send(): Getting SDK...', undefined, this.debugMode);
       const transactionChainId = this.workingTransaction!.chainId;
-      const etherspotModularSdk = await this.etherspotProvider.getSdk(
-        transactionChainId,
-        true
-      );
-      log('send(): Got SDK:', etherspotModularSdk, this.debugMode);
 
-      // Clear any existing operations
-      log('send(): Clearing user ops from batch...', undefined, this.debugMode);
-      await etherspotModularSdk.clearUserOpsFromBatch();
-      log('send(): Cleared user ops from batch.', undefined, this.debugMode);
+      if (walletMode === 'delegatedEoa') {
+        // DelegatedEoa mode: Use viem account abstraction
+        log(
+          'send(): Using delegatedEoa mode for sending',
+          undefined,
+          this.debugMode
+        );
 
-      // Add the transaction to the userOp Batch
-      log(
-        'send(): Adding user op to batch...',
-        this.workingTransaction,
-        this.debugMode
-      );
-      await etherspotModularSdk.addUserOpsToBatch({
-        to: this.workingTransaction?.to || '',
-        value: this.workingTransaction?.value?.toString(),
-        data: this.workingTransaction?.data || '0x',
-      });
-      log('send(): Added user op to batch.', undefined, this.debugMode);
+        // Validate that unsupported parameters are not provided in delegatedEoa mode
+        if (paymasterDetails) {
+          return setErrorAndReturn(
+            'paymasterDetails is not yet supported in delegatedEoa mode.',
+            'VALIDATION_ERROR',
+            {}
+          );
+        }
 
-      // Estimate the transaction
-      let estimatedUserOp;
-      try {
-        log('send(): Estimating user op...', undefined, this.debugMode);
-        estimatedUserOp = await etherspotModularSdk.estimate({
-          paymasterDetails,
+        if (userOpOverrides) {
+          return setErrorAndReturn(
+            'userOpOverrides is not yet supported in delegatedEoa mode.',
+            'VALIDATION_ERROR',
+            {}
+          );
+        }
+
+        try {
+          // Get delegatedEoa account and bundler client
+          log(
+            'send(): Getting delegatedEoa account and bundler client...',
+            undefined,
+            this.debugMode
+          );
+          const delegatedEoaAccount =
+            await this.etherspotProvider.getDelegatedEoaAccount(
+              transactionChainId
+            );
+          const bundlerClient =
+            await this.etherspotProvider.getBundlerClient(transactionChainId);
+
+          log(
+            'send(): Got delegatedEoa account and bundler client',
+            {
+              address: delegatedEoaAccount.address,
+              chainId: transactionChainId,
+            },
+            this.debugMode
+          );
+
+          // Check if EOA is designated (has EIP-7702 authorization)
+          log(
+            'send(): Checking EOA designation status...',
+            undefined,
+            this.debugMode
+          );
+          const isSmartWalletDelegated =
+            await this.isSmartWallet(transactionChainId);
+          log(
+            `send(): EOA designation status: ${isSmartWalletDelegated ? 'designated' : 'NOT designated'}`,
+            { isSmartWalletDelegated },
+            this.debugMode
+          );
+
+          // If EOA is not designated, return error - user must authorize first
+          if (!isSmartWalletDelegated) {
+            log(
+              'send(): EOA is not designated. User must authorize EIP-7702 delegation first.',
+              { eoaAddress: delegatedEoaAccount.address },
+              this.debugMode
+            );
+            return setErrorAndReturn(
+              'EOA is not yet designated as a smart account. The EOA must first authorize EIP-7702 delegation before transactions can be sent. ' +
+                'This is a one-time authorization that designates the EOA to use smart account functionality.',
+              'VALIDATION_ERROR',
+              {}
+            );
+          }
+
+          // Prepare the call
+          const call = {
+            to: (this.workingTransaction!.to || '') as `0x${string}`,
+            value: BigInt(this.workingTransaction!.value?.toString() || '0'),
+            data: (this.workingTransaction!.data || '0x') as `0x${string}`,
+          };
+
+          log('send(): Prepared call for delegatedEoa', call, this.debugMode);
+
+          // Send the user operation
+          let userOpHash: string;
+          try {
+            log('send(): Sending user operation...', undefined, this.debugMode);
+            userOpHash = await bundlerClient.sendUserOperation({
+              account: delegatedEoaAccount,
+              calls: [call],
+            });
+            log('send(): Got userOpHash:', userOpHash, this.debugMode);
+          } catch (sendError) {
+            const sendErrorMessage = parseEtherspotErrorMessage(
+              sendError,
+              'Failed to send transaction in delegatedEoa mode!'
+            );
+
+            log(
+              'send(): Transaction send failed (delegatedEoa)',
+              {
+                error: sendErrorMessage,
+              },
+              this.debugMode
+            );
+            return setErrorAndReturn(sendErrorMessage, 'SEND_ERROR', {
+              to: this.workingTransaction?.to,
+              value: this.workingTransaction?.value?.toString(),
+              data: this.workingTransaction?.data,
+              chainId:
+                this.workingTransaction?.chainId ??
+                this.etherspotProvider.getChainId(),
+              isEstimatedSuccessfully: false,
+              isSentSuccessfully: false,
+            });
+          }
+
+          log(
+            'send(): Single transaction sent successfully',
+            {
+              to: this.workingTransaction?.to,
+              userOpHash,
+            },
+            this.debugMode
+          );
+
+          // Try to get the user operation details with retries
+          // The bundler needs time to process the userOp after it's sent
+          let userOpDetails = null;
+          const maxRetries = 3;
+          const retryDelay = 4000; // 4 seconds between retries
+
+          for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+              // Wait for the bundler to process the userOp
+              await new Promise((resolve) => setTimeout(resolve, retryDelay));
+
+              log(
+                `send(): Attempting to get user operation details (attempt ${attempt}/${maxRetries})...`,
+                { userOpHash },
+                this.debugMode
+              );
+
+              userOpDetails = await bundlerClient.getUserOperation({
+                hash: userOpHash as `0x${string}`,
+              });
+
+              log(
+                'send(): Got user operation details:',
+                userOpDetails,
+                this.debugMode
+              );
+              break; // Success, exit the retry loop
+            } catch (getUserOpError) {
+              log(
+                `send(): Attempt ${attempt} failed to retrieve user operation details:`,
+                getUserOpError,
+                this.debugMode
+              );
+
+              if (attempt === maxRetries) {
+                log(
+                  'send(): All attempts failed to retrieve user operation details. But the transaction was sent successfully.',
+                  undefined,
+                  this.debugMode
+                );
+              }
+            }
+          }
+
+          // Success: reset error states
+          this.isSending = false;
+          this.containsSendingError = false;
+
+          // Save transaction data before clearing state
+          const successResult = {
+            to: this.workingTransaction?.to || '',
+            value: this.workingTransaction?.value?.toString(),
+            data: this.workingTransaction?.data,
+            chainId:
+              this.workingTransaction?.chainId ||
+              this.etherspotProvider.getChainId(),
+          };
+
+          // Remove transaction from state after successful send
+          const transactionName = this.selectedTransactionName;
+          if (transactionName && this.namedTransactions[transactionName]) {
+            const transaction = this.namedTransactions[transactionName];
+            delete this.namedTransactions[transactionName];
+            if (transaction.batchName && this.batches[transaction.batchName]) {
+              this.batches[transaction.batchName] = this.batches[
+                transaction.batchName
+              ].filter((tx) => tx.transactionName !== transactionName);
+              if (this.batches[transaction.batchName].length === 0) {
+                delete this.batches[transaction.batchName];
+              }
+            }
+          }
+          this.clearWorkingState();
+
+          // Calculate cost and create proper UserOp object from userOp details if available
+          let cost = undefined;
+          let userOp = undefined;
+
+          if (userOpDetails?.userOperation) {
+            const viemUserOp = userOpDetails.userOperation;
+
+            // Calculate total cost
+            const totalGas =
+              viemUserOp.callGasLimit +
+              viemUserOp.verificationGasLimit +
+              viemUserOp.preVerificationGas;
+            cost = totalGas * viemUserOp.maxFeePerGas;
+
+            // Convert Viem UserOp to our UserOp
+            userOp = {
+              sender: viemUserOp.sender,
+              nonce: viemUserOp.nonce,
+              callData: viemUserOp.callData,
+              callGasLimit: viemUserOp.callGasLimit,
+              verificationGasLimit: viemUserOp.verificationGasLimit,
+              preVerificationGas: viemUserOp.preVerificationGas,
+              maxFeePerGas: viemUserOp.maxFeePerGas,
+              maxPriorityFeePerGas: viemUserOp.maxPriorityFeePerGas,
+              paymasterData: viemUserOp.paymasterAndData || '0x',
+              signature: viemUserOp.signature,
+              factory: viemUserOp.factory || undefined,
+              factoryData: viemUserOp.factoryData || undefined,
+              paymaster: undefined,
+              paymasterVerificationGasLimit:
+                viemUserOp.paymasterVerificationGasLimit,
+              paymasterPostOpGasLimit: viemUserOp.paymasterPostOpGasLimit,
+            };
+
+            log(
+              'send(): Calculated cost from userOp details:',
+              {
+                totalGas: totalGas.toString(),
+                maxFeePerGas: viemUserOp.maxFeePerGas.toString(),
+                cost: cost.toString(),
+              },
+              this.debugMode
+            );
+          }
+
+          const result = {
+            ...successResult,
+            cost,
+            userOp,
+            userOpHash,
+            isEstimatedSuccessfully: false,
+            isSentSuccessfully: true,
+          };
+
+          log(
+            'send(): Returning success result (delegatedEoa).',
+            result,
+            this.debugMode
+          );
+          return { ...result, ...this.sanitized };
+        } catch (setupError) {
+          const errorMessage = parseEtherspotErrorMessage(
+            setupError,
+            'Failed to setup or send transaction in delegatedEoa mode!'
+          );
+
+          log(
+            'send(): Setup or send failed (delegatedEoa)',
+            { error: errorMessage },
+            this.debugMode
+          );
+
+          return setErrorAndReturn(errorMessage, 'SEND_ERROR', {});
+        }
+      } else {
+        // Modular mode: Use Etherspot SDK
+        log(
+          'send(): Using modular mode for sending',
+          undefined,
+          this.debugMode
+        );
+
+        // Get fresh SDK instance to avoid state pollution
+        log('send(): Getting SDK...', undefined, this.debugMode);
+        const etherspotModularSdk = await this.etherspotProvider.getSdk(
+          transactionChainId,
+          true
+        );
+        log('send(): Got SDK:', etherspotModularSdk, this.debugMode);
+
+        // Clear any existing operations
+        log(
+          'send(): Clearing user ops from batch...',
+          undefined,
+          this.debugMode
+        );
+        await etherspotModularSdk.clearUserOpsFromBatch();
+        log('send(): Cleared user ops from batch.', undefined, this.debugMode);
+
+        // Add the transaction to the userOp Batch
+        log(
+          'send(): Adding user op to batch...',
+          this.workingTransaction,
+          this.debugMode
+        );
+        await etherspotModularSdk.addUserOpsToBatch({
+          to: this.workingTransaction?.to || '',
+          value: this.workingTransaction?.value?.toString(),
+          data: this.workingTransaction?.data || '0x',
         });
-        log('send(): Got estimated userOp:', estimatedUserOp, this.debugMode);
-      } catch (estimationError) {
-        const estimationErrorMessage = parseEtherspotErrorMessage(
-          estimationError,
-          'Failed to estimate transaction before sending.'
-        );
+        log('send(): Added user op to batch.', undefined, this.debugMode);
+
+        // Estimate the transaction
+        let estimatedUserOp;
+        try {
+          log('send(): Estimating user op...', undefined, this.debugMode);
+          estimatedUserOp = await etherspotModularSdk.estimate({
+            paymasterDetails,
+          });
+          log('send(): Got estimated userOp:', estimatedUserOp, this.debugMode);
+        } catch (estimationError) {
+          const estimationErrorMessage = parseEtherspotErrorMessage(
+            estimationError,
+            'Failed to estimate transaction before sending.'
+          );
+          log(
+            'send(): Transaction estimation before send failed',
+            {
+              error: estimationErrorMessage,
+            },
+            this.debugMode
+          );
+          log(
+            'send(): Returning error result from estimation catch.',
+            estimationErrorMessage,
+            this.debugMode
+          );
+          return setErrorAndReturn(
+            estimationErrorMessage,
+            'ESTIMATION_ERROR',
+            {}
+          );
+        }
+
+        // Apply any user overrides to the UserOp
+        const finalUserOp = { ...estimatedUserOp, ...userOpOverrides };
+        log('send(): Final userOp for sending:', finalUserOp, this.debugMode);
+
+        // Calculate total gas cost (using the final UserOp values)
+        log('send(): Calculating total gas...', undefined, this.debugMode);
+        const totalGas =
+          await etherspotModularSdk.totalGasEstimated(finalUserOp);
+        log('send(): Got totalGas:', totalGas, this.debugMode);
+        const totalGasBigInt = BigInt(totalGas.toString());
+        const maxFeePerGasBigInt = BigInt(finalUserOp.maxFeePerGas.toString());
+        const cost = totalGasBigInt * maxFeePerGasBigInt;
+        log('send(): Calculated cost:', cost, this.debugMode);
+
         log(
-          'send(): Transaction estimation before send failed',
+          'send(): Single transaction estimated, now sending...',
           {
-            error: estimationErrorMessage,
+            to: this.workingTransaction?.to,
+            cost: cost.toString(),
+            gasUsed: totalGas.toString(),
+            userOpOverrides,
           },
           this.debugMode
         );
-        log(
-          'send(): Returning error result from estimation catch.',
-          estimationErrorMessage,
-          this.debugMode
-        );
-        return setErrorAndReturn(
-          estimationErrorMessage,
-          'ESTIMATION_ERROR',
-          {}
-        );
-      }
 
-      // Apply any user overrides to the UserOp
-      const finalUserOp = { ...estimatedUserOp, ...userOpOverrides };
-      log('send(): Final userOp for sending:', finalUserOp, this.debugMode);
+        // Send the transaction
+        let userOpHash: string;
+        try {
+          log('send(): Sending userOp...', undefined, this.debugMode);
+          userOpHash = await etherspotModularSdk.send(finalUserOp);
+          log('send(): Got userOpHash:', userOpHash, this.debugMode);
+        } catch (sendError) {
+          const sendErrorMessage = parseEtherspotErrorMessage(
+            sendError,
+            'Failed to send transaction!'
+          );
 
-      // Calculate total gas cost (using the final UserOp values)
-      log('send(): Calculating total gas...', undefined, this.debugMode);
-      const totalGas = await etherspotModularSdk.totalGasEstimated(finalUserOp);
-      log('send(): Got totalGas:', totalGas, this.debugMode);
-      const totalGasBigInt = BigInt(totalGas.toString());
-      const maxFeePerGasBigInt = BigInt(finalUserOp.maxFeePerGas.toString());
-      const cost = totalGasBigInt * maxFeePerGasBigInt;
-      log('send(): Calculated cost:', cost, this.debugMode);
-
-      log(
-        'send(): Single transaction estimated, now sending...',
-        {
-          to: this.workingTransaction?.to,
-          cost: cost.toString(),
-          gasUsed: totalGas.toString(),
-          userOpOverrides,
-        },
-        this.debugMode
-      );
-
-      // Send the transaction
-      let userOpHash: string;
-      try {
-        log('send(): Sending userOp...', undefined, this.debugMode);
-        userOpHash = await etherspotModularSdk.send(finalUserOp);
-        log('send(): Got userOpHash:', userOpHash, this.debugMode);
-      } catch (sendError) {
-        const sendErrorMessage = parseEtherspotErrorMessage(
-          sendError,
-          'Failed to send transaction!'
-        );
+          log(
+            'send(): Transaction send failed',
+            {
+              error: sendErrorMessage,
+            },
+            this.debugMode
+          );
+          return setErrorAndReturn(sendErrorMessage, 'SEND_ERROR', {
+            to: this.workingTransaction?.to,
+            value: this.workingTransaction?.value?.toString(),
+            data: this.workingTransaction?.data,
+            chainId:
+              this.workingTransaction?.chainId ??
+              this.etherspotProvider.getChainId(),
+            cost,
+            userOp: finalUserOp,
+            isEstimatedSuccessfully: true,
+            isSentSuccessfully: false,
+          });
+        }
 
         log(
-          'send(): Transaction send failed',
+          'send(): Single transaction sent successfully',
           {
-            error: sendErrorMessage,
+            to: this.workingTransaction?.to,
+            userOpHash,
           },
           this.debugMode
         );
-        return setErrorAndReturn(sendErrorMessage, 'SEND_ERROR', {
-          to: this.workingTransaction?.to,
+
+        // Success: reset error states
+        this.isSending = false;
+        this.containsSendingError = false;
+
+        // Save transaction data before clearing state
+        const successResult = {
+          to: this.workingTransaction?.to || '',
           value: this.workingTransaction?.value?.toString(),
           data: this.workingTransaction?.data,
-          chainId:
-            this.workingTransaction?.chainId ??
-            this.etherspotProvider.getChainId(),
-          cost,
-          userOp: finalUserOp,
-          isEstimatedSuccessfully: true,
-          isSentSuccessfully: false,
-        });
-      }
+          chainId: this.workingTransaction!.chainId,
+        };
 
-      log(
-        'send(): Single transaction sent successfully',
-        {
-          to: this.workingTransaction?.to,
-          userOpHash,
-        },
-        this.debugMode
-      );
-
-      // Success: reset error states
-      this.isSending = false;
-      this.containsSendingError = false;
-
-      // Save transaction data before clearing state
-      const successResult = {
-        to: this.workingTransaction?.to || '',
-        value: this.workingTransaction?.value?.toString(),
-        data: this.workingTransaction?.data,
-        chainId: this.workingTransaction!.chainId,
-      };
-
-      // Remove transaction from state after successful send
-      const transactionName = this.selectedTransactionName;
-      if (transactionName && this.namedTransactions[transactionName]) {
-        const transaction = this.namedTransactions[transactionName];
-        delete this.namedTransactions[transactionName];
-        if (transaction.batchName && this.batches[transaction.batchName]) {
-          this.batches[transaction.batchName] = this.batches[
-            transaction.batchName
-          ].filter((tx) => tx.transactionName !== transactionName);
-          if (this.batches[transaction.batchName].length === 0) {
-            delete this.batches[transaction.batchName];
+        // Remove transaction from state after successful send
+        const transactionName = this.selectedTransactionName;
+        if (transactionName && this.namedTransactions[transactionName]) {
+          const transaction = this.namedTransactions[transactionName];
+          delete this.namedTransactions[transactionName];
+          if (transaction.batchName && this.batches[transaction.batchName]) {
+            this.batches[transaction.batchName] = this.batches[
+              transaction.batchName
+            ].filter((tx) => tx.transactionName !== transactionName);
+            if (this.batches[transaction.batchName].length === 0) {
+              delete this.batches[transaction.batchName];
+            }
           }
         }
-      }
-      this.clearWorkingState();
+        this.clearWorkingState();
 
-      const result = {
-        ...successResult,
-        cost,
-        userOp: finalUserOp,
-        userOpHash,
-        isEstimatedSuccessfully: true,
-        isSentSuccessfully: true,
-      };
-      log('send(): Returning success result.', result, this.debugMode);
-      return { ...result, ...this };
+        const result = {
+          ...successResult,
+          cost,
+          userOp: finalUserOp,
+          userOpHash,
+          isEstimatedSuccessfully: true,
+          isSentSuccessfully: true,
+        };
+        log('send(): Returning success result.', result, this.debugMode);
+        return { ...result, ...this.sanitized };
+      }
     } catch (error) {
       const errorMessage = parseEtherspotErrorMessage(
         error,

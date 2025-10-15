@@ -10,8 +10,8 @@ import { getNetworkConfig } from './network';
  */
 export class BundlerConfig {
   readonly url: string;
-  readonly apiKey: string | undefined;
   readonly chainId: string;
+  private readonly _apiKey: string | undefined;
 
   /**
    * Creates a BundlerConfig instance.
@@ -35,7 +35,7 @@ export class BundlerConfig {
     apiKeyFormat?: string
   ) {
     this.chainId = chainId.toString();
-    this.apiKey = apiKey;
+    this._apiKey = apiKey;
 
     // Get bundler URL from network config if not provided
     if (!bundlerUrl) {
@@ -47,16 +47,16 @@ export class BundlerConfig {
     }
 
     // Append API key if provided
-    if (apiKey) {
+    if (this._apiKey) {
       if (apiKeyFormat) {
         // Use custom format - just concatenate bundlerUrl + apiKeyFormat + apiKey
         // This gives maximum flexibility for any format (/, ?, &, etc.)
-        this.url = bundlerUrl + apiKeyFormat + apiKey;
+        this.url = bundlerUrl + apiKeyFormat + this._apiKey;
       } else {
         if (bundlerUrl.includes('?api-key=')) {
-          this.url = bundlerUrl + apiKey;
+          this.url = bundlerUrl + this._apiKey;
         } else {
-          this.url = `${bundlerUrl}?api-key=${apiKey}`;
+          this.url = `${bundlerUrl}?api-key=${this._apiKey}`;
         }
       }
     } else {
