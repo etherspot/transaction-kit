@@ -248,9 +248,24 @@ export interface TransactionSendResult {
 export interface BatchSendResult {
   batches: {
     [batchName: string]: {
+      // Flattened list of all transactions results across chain groups
       transactions: TransactionSendResult[];
-      userOpHash?: string;
+      // Per-chain group results within this batch
+      chainGroups?: {
+        [chainId: number]: {
+          transactions: TransactionSendResult[];
+          userOpHash?: string;
+          totalCost?: bigint;
+          errorMessage?: string;
+          isEstimatedSuccessfully: boolean;
+          isSentSuccessfully: boolean;
+        };
+      };
+      // Sum of all successful chain group total costs
+      totalCost?: bigint;
+      // Present when the overall batch sending failed (e.g., at least one chain group failed)
       errorMessage?: string;
+      // True only if all chain groups in this batch sent successfully
       isEstimatedSuccessfully: boolean;
       isSentSuccessfully: boolean;
     };
@@ -262,9 +277,22 @@ export interface BatchSendResult {
 export interface BatchEstimateResult {
   batches: {
     [batchName: string]: {
+      // Flattened list of all transactions results across chain groups
       transactions: TransactionEstimateResult[];
+      // Per-chain group results within this batch
+      chainGroups?: {
+        [chainId: number]: {
+          transactions: TransactionEstimateResult[];
+          totalCost?: bigint;
+          errorMessage?: string;
+          isEstimatedSuccessfully: boolean;
+        };
+      };
+      // Sum of all successful chain group total costs
       totalCost?: bigint;
+      // Present when the overall batch estimation failed (e.g., at least one chain group failed)
       errorMessage?: string;
+      // True only if all chain groups in this batch estimated successfully
       isEstimatedSuccessfully: boolean;
     };
   };

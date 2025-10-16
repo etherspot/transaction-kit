@@ -2035,49 +2035,95 @@ export class EtherspotTransactionKit implements IInitial {
   }
 
   /**
-   * Estimates the gas and cost for all specified or existing batches of transactions.
+   * Estimates gas and cost for all batches of transactions.
    *
-   * This method validates the batch context and uses the Etherspot SDK to estimate the gas and cost for each transaction in the specified batches (or all batches if none are specified). It enforces several rules and will throw or return errors in specific scenarios.
+   * Provides comprehensive batch estimation with support for both modular and delegatedEoa wallet modes. Groups transactions by chainId for efficient multi-chain processing and aggregates results at both chain group and batch levels.
    *
    * @param params - (Optional) Estimation parameters:
-   *   - `onlyBatchNames`: An array of batch names to estimate. If omitted, all batches are estimated.
-   *   - `paymasterDetails`: Paymaster API details for sponsored transactions.
+   *   - `onlyBatchNames`: Array of batch names to estimate. If omitted, all batches are estimated.
+   *   - `paymasterDetails`: Paymaster API details for sponsored transactions (modular mode only).
    *
    * @returns A promise that resolves to a `BatchEstimateResult` containing:
-   *   - A mapping of batch names to their estimation results (transactions, totalCost, errorMessage, isEstimatedSuccessfully)
-   *   - An overall `isEstimatedSuccessfully` flag
+   *   - A mapping of batch names to their estimation results with chain group breakdown
+   *   - Each batch result includes: transactions, chainGroups, totalCost, errorMessage, isEstimatedSuccessfully
+   *   - An overall `isEstimatedSuccessfully` flag indicating if all batches were estimated successfully
    *
-   * @throws {Error} If the provider is not available or misconfigured.
+   * @throws {Error} If provider is unavailable (modular mode) or another estimation is in progress.
    *
    * @remarks
-   * - **Validation rules:**
-   *   - Throws if the provider is not available.
-   *   - Returns an error result for any batch that does not exist or is empty.
-   * - **Error handling:**
-   *   - If estimation fails for a batch, the error is logged and a result object with error details is returned for that batch (not thrown).
-   *   - The returned object always includes an `isEstimatedSuccessfully` flag for each batch and overall.
-   * - **Chaining:**
-   *   - This method is chainable and can be used as part of a batch transaction flow.
-   * - **Side effects:**
-   *   - Updates internal error state flags (`isEstimating`, `containsEstimatingError`).
-   *   - May perform network requests and SDK initialization.
+   * - **Wallet Mode Support:**
+   *   - **Modular Mode**: Uses Etherspot SDK for estimation with full paymaster support
+   *   - **DelegatedEoa Mode**: Uses viem bundler client for EIP-7702 account abstraction estimation
+   * - **Multi-Chain Processing:**
+   *   - Automatically groups transactions by chainId for separate estimation per chain
+   *   - Each chain group is processed independently with its own SDK/client instance
+   *   - Supports mixed-chain batches with proper cost aggregation
+   * - **EIP-7702 Validation (DelegatedEoa Mode):**
+   *   - Validates EOA designation before estimation using `isSmartWallet()` check
+   *   - Requires prior authorization via `installSmartWallet()` method
+   * - **Cost Aggregation:**
+   *   - Tracks costs at both chain group and batch levels
+   *   - Calculates total costs using current gas prices from `estimateFeesPerGas()`
+   *   - Includes call gas, verification gas, and pre-verification gas in total cost
+   * - **Error Handling:**
+   *   - Returns error results instead of throwing for most validation failures
+   *   - Failed chain groups don't prevent other chain groups from being processed
+   *   - Only throws for critical configuration errors (missing provider, concurrent operations)
    * - **Usage:**
-   *   - Call to estimate gas and cost for multiple transactions grouped in batches.
-   *   - For single transaction estimation, use `estimate()` instead.
+   *   - Essential before calling `sendBatches()` for cost verification
+   *   - For single transaction estimation, use `estimate()` instead
    */
   async estimateBatches({
     onlyBatchNames,
     paymasterDetails,
   }: EstimateBatchesParams = {}): Promise<BatchEstimateResult> {
+    // ========================================================================
+    // STEP 1: INPUT VALIDATION AND SETUP
+    // ========================================================================
+
+    // Prevent concurrent estimations to avoid race conditions
+    if (this.isEstimating) {
+      this.throwError(
+        'Another estimation is already in progress. Please wait for it to complete.'
+      );
+    }
+
+    // Validate onlyBatchNames parameter if provided
+    if (onlyBatchNames) {
+      if (!Array.isArray(onlyBatchNames)) {
+        this.throwError('onlyBatchNames must be an array of strings');
+      }
+      onlyBatchNames.forEach((name, index) => {
+        if (typeof name !== 'string' || name.trim() === '') {
+          this.throwError(
+            `onlyBatchNames[${index}] must be a non-empty string`
+          );
+        }
+      });
+    }
+
+    // Set estimation state flags
     this.isEstimating = true;
     this.containsEstimatingError = false;
 
+    const walletMode = this.etherspotProvider.getWalletMode();
+    log(
+      `estimateBatches(): Wallet mode: ${walletMode}`,
+      undefined,
+      this.debugMode
+    );
+
+    // Initialize result structure
     const result: BatchEstimateResult = {
       batches: {},
       isEstimatedSuccessfully: true,
     };
 
-    // Determine which batches to estimate
+    // ========================================================================
+    // STEP 2: DETERMINE BATCHES TO ESTIMATE
+    // ========================================================================
+
+    // Use provided batch names or estimate all existing batches
     const batchesToEstimate = onlyBatchNames || Object.keys(this.batches);
 
     if (batchesToEstimate.length === 0) {
@@ -2086,269 +2132,747 @@ export class EtherspotTransactionKit implements IInitial {
       return result;
     }
 
-    // Get the provider
-    const provider = this.getProvider();
-    // Validation: if there is no provider, return error
-    if (!provider) {
+    // ========================================================================
+    // STEP 3: MODE-SPECIFIC VALIDATION
+    // ========================================================================
+
+    // Modular mode requires a Web3 provider for SDK operations
+    if (walletMode === 'modular') {
+      // Get the provider
+      const provider = this.getProvider();
+      // Validation: if there is no provider, return error
+      if (!provider) {
+        log(
+          'estimateBatches(): No Web3 provider available. This is a critical configuration error.',
+          undefined,
+          this.debugMode
+        );
+        this.isEstimating = false;
+        this.containsEstimatingError = true;
+        this.throwError(
+          'estimateBatches(): No Web3 provider available. This is a critical configuration error.'
+        );
+      }
+    }
+
+    // ========================================================================
+    // STEP 4: ESTIMATION EXECUTION (MODE-SPECIFIC)
+    // ========================================================================
+
+    if (walletMode === 'delegatedEoa') {
+      // DELEGATED EOA MODE: Use viem account abstraction with EIP-7702
       log(
-        'estimateBatches(): No Web3 provider available. This is a critical configuration error.',
+        'estimateBatches(): Using delegatedEoa mode for batch estimation',
         undefined,
         this.debugMode
       );
-      this.isEstimating = false;
-      this.containsEstimatingError = true;
-      this.throwError(
-        'estimateBatches(): No Web3 provider available. This is a critical configuration error.'
-      );
-    }
 
-    await Promise.all(
-      batchesToEstimate.map(async (batchName: string) => {
-        if (!this.batches[batchName] || this.batches[batchName].length === 0) {
-          result.batches[batchName] = {
-            transactions: [],
-            errorMessage: `Batch '${batchName}' does not exist or is empty`,
-            isEstimatedSuccessfully: false,
-          };
-          result.isEstimatedSuccessfully = false;
-          return;
-        }
+      // Process all batches in parallel (each batch is independent)
+      await Promise.all(
+        batchesToEstimate.map(async (batchName: string) => {
+          // ====================================================================
+          // BATCH VALIDATION AND SETUP
+          // ====================================================================
 
-        const batchTransactions = this.batches[batchName];
-        const estimatedTransactions: TransactionEstimateResult[] = [];
-
-        // Get chain ID from first transaction or use provider default
-        const batchChainId =
-          batchTransactions[0]?.chainId ?? this.etherspotProvider.getChainId();
-
-        try {
-          // Get fresh SDK instance to avoid state pollution (same as original)
-          log(
-            `estimateBatches(): Getting SDK for batch ${batchName}...`,
-            undefined,
-            this.debugMode
-          );
-          const etherspotModularSdk = await this.etherspotProvider.getSdk(
-            batchChainId,
-            true // force new instance
-          );
-          log(
-            `estimateBatches(): Got SDK for batch ${batchName}:`,
-            etherspotModularSdk,
-            this.debugMode
-          );
-
-          // Clear any existing operations
-          log(
-            `estimateBatches(): Clearing user ops from batch ${batchName}...`,
-            undefined,
-            this.debugMode
-          );
-          await etherspotModularSdk.clearUserOpsFromBatch();
-          log(
-            `estimateBatches(): Cleared user ops from batch ${batchName}.`,
-            undefined,
-            this.debugMode
-          );
-
-          // Add all transactions in the batch to the SDK
-          log(
-            `estimateBatches(): Adding ${batchTransactions.length} transactions to batch ${batchName}...`,
-            undefined,
-            this.debugMode
-          );
-          await Promise.all(
-            batchTransactions.map(async (tx) => {
-              log(
-                `estimateBatches(): Adding transaction ${tx.transactionName} to batch ${batchName}...`,
-                undefined,
-                this.debugMode
-              );
-              await etherspotModularSdk.addUserOpsToBatch({
-                to: tx.to || '',
-                value: tx.value?.toString(),
-                data: tx.data,
-              });
-              log(
-                `estimateBatches(): Added transaction ${tx.transactionName} to batch ${batchName}.`,
-                undefined,
-                this.debugMode
-              );
-            })
-          );
-          log(
-            `estimateBatches(): Added all transactions to batch ${batchName}.`,
-            undefined,
-            this.debugMode
-          );
-
-          // Estimate the entire batch
-          log(
-            `estimateBatches(): Estimating batch ${batchName}...`,
-            undefined,
-            this.debugMode
-          );
-          const userOp = await etherspotModularSdk.estimate({
-            paymasterDetails,
-          });
-          log(
-            `estimateBatches(): Got userOp for batch ${batchName}:`,
-            userOp,
-            this.debugMode
-          );
-
-          // Calculate total gas cost for the batch
-          log(
-            `estimateBatches(): Calculating total gas for batch ${batchName}...`,
-            undefined,
-            this.debugMode
-          );
-          const totalGas = await etherspotModularSdk.totalGasEstimated(userOp);
-          log(
-            `estimateBatches(): Got totalGas for batch ${batchName}:`,
-            totalGas,
-            this.debugMode
-          );
-          const totalGasBigInt = BigInt(totalGas.toString());
-          const maxFeePerGasBigInt = BigInt(userOp.maxFeePerGas.toString());
-          const totalCost = totalGasBigInt * maxFeePerGasBigInt;
-          log(
-            `estimateBatches(): Calculated total cost for batch ${batchName}:`,
-            totalCost,
-            this.debugMode
-          );
-
-          // Create estimates for each transaction in the batch
-          batchTransactions.forEach((tx) => {
-            const resultObj = {
-              to: tx.to || '',
-              value: tx.value?.toString(),
-              data: tx.data,
-              chainId: tx.chainId || batchChainId,
-              cost: totalCost,
-              userOp,
-              isEstimatedSuccessfully: true,
-            };
-            estimatedTransactions.push(resultObj);
-            log(
-              `estimateBatches(): Batch '${batchName}': Transaction '${tx.transactionName}' estimated successfully.`,
-              { transaction: tx, result: resultObj },
-              this.debugMode
-            );
-          });
-
-          result.batches[batchName] = {
-            transactions: estimatedTransactions,
-            totalCost,
-            isEstimatedSuccessfully: true,
-          };
-
-          log(
-            `estimateBatches(): Batch '${batchName}' estimated successfully`,
-            {
-              transactionCount: batchTransactions.length,
-              totalCost: totalCost.toString(),
-              chainId: batchChainId,
-            },
-            this.debugMode
-          );
-        } catch (error) {
-          const errorMessage = parseEtherspotErrorMessage(
-            error,
-            'Failed to estimate batches!'
-          );
-
-          // Create error estimates for each transaction in the batch
-          batchTransactions.forEach((tx) => {
-            const resultObj = {
-              to: tx.to || '',
-              value: tx.value?.toString(),
-              data: tx.data,
-              chainId: tx.chainId || batchChainId,
-              errorMessage,
-              errorType: 'ESTIMATION_ERROR' as const,
+          // Check if batch exists and has transactions
+          if (
+            !this.batches[batchName] ||
+            this.batches[batchName].length === 0
+          ) {
+            result.batches[batchName] = {
+              transactions: [],
+              errorMessage: `Batch '${batchName}' does not exist or is empty`,
               isEstimatedSuccessfully: false,
             };
-            estimatedTransactions.push(resultObj);
-            log(
-              `estimateBatches(): Batch '${batchName}': Transaction '${tx.transactionName}' failed to estimate: ${errorMessage}`,
-              { transaction: tx, result: resultObj },
-              this.debugMode
-            );
-          });
+            result.isEstimatedSuccessfully = false;
+            return;
+          }
 
+          const batchTransactions = this.batches[batchName];
+          const estimatedTransactions: TransactionEstimateResult[] = [];
+
+          // Structure to hold per-chain estimation results
+          const chainGroups: {
+            [chainId: number]: {
+              transactions: TransactionEstimateResult[];
+              totalCost?: bigint;
+              errorMessage?: string;
+              isEstimatedSuccessfully: boolean;
+            };
+          } = {};
+
+          // Track batch-level success and cost aggregation
+          let batchAllGroupsSuccessful = true;
+          let batchTotalCost: bigint = BigInt(0);
+
+          // ====================================================================
+          // MULTI-CHAIN GROUPING: Separate transactions by chainId
+          // ====================================================================
+
+          // Group transactions by chainId for separate estimation per chain
+          const chainIdToTxs = new Map<number, typeof batchTransactions>();
+          for (const tx of batchTransactions) {
+            const txChainId = tx.chainId ?? this.etherspotProvider.getChainId();
+            const list = chainIdToTxs.get(txChainId) || [];
+            list.push(tx);
+            chainIdToTxs.set(txChainId, list);
+          }
+
+          // ====================================================================
+          // CHAIN GROUP ESTIMATION: Process each chain group sequentially
+          // ====================================================================
+          for (const [groupChainId, groupTxs] of chainIdToTxs.entries()) {
+            const groupEstimated: TransactionEstimateResult[] = [];
+            try {
+              log(
+                `estimateBatches(): Getting delegatedEoa account and bundler client for batch ${batchName} on chain ${groupChainId}...`,
+                undefined,
+                this.debugMode
+              );
+              const delegatedEoaAccount =
+                await this.etherspotProvider.getDelegatedEoaAccount(
+                  groupChainId
+                );
+              const bundlerClient =
+                await this.etherspotProvider.getBundlerClient(groupChainId);
+
+              log(
+                `estimateBatches(): Got account ${delegatedEoaAccount.address} and bundler client for batch ${batchName}`,
+                undefined,
+                this.debugMode
+              );
+
+              // ====================================================================
+              // CALL PREPARATION: Convert transactions to viem call format
+              // ====================================================================
+
+              // Prepare calls for this chain group
+              const calls = groupTxs.map((tx) => ({
+                to: (tx.to || '') as `0x${string}`,
+                value: BigInt(tx.value?.toString() || '0'),
+                data: (tx.data || '0x') as `0x${string}`,
+              }));
+
+              log(
+                `estimateBatches(): Prepared ${calls.length} calls for batch ${batchName} (chain ${groupChainId})`,
+                calls,
+                this.debugMode
+              );
+
+              // ====================================================================
+              // EIP-7702 VALIDATION: Check if EOA is designated for smart wallet
+              // ====================================================================
+
+              // Ensure EOA is designated (EIP-7702) on this chain
+              const isDesignated = await this.isSmartWallet(groupChainId);
+              if (!isDesignated) {
+                const errorMessage =
+                  'EOA is not designated for EIP-7702. Please authorize first via installSmartWallet().';
+                groupTxs.forEach((tx) => {
+                  const resultObj = {
+                    to: tx.to || '',
+                    value: tx.value?.toString(),
+                    data: tx.data,
+                    chainId: tx.chainId || groupChainId,
+                    errorMessage,
+                    errorType: 'VALIDATION_ERROR' as const,
+                    isEstimatedSuccessfully: false,
+                  };
+                  groupEstimated.push(resultObj);
+                  estimatedTransactions.push(resultObj);
+                });
+
+                chainGroups[groupChainId] = {
+                  transactions: groupEstimated,
+                  errorMessage,
+                  isEstimatedSuccessfully: false,
+                };
+                batchAllGroupsSuccessful = false;
+                continue;
+              }
+
+              // ====================================================================
+              // GAS ESTIMATION: Get gas limits from bundler
+              // ====================================================================
+
+              // Estimate gas for the user operation for this chain group
+              log(
+                `estimateBatches(): Estimating gas for batch ${batchName} (chain ${groupChainId})...`,
+                undefined,
+                this.debugMode
+              );
+              const gasEstimate = await bundlerClient.estimateUserOperationGas({
+                account: delegatedEoaAccount,
+                calls,
+              });
+              log(
+                `estimateBatches(): Got gas estimate for batch ${batchName} (chain ${groupChainId})`,
+                gasEstimate,
+                this.debugMode
+              );
+
+              // ====================================================================
+              // COST CALCULATION: Compute total cost using current gas prices
+              // ====================================================================
+
+              const publicClient =
+                await this.etherspotProvider.getPublicClient(groupChainId);
+              const fees = await publicClient.estimateFeesPerGas();
+              const maxFeePerGas = fees.maxFeePerGas;
+
+              // Calculate total gas usage (call + verification + pre-verification)
+              const totalGasBigInt =
+                BigInt(gasEstimate.callGasLimit || 0) +
+                BigInt(gasEstimate.verificationGasLimit || 0) +
+                BigInt(gasEstimate.preVerificationGas || 0);
+              const totalCost = totalGasBigInt * maxFeePerGas;
+
+              // Get current nonce for the account
+              const nonce = await publicClient.getTransactionCount({
+                address: delegatedEoaAccount.address,
+                blockTag: 'pending',
+              });
+
+              // ====================================================================
+              // USER OPERATION CONSTRUCTION: Build UserOp for account abstraction
+              // ====================================================================
+
+              const userOp = {
+                sender: delegatedEoaAccount.address,
+                nonce: BigInt(nonce),
+                callData: '0x' as `0x${string}`,
+                callGasLimit: gasEstimate.callGasLimit ?? BigInt(0),
+                verificationGasLimit:
+                  gasEstimate.verificationGasLimit ?? BigInt(0),
+                preVerificationGas: gasEstimate.preVerificationGas ?? BigInt(0),
+                maxFeePerGas,
+                maxPriorityFeePerGas: maxFeePerGas,
+                paymasterData: '0x' as `0x${string}`,
+                signature: '0x' as `0x${string}`,
+              };
+
+              // ====================================================================
+              // SUCCESS RESULT BUILDING: Create TransactionEstimateResult for each tx
+              // ====================================================================
+
+              // Create success result for each transaction in this chain group
+              groupTxs.forEach((tx) => {
+                const resultObj = {
+                  to: tx.to || '',
+                  value: tx.value?.toString(),
+                  data: tx.data,
+                  chainId: tx.chainId || groupChainId,
+                  cost: totalCost,
+                  userOp,
+                  isEstimatedSuccessfully: true,
+                };
+                groupEstimated.push(resultObj);
+                estimatedTransactions.push(resultObj);
+                log(
+                  `estimateBatches(): Batch '${batchName}' (chain ${groupChainId}): Transaction '${tx.transactionName}' estimated successfully.`,
+                  { transaction: tx, result: resultObj },
+                  this.debugMode
+                );
+              });
+
+              // Store chain group results with aggregated cost
+              chainGroups[groupChainId] = {
+                transactions: groupEstimated,
+                totalCost,
+                isEstimatedSuccessfully: true,
+              };
+
+              // Accumulate cost for batch-level total
+              batchTotalCost += totalCost;
+
+              log(
+                `estimateBatches(): Batch '${batchName}' (chain ${groupChainId}) estimated successfully`,
+                {
+                  transactionCount: groupTxs.length,
+                  totalCost: totalCost.toString(),
+                  chainId: groupChainId,
+                },
+                this.debugMode
+              );
+            } catch (error) {
+              // ====================================================================
+              // ERROR HANDLING: Handle estimation failures gracefully
+              // ====================================================================
+
+              const errorMessage = parseEtherspotErrorMessage(
+                error,
+                'Failed to estimate batch chain group in delegatedEoa mode!'
+              );
+
+              // Create error results for each transaction in this chain group
+              groupTxs.forEach((tx) => {
+                const resultObj = {
+                  to: tx.to || '',
+                  value: tx.value?.toString(),
+                  data: tx.data,
+                  chainId: tx.chainId || groupChainId,
+                  errorMessage,
+                  errorType: 'ESTIMATION_ERROR' as const,
+                  isEstimatedSuccessfully: false,
+                };
+                groupEstimated.push(resultObj);
+                estimatedTransactions.push(resultObj);
+                log(
+                  `estimateBatches(): Batch '${batchName}' (chain ${groupChainId}): Transaction '${tx.transactionName}' failed to estimate: ${errorMessage}`,
+                  { transaction: tx, result: resultObj },
+                  this.debugMode
+                );
+              });
+
+              // Store chain group error results
+              chainGroups[groupChainId] = {
+                transactions: groupEstimated,
+                errorMessage,
+                isEstimatedSuccessfully: false,
+              };
+
+              // Mark batch as failed
+              batchAllGroupsSuccessful = false;
+
+              log(
+                `estimateBatches(): Batch '${batchName}' (chain ${groupChainId}) estimation failed`,
+                {
+                  error: errorMessage,
+                  chainId: groupChainId,
+                },
+                this.debugMode
+              );
+            }
+          }
+
+          // ====================================================================
+          // BATCH RESULT AGGREGATION: Build final batch result
+          // ====================================================================
+
+          // Finalize batch result aggregating chain groups
+          const batchErrorMessage = batchAllGroupsSuccessful
+            ? undefined
+            : 'One or more chain groups failed to estimate';
+          if (!batchAllGroupsSuccessful) {
+            result.isEstimatedSuccessfully = false;
+          }
           result.batches[batchName] = {
             transactions: estimatedTransactions,
-            errorMessage,
-            isEstimatedSuccessfully: false,
+            chainGroups,
+            totalCost: batchAllGroupsSuccessful ? batchTotalCost : undefined,
+            errorMessage: batchErrorMessage,
+            isEstimatedSuccessfully: batchAllGroupsSuccessful,
           };
-          result.isEstimatedSuccessfully = false;
+        })
+      );
 
-          log(
-            `estimateBatches(): Batch '${batchName}' estimation failed`,
-            {
-              error: errorMessage,
-              chainId: batchChainId,
-            },
-            this.debugMode
-          );
-        }
-      })
-    );
+      // ========================================================================
+      // STEP 5: FINAL RESULT PROCESSING (DELEGATED EOA MODE)
+      // ========================================================================
 
-    // Set error state based on results (like original)
-    this.containsEstimatingError = !result.isEstimatedSuccessfully;
-    this.isEstimating = false;
+      // Set error state based on results
+      this.containsEstimatingError = !result.isEstimatedSuccessfully;
+      this.isEstimating = false;
 
-    return result;
+      return result;
+    } else {
+      // ========================================================================
+      // MODULAR MODE: Use Etherspot SDK for estimation
+      // ========================================================================
+
+      log(
+        'estimateBatches(): Using modular mode for batch estimation',
+        undefined,
+        this.debugMode
+      );
+
+      // Process all batches in parallel (each batch is independent)
+      await Promise.all(
+        batchesToEstimate.map(async (batchName: string) => {
+          // ====================================================================
+          // BATCH VALIDATION AND SETUP (MODULAR MODE)
+          // ====================================================================
+
+          // Check if batch exists and has transactions
+          if (
+            !this.batches[batchName] ||
+            this.batches[batchName].length === 0
+          ) {
+            result.batches[batchName] = {
+              transactions: [],
+              errorMessage: `Batch '${batchName}' does not exist or is empty`,
+              isEstimatedSuccessfully: false,
+            };
+            result.isEstimatedSuccessfully = false;
+            return;
+          }
+
+          const batchTransactions = this.batches[batchName];
+          const estimatedTransactions: TransactionEstimateResult[] = [];
+
+          // Structure to hold per-chain estimation results
+          const chainGroups: {
+            [chainId: number]: {
+              transactions: TransactionEstimateResult[];
+              totalCost?: bigint;
+              errorMessage?: string;
+              isEstimatedSuccessfully: boolean;
+            };
+          } = {};
+
+          // Track batch-level success and cost aggregation
+          let batchAllGroupsSuccessful = true;
+          let batchTotalCost: bigint = BigInt(0);
+
+          // ====================================================================
+          // MULTI-CHAIN GROUPING: Separate transactions by chainId (MODULAR)
+          // ====================================================================
+
+          // Group transactions by chainId for separate estimation per chain
+          const chainIdToTxs = new Map<number, typeof batchTransactions>();
+          for (const tx of batchTransactions) {
+            const txChainId = tx.chainId ?? this.etherspotProvider.getChainId();
+            const list = chainIdToTxs.get(txChainId) || [];
+            list.push(tx);
+            chainIdToTxs.set(txChainId, list);
+          }
+
+          // ====================================================================
+          // CHAIN GROUP ESTIMATION: Process each chain group sequentially (MODULAR)
+          // ====================================================================
+
+          for (const [groupChainId, groupTxs] of chainIdToTxs.entries()) {
+            const groupEstimated: TransactionEstimateResult[] = [];
+            try {
+              // ====================================================================
+              // SDK INITIALIZATION: Get fresh SDK instance for this chain
+              // ====================================================================
+
+              log(
+                `estimateBatches(): Getting SDK for batch ${batchName} (chain ${groupChainId})...`,
+                undefined,
+                this.debugMode
+              );
+              const etherspotModularSdk = await this.etherspotProvider.getSdk(
+                groupChainId,
+                true // force new instance
+              );
+              log(
+                `estimateBatches(): Got SDK for batch ${batchName} (chain ${groupChainId}):`,
+                etherspotModularSdk,
+                this.debugMode
+              );
+
+              // ====================================================================
+              // BATCH PREPARATION: Clear existing operations and add new ones
+              // ====================================================================
+
+              // Clear any existing operations
+              log(
+                `estimateBatches(): Clearing user ops from batch ${batchName} (chain ${groupChainId})...`,
+                undefined,
+                this.debugMode
+              );
+              await etherspotModularSdk.clearUserOpsFromBatch();
+              log(
+                `estimateBatches(): Cleared user ops from batch ${batchName} (chain ${groupChainId}).`,
+                undefined,
+                this.debugMode
+              );
+
+              // Add all transactions in the batch to the SDK
+              log(
+                `estimateBatches(): Adding ${groupTxs.length} transactions to batch ${batchName} (chain ${groupChainId})...`,
+                undefined,
+                this.debugMode
+              );
+              await Promise.all(
+                groupTxs.map(async (tx) => {
+                  log(
+                    `estimateBatches(): Adding transaction ${tx.transactionName} to batch ${batchName} (chain ${groupChainId})...`,
+                    undefined,
+                    this.debugMode
+                  );
+                  await etherspotModularSdk.addUserOpsToBatch({
+                    to: tx.to || '',
+                    value: tx.value?.toString(),
+                    data: tx.data,
+                  });
+                  log(
+                    `estimateBatches(): Added transaction ${tx.transactionName} to batch ${batchName} (chain ${groupChainId}).`,
+                    undefined,
+                    this.debugMode
+                  );
+                })
+              );
+              log(
+                `estimateBatches(): Added all transactions to batch ${batchName}.`,
+                undefined,
+                this.debugMode
+              );
+
+              // ====================================================================
+              // SDK ESTIMATION: Use Etherspot SDK to estimate the batch
+              // ====================================================================
+
+              // Estimate the entire batch
+              log(
+                `estimateBatches(): Estimating batch ${batchName} (chain ${groupChainId})...`,
+                undefined,
+                this.debugMode
+              );
+              const userOp = await etherspotModularSdk.estimate({
+                paymasterDetails,
+              });
+              log(
+                `estimateBatches(): Got userOp for batch ${batchName} (chain ${groupChainId}):`,
+                userOp,
+                this.debugMode
+              );
+
+              // ====================================================================
+              // COST CALCULATION: Compute total cost using SDK gas estimation
+              // ====================================================================
+
+              // Calculate total gas cost for the batch
+              log(
+                `estimateBatches(): Calculating total gas for batch ${batchName} (chain ${groupChainId})...`,
+                undefined,
+                this.debugMode
+              );
+              const totalGas =
+                await etherspotModularSdk.totalGasEstimated(userOp);
+              log(
+                `estimateBatches(): Got totalGas for batch ${batchName} (chain ${groupChainId}):`,
+                totalGas,
+                this.debugMode
+              );
+              const totalGasBigInt = BigInt(totalGas.toString());
+              const maxFeePerGasBigInt = BigInt(userOp.maxFeePerGas.toString());
+              const totalCost = totalGasBigInt * maxFeePerGasBigInt;
+              log(
+                `estimateBatches(): Calculated total cost for batch ${batchName} (chain ${groupChainId}):`,
+                totalCost,
+                this.debugMode
+              );
+
+              // ====================================================================
+              // SUCCESS RESULT BUILDING: Create TransactionEstimateResult for each tx (MODULAR)
+              // ====================================================================
+
+              // Create estimates for each transaction in the group
+              groupTxs.forEach((tx) => {
+                const resultObj = {
+                  to: tx.to || '',
+                  value: tx.value?.toString(),
+                  data: tx.data,
+                  chainId: tx.chainId || groupChainId,
+                  cost: totalCost,
+                  userOp,
+                  isEstimatedSuccessfully: true,
+                };
+                groupEstimated.push(resultObj);
+                estimatedTransactions.push(resultObj);
+                log(
+                  `estimateBatches(): Batch '${batchName}' (chain ${groupChainId}): Transaction '${tx.transactionName}' estimated successfully.`,
+                  { transaction: tx, result: resultObj },
+                  this.debugMode
+                );
+              });
+
+              // Store chain group results with aggregated cost
+              chainGroups[groupChainId] = {
+                transactions: groupEstimated,
+                totalCost,
+                isEstimatedSuccessfully: true,
+              };
+
+              // Accumulate cost for batch-level total
+              batchTotalCost += totalCost;
+
+              log(
+                `estimateBatches(): Batch '${batchName}' (chain ${groupChainId}) estimated successfully`,
+                {
+                  transactionCount: groupTxs.length,
+                  totalCost: totalCost.toString(),
+                  chainId: groupChainId,
+                },
+                this.debugMode
+              );
+            } catch (error) {
+              // ====================================================================
+              // ERROR HANDLING: Handle estimation failures gracefully (MODULAR)
+              // ====================================================================
+
+              const errorMessage = parseEtherspotErrorMessage(
+                error,
+                'Failed to estimate batches!'
+              );
+
+              // Create error estimates for each transaction in the batch
+              groupTxs.forEach((tx) => {
+                const resultObj = {
+                  to: tx.to || '',
+                  value: tx.value?.toString(),
+                  data: tx.data,
+                  chainId: tx.chainId || groupChainId,
+                  errorMessage,
+                  errorType: 'ESTIMATION_ERROR' as const,
+                  isEstimatedSuccessfully: false,
+                };
+                groupEstimated.push(resultObj);
+                estimatedTransactions.push(resultObj);
+                log(
+                  `estimateBatches(): Batch '${batchName}' (chain ${groupChainId}): Transaction '${tx.transactionName}' failed to estimate: ${errorMessage}`,
+                  { transaction: tx, result: resultObj },
+                  this.debugMode
+                );
+              });
+
+              // Store chain group error results
+              chainGroups[groupChainId] = {
+                transactions: groupEstimated,
+                errorMessage,
+                isEstimatedSuccessfully: false,
+              };
+
+              // Mark batch as failed
+              batchAllGroupsSuccessful = false;
+
+              log(
+                `estimateBatches(): Batch '${batchName}' (chain ${groupChainId}) estimation failed`,
+                {
+                  error: errorMessage,
+                  chainId: groupChainId,
+                },
+                this.debugMode
+              );
+            }
+          }
+
+          // ====================================================================
+          // BATCH RESULT AGGREGATION: Build final batch result (MODULAR)
+          // ====================================================================
+
+          // Finalize batch result aggregating chain groups
+          const batchErrorMessage = batchAllGroupsSuccessful
+            ? undefined
+            : 'One or more chain groups failed to estimate';
+          if (!batchAllGroupsSuccessful) {
+            result.isEstimatedSuccessfully = false;
+          }
+          result.batches[batchName] = {
+            transactions: estimatedTransactions,
+            chainGroups,
+            totalCost: batchAllGroupsSuccessful ? batchTotalCost : undefined,
+            errorMessage: batchErrorMessage,
+            isEstimatedSuccessfully: batchAllGroupsSuccessful,
+          };
+        })
+      );
+
+      // ========================================================================
+      // STEP 5: FINAL RESULT PROCESSING (MODULAR MODE)
+      // ========================================================================
+
+      // Set error state based on results (like original)
+      this.containsEstimatingError = !result.isEstimatedSuccessfully;
+      this.isEstimating = false;
+
+      return result;
+    }
   }
 
   /**
-   * Estimates and sends all specified or existing batches of transactions.
+   * Estimates and sends all batches of transactions.
    *
-   * This method validates the batch context, estimates each batch using the Etherspot SDK, and then sends them to the network. It enforces several rules and will throw or return errors in specific scenarios.
+   * Provides comprehensive batch sending with support for both modular and delegatedEoa wallet modes. Groups transactions by chainId for efficient multi-chain processing, estimates gas and costs, and sends user operations with proper error handling.
    *
    * @param params - (Optional) Send parameters:
-   *   - `onlyBatchNames`: An array of batch names to send. If omitted, all batches are sent.
-   *   - `paymasterDetails`: Paymaster API details for sponsored transactions.
+   *   - `paymasterDetails`: Paymaster API details for sponsored transactions (modular mode only).
    *
    * @returns A promise that resolves to a `BatchSendResult` containing:
-   *   - A mapping of batch names to their send results (transactions, userOpHash, errorMessage, isEstimatedSuccessfully, isSentSuccessfully)
-   *   - Overall `isEstimatedSuccessfully` and `isSentSuccessfully` flags
+   *   - A mapping of batch names to their send results with chain group breakdown
+   *   - Each batch result includes: transactions, chainGroups, totalCost, errorMessage, isEstimatedSuccessfully, isSentSuccessfully
+   *   - Overall `isEstimatedSuccessfully` and `isSentSuccessfully` flags indicating success status
    *
-   * @throws {Error} If the provider is not available or misconfigured.
+   * @throws {Error} If provider is unavailable (modular mode) or another batch sending is in progress.
    *
    * @remarks
-   * - **Validation rules:**
-   *   - Throws if the provider is not available.
-   *   - Returns an error result for any batch that does not exist or is empty.
-   * - **Error handling:**
-   *   - If estimation or sending fails for a batch, the error is logged and a result object with error details is returned for that batch (not thrown).
-   *   - The returned object always includes `isEstimatedSuccessfully` and `isSentSuccessfully` flags for each batch and overall.
-   * - **Chaining:**
-   *   - This method is chainable and can be used as part of a batch transaction flow.
-   * - **Side effects:**
-   *   - Updates internal error state flags (`isSending`, `containsSendingError`).
-   *   - May perform network requests and SDK initialization.
-   *   - Removes batches and their transactions from state after successful send.
+   * - **Wallet Mode Support:**
+   *   - **Modular Mode**: Uses Etherspot SDK for estimation and sending with full paymaster support
+   *     - ⚠️ **Multi-Chain Warning**: Batches with multiple chainIds require multiple user signatures (one per chain), creating poor UX
+   *   - **DelegatedEoa Mode**: Uses viem bundler client for EIP-7702 account abstraction with EOA validation
+   * - **Multi-Chain Processing:**
+   *   - Automatically groups transactions by chainId for separate sending per chain
+   *   - Each chain group is processed independently with its own SDK/client instance
+   *   - Supports mixed-chain batches with proper cost aggregation
+   * - **EIP-7702 Validation (DelegatedEoa Mode):**
+   *   - Validates EOA designation before sending using `isSmartWallet()` check
+   *   - Requires prior authorization via `installSmartWallet()` method
+   * - **Gas Estimation & Cost Calculation:**
+   *   - Estimates gas using bundler client (delegatedEoa) or SDK (modular)
+   *   - Calculates total costs using current gas prices from `estimateFeesPerGas()`
+   *   - Includes call gas, verification gas, and pre-verification gas in total cost
+   * - **Error Handling:**
+   *   - Returns error results instead of throwing for most validation failures
+   *   - Failed chain groups don't prevent other chain groups from being processed
+   *   - Only throws for critical configuration errors (missing provider, concurrent operations)
+   * - **State Management:**
+   *   - Removes successfully sent batches and their transactions from internal state
+   *   - Prevents concurrent sending to avoid race conditions
    * - **Usage:**
-   *   - Call to estimate and send multiple transactions grouped in batches.
-   *   - For single transaction sending, use `send()` instead.
+   *   - Call `estimateBatches()` first for cost verification
+   *   - For single transaction sending, use `send()` instead
    */
   async sendBatches({
     onlyBatchNames,
     paymasterDetails,
   }: SendBatchesParams = {}): Promise<BatchSendResult> {
+    // ========================================================================
+    // STEP 1: INPUT VALIDATION AND SETUP
+    // ========================================================================
+
+    // Prevent concurrent sending to avoid race conditions
+    if (this.isSending) {
+      this.throwError(
+        'Another batch sending is already in progress. Please wait for it to complete.'
+      );
+    }
+
+    // Validate onlyBatchNames parameter if provided
+    if (onlyBatchNames) {
+      if (!Array.isArray(onlyBatchNames)) {
+        this.throwError('onlyBatchNames must be an array of strings');
+      }
+      onlyBatchNames.forEach((name, index) => {
+        if (typeof name !== 'string' || name.trim() === '') {
+          this.throwError(
+            `onlyBatchNames[${index}] must be a non-empty string`
+          );
+        }
+      });
+    }
+
+    // Set sending state flags
     this.isSending = true;
     this.containsSendingError = false;
 
+    const walletMode = this.etherspotProvider.getWalletMode();
+    log(`sendBatches(): Wallet mode: ${walletMode}`, undefined, this.debugMode);
+
+    // Initialize result structure
     const result: BatchSendResult = {
       batches: {},
       isEstimatedSuccessfully: true,
       isSentSuccessfully: true,
     };
 
-    // Determine which batches to send
+    // ========================================================================
+    // STEP 2: DETERMINE BATCHES TO SEND
+    // ========================================================================
+
+    // Use provided batch names or send all existing batches
     const batchesToSend = onlyBatchNames || Object.keys(this.batches);
 
     if (batchesToSend.length === 0) {
@@ -2357,360 +2881,982 @@ export class EtherspotTransactionKit implements IInitial {
       return result;
     }
 
-    // Get the provider
-    const provider = this.getProvider();
-    // Validation: if there is no provider, return error
-    if (!provider) {
+    // ========================================================================
+    // STEP 3: MODE-SPECIFIC VALIDATION
+    // ========================================================================
+
+    // Modular mode requires a Web3 provider for SDK operations
+    if (walletMode === 'modular') {
+      // Get the provider
+      const provider = this.getProvider();
+      // Validation: if there is no provider, return error
+      if (!provider) {
+        log(
+          'sendBatches(): No Web3 provider available. This is a critical configuration error.',
+          undefined,
+          this.debugMode
+        );
+        this.isSending = false;
+        this.containsSendingError = true;
+        this.throwError(
+          'sendBatches(): No Web3 provider available. This is a critical configuration error.'
+        );
+      }
+    }
+
+    // ========================================================================
+    // STEP 4: SENDING EXECUTION (MODE-SPECIFIC)
+    // ========================================================================
+
+    if (walletMode === 'delegatedEoa') {
+      // DELEGATED EOA MODE: Use viem account abstraction with EIP-7702
       log(
-        'sendBatches(): No Web3 provider available. This is a critical configuration error.',
+        'sendBatches(): Using delegatedEoa mode for batch sending',
         undefined,
         this.debugMode
       );
-      this.isSending = false;
-      this.containsSendingError = true;
-      this.throwError(
-        'sendBatches(): No Web3 provider available. This is a critical configuration error.'
-      );
-    }
 
-    await Promise.all(
-      batchesToSend.map(async (batchName: string) => {
-        if (!this.batches[batchName] || this.batches[batchName].length === 0) {
-          result.batches[batchName] = {
-            transactions: [],
-            errorMessage: `Batch '${batchName}' does not exist or is empty`,
-            isEstimatedSuccessfully: false,
-            isSentSuccessfully: false,
-          };
-          result.isEstimatedSuccessfully = false;
-          result.isSentSuccessfully = false;
-          return;
-        }
+      // Process all batches in parallel (each batch is independent)
+      await Promise.all(
+        batchesToSend.map(async (batchName: string) => {
+          // ====================================================================
+          // BATCH VALIDATION AND SETUP
+          // ====================================================================
 
-        const batchTransactions = this.batches[batchName];
-        const sentTransactions: TransactionSendResult[] = [];
-
-        // Get chain ID from first transaction or use provider default
-        const batchChainId =
-          batchTransactions[0]?.chainId ?? this.etherspotProvider.getChainId();
-
-        try {
-          // Get fresh SDK instance to avoid state pollution (same as original)
-          log(
-            `sendBatches(): Getting SDK for batch ${batchName}...`,
-            undefined,
-            this.debugMode
-          );
-          const etherspotModularSdk = await this.etherspotProvider.getSdk(
-            batchChainId,
-            true // force new instance
-          );
-          log(
-            `sendBatches(): Got SDK for batch ${batchName}:`,
-            etherspotModularSdk,
-            this.debugMode
-          );
-
-          // Clear any existing operations
-          log(
-            `sendBatches(): Clearing user ops from batch ${batchName}...`,
-            undefined,
-            this.debugMode
-          );
-          await etherspotModularSdk.clearUserOpsFromBatch();
-          log(
-            `sendBatches(): Cleared user ops from batch ${batchName}.`,
-            undefined,
-            this.debugMode
-          );
-
-          // Add all transactions in the batch to the SDK
-          log(
-            `sendBatches(): Adding ${batchTransactions.length} transactions to batch ${batchName}...`,
-            undefined,
-            this.debugMode
-          );
-          await Promise.all(
-            batchTransactions.map(async (tx) => {
-              log(
-                `sendBatches(): Adding transaction ${tx.transactionName} to batch ${batchName}...`,
-                undefined,
-                this.debugMode
-              );
-              await etherspotModularSdk.addUserOpsToBatch({
-                to: tx.to || '',
-                value: tx.value?.toString(),
-                data: tx.data,
-              });
-              log(
-                `sendBatches(): Added transaction ${tx.transactionName} to batch ${batchName}.`,
-                undefined,
-                this.debugMode
-              );
-            })
-          );
-          log(
-            `sendBatches(): Added all transactions to batch ${batchName}.`,
-            undefined,
-            this.debugMode
-          );
-
-          // Estimate first (like the single send() method)
-          let estimatedUserOp;
-          try {
-            log(
-              `sendBatches(): Estimating batch ${batchName} for sending...`,
-              undefined,
-              this.debugMode
-            );
-            estimatedUserOp = await etherspotModularSdk.estimate({
-              paymasterDetails,
-            });
-            log(
-              `sendBatches(): Got estimated userOp for batch ${batchName}:`,
-              estimatedUserOp,
-              this.debugMode
-            );
-          } catch (estimationError) {
-            const estimationErrorMessage = parseEtherspotErrorMessage(
-              estimationError,
-              'Failed to estimate before sending!'
-            );
-            // Create error entries for each transaction in the batch
-            batchTransactions.forEach((tx) => {
-              sentTransactions.push({
-                to: tx.to || '',
-                value: tx.value?.toString(),
-                data: tx.data,
-                chainId: tx.chainId || batchChainId,
-                errorMessage: estimationErrorMessage,
-                errorType: 'ESTIMATION_ERROR',
-                isEstimatedSuccessfully: false,
-                isSentSuccessfully: false,
-              });
-              log(
-                `sendBatches(): Batch '${batchName}': Transaction '${tx.transactionName}' failed to estimate: ${estimationErrorMessage}`,
-                tx,
-                this.debugMode
-              );
-            });
-
+          // Check if batch exists and has transactions
+          if (
+            !this.batches[batchName] ||
+            this.batches[batchName].length === 0
+          ) {
             result.batches[batchName] = {
-              transactions: sentTransactions,
-              errorMessage: estimationErrorMessage,
+              transactions: [],
+              errorMessage: `Batch '${batchName}' does not exist or is empty`,
               isEstimatedSuccessfully: false,
               isSentSuccessfully: false,
             };
             result.isEstimatedSuccessfully = false;
             result.isSentSuccessfully = false;
-
-            log(
-              `sendBatches(): Batch '${batchName}' estimation before send failed`,
-              {
-                error: estimationErrorMessage,
-                chainId: batchChainId,
-              },
-              this.debugMode
-            );
             return;
           }
 
-          // Apply user overrides
-          const finalUserOp = { ...estimatedUserOp };
+          const batchTransactions = this.batches[batchName];
+          const sentTransactions: TransactionSendResult[] = [];
 
-          // Calculate total gas cost (using the same approach as original)
-          log(
-            `sendBatches(): Calculating total gas for batch ${batchName}...`,
-            undefined,
-            this.debugMode
-          );
-          const totalGas =
-            await etherspotModularSdk.totalGasEstimated(finalUserOp);
-          log(
-            `sendBatches(): Got totalGas for batch ${batchName}:`,
-            totalGas,
-            this.debugMode
-          );
-          const totalGasBigInt = BigInt(totalGas.toString());
-          const maxFeePerGasBigInt = BigInt(
-            finalUserOp.maxFeePerGas.toString()
-          );
-          const totalCost = totalGasBigInt * maxFeePerGasBigInt;
-          log(
-            `sendBatches(): Calculated total cost for batch ${batchName}:`,
-            totalCost,
-            this.debugMode
-          );
+          // Structure to hold per-chain sending results
+          const chainGroups: {
+            [chainId: number]: {
+              transactions: TransactionSendResult[];
+              userOpHash?: string;
+              totalCost?: bigint;
+              errorMessage?: string;
+              isEstimatedSuccessfully: boolean;
+              isSentSuccessfully: boolean;
+            };
+          } = {};
 
-          log(
-            `sendBatches(): Batch '${batchName}' estimated, now sending...`,
-            {
-              transactionCount: batchTransactions.length,
-              totalCost: totalCost.toString(),
-              chainId: batchChainId,
-            },
-            this.debugMode
-          );
+          // Track batch-level success and cost aggregation
+          let batchAllGroupsSuccessful = true;
+          let batchTotalCost: bigint = BigInt(0);
 
-          // Send the batch
-          let userOpHash: string;
-          try {
+          // ====================================================================
+          // MULTI-CHAIN GROUPING: Separate transactions by chainId
+          // ====================================================================
+
+          // Group transactions by chainId for separate sending per chain
+          const chainIdToTxs = new Map<number, typeof batchTransactions>();
+          for (const tx of batchTransactions) {
+            const txChainId = tx.chainId ?? this.etherspotProvider.getChainId();
+            const list = chainIdToTxs.get(txChainId) || [];
+            list.push(tx);
+            chainIdToTxs.set(txChainId, list);
+          }
+
+          // ====================================================================
+          // CHAIN GROUP SENDING: Process each chain group sequentially
+          // ====================================================================
+
+          for (const [groupChainId, groupTxs] of chainIdToTxs.entries()) {
             log(
-              `sendBatches(): Sending batch ${batchName}...`,
-              undefined,
+              `sendBatches(): Processing chain group ${groupChainId} with ${groupTxs.length} transactions`,
+              {
+                groupChainId,
+                transactionCount: groupTxs.length,
+                transactionNames: groupTxs.map((tx) => tx.transactionName),
+              },
               this.debugMode
             );
-            userOpHash = await etherspotModularSdk.send(finalUserOp);
-            log(
-              `sendBatches(): Got userOpHash for batch ${batchName}:`,
-              userOpHash,
-              this.debugMode
-            );
-          } catch (sendError) {
-            const sendErrorMessage = parseEtherspotErrorMessage(
-              sendError,
-              'Failed to send!'
-            );
-
-            // Create error entries for each transaction in the batch
-            batchTransactions.forEach((tx) => {
-              sentTransactions.push({
-                to: tx.to || '',
-                value: tx.value?.toString(),
-                data: tx.data,
-                chainId: tx.chainId || batchChainId,
-                cost: totalCost,
-                userOp: finalUserOp,
-                errorMessage: sendErrorMessage,
-                errorType: 'SEND_ERROR',
-                isEstimatedSuccessfully: true,
-                isSentSuccessfully: false,
-              });
+            const groupSent: TransactionSendResult[] = [];
+            try {
               log(
-                `sendBatches(): Batch '${batchName}': Transaction '${tx.transactionName}' failed to send: ${sendErrorMessage}`,
-                tx,
+                `sendBatches(): Getting delegatedEoa account and bundler client for batch ${batchName} on chain ${groupChainId}...`,
+                undefined,
                 this.debugMode
               );
-            });
+              const delegatedEoaAccount =
+                await this.etherspotProvider.getDelegatedEoaAccount(
+                  groupChainId
+                );
+              const bundlerClient =
+                await this.etherspotProvider.getBundlerClient(groupChainId);
 
-            result.batches[batchName] = {
-              transactions: sentTransactions,
-              userOpHash: undefined,
-              errorMessage: sendErrorMessage,
-              isEstimatedSuccessfully: true,
-              isSentSuccessfully: false,
-            };
+              log(
+                `sendBatches(): Got account ${delegatedEoaAccount.address} and bundler client for batch ${batchName}`,
+                undefined,
+                this.debugMode
+              );
+
+              // ====================================================================
+              // CALL PREPARATION: Convert transactions to viem call format
+              // ====================================================================
+
+              // Prepare calls for this chain group
+              const calls = groupTxs.map((tx) => ({
+                to: (tx.to || '') as `0x${string}`,
+                value: BigInt(tx.value?.toString() || '0'),
+                data: (tx.data || '0x') as `0x${string}`,
+              }));
+
+              log(
+                `sendBatches(): Prepared ${calls.length} calls for batch ${batchName} (chain ${groupChainId})`,
+                calls,
+                this.debugMode
+              );
+
+              // ====================================================================
+              // EIP-7702 VALIDATION: Check if EOA is designated for smart wallet
+              // ====================================================================
+
+              // Ensure EOA is designated (EIP-7702) on this chain
+              const isDesignated = await this.isSmartWallet(groupChainId);
+              if (!isDesignated) {
+                const errorMessage =
+                  'EOA is not designated for EIP-7702. Please authorize first via installSmartWallet().';
+                groupTxs.forEach((tx) => {
+                  const resultObj = {
+                    to: tx.to || '',
+                    value: tx.value?.toString(),
+                    data: tx.data,
+                    chainId: tx.chainId || groupChainId,
+                    errorMessage,
+                    errorType: 'VALIDATION_ERROR' as const,
+                    isEstimatedSuccessfully: false,
+                    isSentSuccessfully: false,
+                  };
+                  groupSent.push(resultObj);
+                  sentTransactions.push(resultObj);
+                });
+
+                chainGroups[groupChainId] = {
+                  transactions: groupSent,
+                  errorMessage,
+                  isEstimatedSuccessfully: false,
+                  isSentSuccessfully: false,
+                };
+                batchAllGroupsSuccessful = false;
+                continue;
+              }
+
+              // ====================================================================
+              // GAS ESTIMATION: Get gas limits from bundler
+              // ====================================================================
+
+              // Estimate gas for the user operation for this chain group
+              log(
+                `sendBatches(): Estimating gas for batch ${batchName} (chain ${groupChainId})...`,
+                undefined,
+                this.debugMode
+              );
+              const gasEstimate = await bundlerClient.estimateUserOperationGas({
+                account: delegatedEoaAccount,
+                calls,
+              });
+              log(
+                `sendBatches(): Got gas estimate for batch ${batchName} (chain ${groupChainId})`,
+                gasEstimate,
+                this.debugMode
+              );
+
+              // ====================================================================
+              // COST CALCULATION: Compute total cost using current gas prices
+              // ====================================================================
+
+              const publicClient =
+                await this.etherspotProvider.getPublicClient(groupChainId);
+              const fees = await publicClient.estimateFeesPerGas();
+              const maxFeePerGas = fees.maxFeePerGas;
+
+              // Calculate total gas usage (call + verification + pre-verification)
+              const totalGasBigInt =
+                BigInt(gasEstimate.callGasLimit || 0) +
+                BigInt(gasEstimate.verificationGasLimit || 0) +
+                BigInt(gasEstimate.preVerificationGas || 0);
+              const totalCost = totalGasBigInt * maxFeePerGas;
+
+              // Get current nonce for the account
+              const nonce = await publicClient.getTransactionCount({
+                address: delegatedEoaAccount.address,
+                blockTag: 'pending',
+              });
+
+              // ====================================================================
+              // USER OPERATION SENDING: Send the user operation with calls array
+              // ====================================================================
+
+              log(
+                `sendBatches(): Sending userOp for batch ${batchName} (chain ${groupChainId})...`,
+                undefined,
+                this.debugMode
+              );
+              let userOpHash: string;
+              try {
+                userOpHash = await bundlerClient.sendUserOperation({
+                  account: delegatedEoaAccount,
+                  calls: calls,
+                });
+                log(
+                  `sendBatches(): Got userOpHash for batch ${batchName} (chain ${groupChainId}):`,
+                  userOpHash,
+                  this.debugMode
+                );
+              } catch (sendError) {
+                const sendErrorMessage = parseEtherspotErrorMessage(
+                  sendError,
+                  'Failed to send user operation!'
+                );
+                throw new Error(sendErrorMessage);
+              }
+
+              // ====================================================================
+              // SUCCESS RESULT BUILDING: Create TransactionSendResult for each tx
+              // ====================================================================
+
+              // Create userOp object for result (constructed from gas estimate and current state)
+              const userOp = {
+                sender: delegatedEoaAccount.address,
+                nonce: BigInt(nonce),
+                callData: '0x' as `0x${string}`,
+                callGasLimit: gasEstimate.callGasLimit ?? BigInt(0),
+                verificationGasLimit:
+                  gasEstimate.verificationGasLimit ?? BigInt(0),
+                preVerificationGas: gasEstimate.preVerificationGas ?? BigInt(0),
+                maxFeePerGas,
+                maxPriorityFeePerGas: maxFeePerGas,
+                paymasterData: '0x' as `0x${string}`,
+                signature: '0x' as `0x${string}`,
+              };
+
+              // Create success result for each transaction in this chain group
+              groupTxs.forEach((tx) => {
+                const resultObj = {
+                  to: tx.to || '',
+                  value: tx.value?.toString(),
+                  data: tx.data,
+                  chainId: tx.chainId || groupChainId,
+                  cost: totalCost,
+                  userOp,
+                  userOpHash,
+                  isEstimatedSuccessfully: true,
+                  isSentSuccessfully: true,
+                };
+                groupSent.push(resultObj);
+                sentTransactions.push(resultObj);
+                log(
+                  `sendBatches(): Batch '${batchName}' (chain ${groupChainId}): Transaction '${tx.transactionName}' sent successfully.`,
+                  { transaction: tx, result: resultObj },
+                  this.debugMode
+                );
+              });
+
+              // Store chain group results with aggregated cost
+              chainGroups[groupChainId] = {
+                transactions: groupSent,
+                userOpHash,
+                totalCost,
+                isEstimatedSuccessfully: true,
+                isSentSuccessfully: true,
+              };
+
+              // Accumulate cost for batch-level total
+              batchTotalCost += totalCost;
+
+              log(
+                `sendBatches(): Batch '${batchName}' (chain ${groupChainId}) sent successfully`,
+                {
+                  transactionCount: groupTxs.length,
+                  totalCost: totalCost.toString(),
+                  userOpHash,
+                  chainId: groupChainId,
+                },
+                this.debugMode
+              );
+            } catch (error) {
+              // ====================================================================
+              // ERROR HANDLING: Handle sending failures gracefully
+              // ====================================================================
+
+              const errorMessage = parseEtherspotErrorMessage(
+                error,
+                'Failed to send batch chain group in delegatedEoa mode!'
+              );
+
+              // Create error results for each transaction in this chain group
+              groupTxs.forEach((tx) => {
+                const resultObj = {
+                  to: tx.to || '',
+                  value: tx.value?.toString(),
+                  data: tx.data,
+                  chainId: tx.chainId || groupChainId,
+                  errorMessage,
+                  errorType: 'SEND_ERROR' as const,
+                  isEstimatedSuccessfully: false,
+                  isSentSuccessfully: false,
+                };
+                groupSent.push(resultObj);
+                sentTransactions.push(resultObj);
+                log(
+                  `sendBatches(): Batch '${batchName}' (chain ${groupChainId}): Transaction '${tx.transactionName}' failed to send: ${errorMessage}`,
+                  { transaction: tx, result: resultObj },
+                  this.debugMode
+                );
+              });
+
+              // Store chain group error results
+              chainGroups[groupChainId] = {
+                transactions: groupSent,
+                errorMessage,
+                isEstimatedSuccessfully: false,
+                isSentSuccessfully: false,
+              };
+
+              // Mark batch as failed
+              batchAllGroupsSuccessful = false;
+
+              log(
+                `sendBatches(): Batch '${batchName}' (chain ${groupChainId}) send failed`,
+                {
+                  error: errorMessage,
+                  transactionCount: groupTxs.length,
+                  chainId: groupChainId,
+                },
+                this.debugMode
+              );
+            }
+          }
+
+          // ====================================================================
+          // BATCH RESULT AGGREGATION: Build final batch result
+          // ====================================================================
+
+          // Finalize batch result aggregating chain groups
+          const batchErrorMessage = batchAllGroupsSuccessful
+            ? undefined
+            : 'One or more chain groups failed to send';
+          if (!batchAllGroupsSuccessful) {
+            result.isEstimatedSuccessfully = false;
             result.isSentSuccessfully = false;
+          }
 
+          log(
+            `sendBatches(): Building final result for batch ${batchName}`,
+            {
+              batchName,
+              chainGroups,
+              sentTransactions: sentTransactions.length,
+              batchAllGroupsSuccessful,
+              batchTotalCost: batchTotalCost.toString(),
+            },
+            this.debugMode
+          );
+
+          result.batches[batchName] = {
+            transactions: sentTransactions,
+            chainGroups,
+            totalCost: batchAllGroupsSuccessful ? batchTotalCost : undefined,
+            errorMessage: batchErrorMessage,
+            isEstimatedSuccessfully: batchAllGroupsSuccessful,
+            isSentSuccessfully: batchAllGroupsSuccessful,
+          };
+
+          // ====================================================================
+          // STATE CLEANUP: Remove successful chain groups from batch
+          // ====================================================================
+
+          // Remove transactions from successful chain groups
+          const remainingTransactions: typeof batchTransactions = [];
+          let hasSuccessfulChainGroups = false;
+          let hasFailedChainGroups = false;
+
+          for (const [groupChainId, groupResult] of Object.entries(
+            chainGroups
+          )) {
+            if (groupResult.isSentSuccessfully) {
+              hasSuccessfulChainGroups = true;
+              // Remove transactions from this successful chain group
+              const groupTxs = chainIdToTxs.get(parseInt(groupChainId)) || [];
+              groupTxs.forEach((tx) => {
+                if (tx.transactionName) {
+                  delete this.namedTransactions[tx.transactionName];
+                }
+              });
+            } else {
+              hasFailedChainGroups = true;
+              // Keep transactions from failed chain groups
+              const groupTxs = chainIdToTxs.get(parseInt(groupChainId)) || [];
+              remainingTransactions.push(...groupTxs);
+            }
+          }
+
+          // Update batch with remaining transactions
+          if (remainingTransactions.length > 0) {
+            this.batches[batchName] = remainingTransactions;
             log(
-              `sendBatches(): Batch '${batchName}' send failed`,
+              `sendBatches(): Batch '${batchName}' updated with ${remainingTransactions.length} remaining transactions from failed chain groups`,
               {
-                error: sendErrorMessage,
-                chainId: batchChainId,
+                batchName,
+                remainingTransactions: remainingTransactions.length,
+                successfulChainGroups: hasSuccessfulChainGroups,
+                failedChainGroups: hasFailedChainGroups,
               },
               this.debugMode
             );
+          } else {
+            // All chain groups succeeded, remove the entire batch
+            delete this.batches[batchName];
+            log(
+              `sendBatches(): Batch '${batchName}' completely removed - all chain groups succeeded`,
+              {
+                batchName,
+                successfulChainGroups: hasSuccessfulChainGroups,
+              },
+              this.debugMode
+            );
+          }
+        })
+      );
+
+      // Set error state based on results
+      this.containsSendingError = !result.isSentSuccessfully;
+      this.isSending = false;
+
+      return result;
+    } else {
+      // ========================================================================
+      // MODULAR MODE: Use Etherspot SDK for sending
+      // ========================================================================
+
+      log(
+        'sendBatches(): Using modular mode for batch sending',
+        undefined,
+        this.debugMode
+      );
+
+      // Process all batches in parallel (each batch is independent)
+      await Promise.all(
+        batchesToSend.map(async (batchName: string) => {
+          // ====================================================================
+          // BATCH VALIDATION AND SETUP (MODULAR MODE)
+          // ====================================================================
+
+          // Check if batch exists and has transactions
+          if (
+            !this.batches[batchName] ||
+            this.batches[batchName].length === 0
+          ) {
+            result.batches[batchName] = {
+              transactions: [],
+              errorMessage: `Batch '${batchName}' does not exist or is empty`,
+              isEstimatedSuccessfully: false,
+              isSentSuccessfully: false,
+            };
+            result.isEstimatedSuccessfully = false;
+            result.isSentSuccessfully = false;
             return;
           }
 
-          // Create success entries for each transaction in the batch
-          batchTransactions.forEach((tx) => {
-            const resultObj = {
-              to: tx.to || '',
-              value: tx.value?.toString(),
-              data: tx.data,
-              chainId: tx.chainId || batchChainId,
-              cost: totalCost, // Use full cost for each transaction (like original) or divide by length
-              userOp: finalUserOp,
-              userOpHash,
-              isEstimatedSuccessfully: true,
-              isSentSuccessfully: true,
+          const batchTransactions = this.batches[batchName];
+          const sentTransactions: TransactionSendResult[] = [];
+
+          // Structure to hold per-chain sending results
+          const chainGroups: {
+            [chainId: number]: {
+              transactions: TransactionSendResult[];
+              userOpHash?: string;
+              totalCost?: bigint;
+              errorMessage?: string;
+              isEstimatedSuccessfully: boolean;
+              isSentSuccessfully: boolean;
             };
-            sentTransactions.push(resultObj);
-            log(
-              `sendBatches(): Batch '${batchName}': Transaction '${tx.transactionName}' sent successfully.`,
-              { transaction: tx, result: resultObj },
-              this.debugMode
-            );
-          });
+          } = {};
 
-          result.batches[batchName] = {
-            transactions: sentTransactions,
-            userOpHash,
-            isEstimatedSuccessfully: true,
-            isSentSuccessfully: true,
-          };
+          // Track batch-level success and cost aggregation
+          let batchAllGroupsSuccessful = true;
+          let batchTotalCost: bigint = BigInt(0);
 
-          log(
-            `sendBatches(): Batch '${batchName}' sent successfully`,
-            {
-              transactionCount: batchTransactions.length,
-              userOpHash,
-              chainId: batchChainId,
-            },
-            this.debugMode
-          );
+          // ====================================================================
+          // MULTI-CHAIN GROUPING: Separate transactions by chainId (MODULAR)
+          // ====================================================================
 
-          // Remove batch and its transactions from state after successful send
-          if (result.batches[batchName].isSentSuccessfully) {
-            // Remove all transactions in the batch from namedTransactions
-            batchTransactions.forEach((tx) => {
-              if (tx.transactionName) {
-                delete this.namedTransactions[tx.transactionName];
-              }
-            });
-            delete this.batches[batchName];
+          // Group transactions by chainId for separate sending per chain
+          const chainIdToTxs = new Map<number, typeof batchTransactions>();
+          for (const tx of batchTransactions) {
+            const txChainId = tx.chainId ?? this.etherspotProvider.getChainId();
+            const list = chainIdToTxs.get(txChainId) || [];
+            list.push(tx);
+            chainIdToTxs.set(txChainId, list);
           }
-        } catch (error) {
-          const errorMessage = parseEtherspotErrorMessage(
-            error,
-            'Failed to send!'
-          );
 
-          // Create error entries for each transaction in the batch
-          batchTransactions.forEach((tx) => {
-            sentTransactions.push({
-              to: tx.to || '',
-              value: tx.value?.toString(),
-              data: tx.data,
-              chainId: tx.chainId || batchChainId,
-              errorMessage,
-              errorType: 'SEND_ERROR',
-              isEstimatedSuccessfully: true,
-              isSentSuccessfully: false,
-            });
+          // ====================================================================
+          // MULTI-CHAIN WARNING: Alert developer about multiple signatures
+          // ====================================================================
+
+          // Warn if batch contains transactions across multiple chains in modular mode
+          if (chainIdToTxs.size > 1) {
+            const chainIds = Array.from(chainIdToTxs.keys());
+            console.warn(
+              `⚠️ EtherspotTransactionKit Warning: Batch '${batchName}' contains transactions across ${chainIdToTxs.size} different chains (${chainIds.join(', ')}). In modular mode, this will require ${chainIdToTxs.size} separate user signatures, which might create a poor user experience. Consider splitting into separate batches or using delegatedEoa mode for multi-chain transactions.`
+            );
+          }
+
+          // ====================================================================
+          // CHAIN GROUP SENDING: Process each chain group sequentially (MODULAR)
+          // ====================================================================
+
+          for (const [groupChainId, groupTxs] of chainIdToTxs.entries()) {
             log(
-              `sendBatches(): Batch '${batchName}': Transaction '${tx.transactionName}' failed to send: ${errorMessage}`,
-              tx,
+              `sendBatches(): Processing chain group ${groupChainId} with ${groupTxs.length} transactions`,
+              {
+                groupChainId,
+                transactionCount: groupTxs.length,
+                transactionNames: groupTxs.map((tx) => tx.transactionName),
+              },
               this.debugMode
             );
-          });
+            const groupSent: TransactionSendResult[] = [];
+            try {
+              // ====================================================================
+              // SDK INITIALIZATION: Get fresh SDK instance for this chain
+              // ====================================================================
 
-          result.batches[batchName] = {
-            transactions: sentTransactions,
-            errorMessage,
-            isEstimatedSuccessfully: true,
-            isSentSuccessfully: false,
-          };
-          result.isSentSuccessfully = false;
+              // Get fresh SDK instance to avoid state pollution (same as original)
+              log(
+                `sendBatches(): Getting SDK for batch ${batchName} (chain ${groupChainId})...`,
+                undefined,
+                this.debugMode
+              );
+              const etherspotModularSdk = await this.etherspotProvider.getSdk(
+                groupChainId,
+                true // force new instance
+              );
+              log(
+                `sendBatches(): Got SDK for batch ${batchName} (chain ${groupChainId}):`,
+                etherspotModularSdk,
+                this.debugMode
+              );
+
+              // ====================================================================
+              // BATCH PREPARATION: Clear existing operations and add new ones
+              // ====================================================================
+
+              // Clear any existing operations
+              log(
+                `sendBatches(): Clearing user ops from batch ${batchName} (chain ${groupChainId})...`,
+                undefined,
+                this.debugMode
+              );
+              await etherspotModularSdk.clearUserOpsFromBatch();
+              log(
+                `sendBatches(): Cleared user ops from batch ${batchName} (chain ${groupChainId}).`,
+                undefined,
+                this.debugMode
+              );
+
+              // Add all transactions in the batch to the SDK
+              log(
+                `sendBatches(): Adding ${groupTxs.length} transactions to batch ${batchName} (chain ${groupChainId})...`,
+                undefined,
+                this.debugMode
+              );
+              await Promise.all(
+                groupTxs.map(async (tx) => {
+                  log(
+                    `sendBatches(): Adding transaction ${tx.transactionName} to batch ${batchName} (chain ${groupChainId})...`,
+                    undefined,
+                    this.debugMode
+                  );
+                  await etherspotModularSdk.addUserOpsToBatch({
+                    to: tx.to || '',
+                    value: tx.value?.toString(),
+                    data: tx.data,
+                  });
+                  log(
+                    `sendBatches(): Added transaction ${tx.transactionName} to batch ${batchName} (chain ${groupChainId}).`,
+                    undefined,
+                    this.debugMode
+                  );
+                })
+              );
+              log(
+                `sendBatches(): Added all transactions to batch ${batchName} (chain ${groupChainId}).`,
+                undefined,
+                this.debugMode
+              );
+
+              // ====================================================================
+              // SDK ESTIMATION: Use Etherspot SDK to estimate the batch
+              // ====================================================================
+
+              // Estimate first (like the single send() method)
+              let estimatedUserOp;
+              try {
+                log(
+                  `sendBatches(): Estimating batch ${batchName} (chain ${groupChainId}) for sending...`,
+                  undefined,
+                  this.debugMode
+                );
+                estimatedUserOp = await etherspotModularSdk.estimate({
+                  paymasterDetails,
+                });
+                log(
+                  `sendBatches(): Got estimated userOp for batch ${batchName} (chain ${groupChainId}):`,
+                  estimatedUserOp,
+                  this.debugMode
+                );
+              } catch (estimationError) {
+                const estimationErrorMessage = parseEtherspotErrorMessage(
+                  estimationError,
+                  'Failed to estimate before sending!'
+                );
+
+                // Create error entries for each transaction in the batch
+                groupTxs.forEach((tx) => {
+                  const resultObj = {
+                    to: tx.to || '',
+                    value: tx.value?.toString(),
+                    data: tx.data,
+                    chainId: tx.chainId || groupChainId,
+                    errorMessage: estimationErrorMessage,
+                    errorType: 'ESTIMATION_ERROR' as const,
+                    isEstimatedSuccessfully: false,
+                    isSentSuccessfully: false,
+                  };
+                  groupSent.push(resultObj);
+                  sentTransactions.push(resultObj);
+                  log(
+                    `sendBatches(): Batch '${batchName}' (chain ${groupChainId}): Transaction '${tx.transactionName}' failed to estimate: ${estimationErrorMessage}`,
+                    { transaction: tx, result: resultObj },
+                    this.debugMode
+                  );
+                });
+
+                chainGroups[groupChainId] = {
+                  transactions: groupSent,
+                  errorMessage: estimationErrorMessage,
+                  isEstimatedSuccessfully: false,
+                  isSentSuccessfully: false,
+                };
+                batchAllGroupsSuccessful = false;
+                continue;
+              }
+
+              // ====================================================================
+              // COST CALCULATION: Compute total cost using SDK gas estimation
+              // ====================================================================
+
+              // Apply user overrides
+              const finalUserOp = { ...estimatedUserOp };
+
+              // Calculate total gas cost (using the same approach as original)
+              log(
+                `sendBatches(): Calculating total gas for batch ${batchName} (chain ${groupChainId})...`,
+                undefined,
+                this.debugMode
+              );
+              const totalGas =
+                await etherspotModularSdk.totalGasEstimated(finalUserOp);
+              log(
+                `sendBatches(): Got totalGas for batch ${batchName} (chain ${groupChainId}):`,
+                totalGas,
+                this.debugMode
+              );
+              const totalGasBigInt = BigInt(totalGas.toString());
+              const maxFeePerGasBigInt = BigInt(
+                finalUserOp.maxFeePerGas.toString()
+              );
+              const totalCost = totalGasBigInt * maxFeePerGasBigInt;
+              log(
+                `sendBatches(): Calculated total cost for batch ${batchName} (chain ${groupChainId}):`,
+                totalCost,
+                this.debugMode
+              );
+
+              log(
+                `sendBatches(): Batch '${batchName}' (chain ${groupChainId}) estimated, now sending...`,
+                {
+                  transactionCount: groupTxs.length,
+                  totalCost: totalCost.toString(),
+                  chainId: groupChainId,
+                },
+                this.debugMode
+              );
+
+              // ====================================================================
+              // SDK SENDING: Send the batch using Etherspot SDK
+              // ====================================================================
+
+              // Send the batch
+              let userOpHash: string;
+              try {
+                log(
+                  `sendBatches(): Sending batch ${batchName} (chain ${groupChainId})...`,
+                  undefined,
+                  this.debugMode
+                );
+                userOpHash = await etherspotModularSdk.send(finalUserOp);
+                log(
+                  `sendBatches(): Got userOpHash for batch ${batchName} (chain ${groupChainId}):`,
+                  userOpHash,
+                  this.debugMode
+                );
+              } catch (sendError) {
+                const sendErrorMessage = parseEtherspotErrorMessage(
+                  sendError,
+                  'Failed to send!'
+                );
+
+                // Create error entries for each transaction in the batch
+                groupTxs.forEach((tx) => {
+                  const resultObj = {
+                    to: tx.to || '',
+                    value: tx.value?.toString(),
+                    data: tx.data,
+                    chainId: tx.chainId || groupChainId,
+                    cost: totalCost,
+                    userOp: finalUserOp,
+                    errorMessage: sendErrorMessage,
+                    errorType: 'SEND_ERROR' as const,
+                    isEstimatedSuccessfully: true,
+                    isSentSuccessfully: false,
+                  };
+                  groupSent.push(resultObj);
+                  sentTransactions.push(resultObj);
+                  log(
+                    `sendBatches(): Batch '${batchName}' (chain ${groupChainId}): Transaction '${tx.transactionName}' failed to send: ${sendErrorMessage}`,
+                    { transaction: tx, result: resultObj },
+                    this.debugMode
+                  );
+                });
+
+                chainGroups[groupChainId] = {
+                  transactions: groupSent,
+                  errorMessage: sendErrorMessage,
+                  isEstimatedSuccessfully: true,
+                  isSentSuccessfully: false,
+                };
+                batchAllGroupsSuccessful = false;
+                continue;
+              }
+
+              // ====================================================================
+              // SUCCESS RESULT BUILDING: Create TransactionSendResult for each tx (MODULAR)
+              // ====================================================================
+
+              // Create success entries for each transaction in the batch
+              groupTxs.forEach((tx) => {
+                const resultObj = {
+                  to: tx.to || '',
+                  value: tx.value?.toString(),
+                  data: tx.data,
+                  chainId: tx.chainId || groupChainId,
+                  cost: totalCost, // Use full cost for each transaction (like original) or divide by length
+                  userOp: finalUserOp,
+                  userOpHash,
+                  isEstimatedSuccessfully: true,
+                  isSentSuccessfully: true,
+                };
+                groupSent.push(resultObj);
+                sentTransactions.push(resultObj);
+                log(
+                  `sendBatches(): Batch '${batchName}' (chain ${groupChainId}): Transaction '${tx.transactionName}' sent successfully.`,
+                  { transaction: tx, result: resultObj },
+                  this.debugMode
+                );
+              });
+
+              // Store chain group results with aggregated cost
+              chainGroups[groupChainId] = {
+                transactions: groupSent,
+                userOpHash,
+                totalCost,
+                isEstimatedSuccessfully: true,
+                isSentSuccessfully: true,
+              };
+
+              // Accumulate cost for batch-level total
+              batchTotalCost += totalCost;
+
+              log(
+                `sendBatches(): Batch '${batchName}' (chain ${groupChainId}) sent successfully`,
+                {
+                  transactionCount: groupTxs.length,
+                  userOpHash,
+                  chainId: groupChainId,
+                },
+                this.debugMode
+              );
+            } catch (error) {
+              // ====================================================================
+              // ERROR HANDLING: Handle sending failures gracefully (MODULAR)
+              // ====================================================================
+
+              const errorMessage = parseEtherspotErrorMessage(
+                error,
+                'Failed to send batch chain group in modular mode!'
+              );
+
+              // Create error entries for each transaction in the batch
+              groupTxs.forEach((tx) => {
+                const resultObj = {
+                  to: tx.to || '',
+                  value: tx.value?.toString(),
+                  data: tx.data,
+                  chainId: tx.chainId || groupChainId,
+                  errorMessage,
+                  errorType: 'SEND_ERROR' as const,
+                  isEstimatedSuccessfully: false,
+                  isSentSuccessfully: false,
+                };
+                groupSent.push(resultObj);
+                sentTransactions.push(resultObj);
+                log(
+                  `sendBatches(): Batch '${batchName}' (chain ${groupChainId}): Transaction '${tx.transactionName}' failed to send: ${errorMessage}`,
+                  { transaction: tx, result: resultObj },
+                  this.debugMode
+                );
+              });
+
+              // Store chain group error results
+              chainGroups[groupChainId] = {
+                transactions: groupSent,
+                errorMessage,
+                isEstimatedSuccessfully: false,
+                isSentSuccessfully: false,
+              };
+
+              // Mark batch as failed
+              batchAllGroupsSuccessful = false;
+
+              log(
+                `sendBatches(): Batch '${batchName}' (chain ${groupChainId}) send failed`,
+                {
+                  error: errorMessage,
+                  chainId: groupChainId,
+                },
+                this.debugMode
+              );
+            }
+          }
+
+          // ====================================================================
+          // BATCH RESULT AGGREGATION: Build final batch result (MODULAR)
+          // ====================================================================
+
+          // Finalize batch result aggregating chain groups
+          const batchErrorMessage = batchAllGroupsSuccessful
+            ? undefined
+            : 'One or more chain groups failed to send';
+          if (!batchAllGroupsSuccessful) {
+            result.isEstimatedSuccessfully = false;
+            result.isSentSuccessfully = false;
+          }
 
           log(
-            `sendBatches(): Batch '${batchName}' send failed`,
+            `sendBatches(): Building final result for batch ${batchName}`,
             {
-              error: errorMessage,
-              chainId: batchChainId,
+              batchName,
+              chainGroups,
+              sentTransactions: sentTransactions.length,
+              batchAllGroupsSuccessful,
+              batchTotalCost: batchTotalCost.toString(),
             },
             this.debugMode
           );
-        }
-      })
-    );
 
-    // Set error state based on results (like original)
-    this.containsSendingError = !result.isSentSuccessfully;
-    this.isSending = false;
+          result.batches[batchName] = {
+            transactions: sentTransactions,
+            chainGroups,
+            totalCost: batchAllGroupsSuccessful ? batchTotalCost : undefined,
+            errorMessage: batchErrorMessage,
+            isEstimatedSuccessfully: batchAllGroupsSuccessful,
+            isSentSuccessfully: batchAllGroupsSuccessful,
+          };
 
-    return result;
+          // ====================================================================
+          // STATE CLEANUP: Remove successful chain groups from batch (MODULAR)
+          // ====================================================================
+
+          // Remove transactions from successful chain groups
+          const remainingTransactions: typeof batchTransactions = [];
+          let hasSuccessfulChainGroups = false;
+          let hasFailedChainGroups = false;
+
+          for (const [groupChainId, groupResult] of Object.entries(
+            chainGroups
+          )) {
+            if (groupResult.isSentSuccessfully) {
+              hasSuccessfulChainGroups = true;
+              // Remove transactions from this successful chain group
+              const groupTxs = chainIdToTxs.get(parseInt(groupChainId)) || [];
+              groupTxs.forEach((tx) => {
+                if (tx.transactionName) {
+                  delete this.namedTransactions[tx.transactionName];
+                }
+              });
+            } else {
+              hasFailedChainGroups = true;
+              // Keep transactions from failed chain groups
+              const groupTxs = chainIdToTxs.get(parseInt(groupChainId)) || [];
+              remainingTransactions.push(...groupTxs);
+            }
+          }
+
+          // Update batch with remaining transactions
+          if (remainingTransactions.length > 0) {
+            this.batches[batchName] = remainingTransactions;
+            log(
+              `sendBatches(): Batch '${batchName}' updated with ${remainingTransactions.length} remaining transactions from failed chain groups (MODULAR)`,
+              {
+                batchName,
+                remainingTransactions: remainingTransactions.length,
+                successfulChainGroups: hasSuccessfulChainGroups,
+                failedChainGroups: hasFailedChainGroups,
+              },
+              this.debugMode
+            );
+          } else {
+            // All chain groups succeeded, remove the entire batch
+            delete this.batches[batchName];
+            log(
+              `sendBatches(): Batch '${batchName}' completely removed - all chain groups succeeded (MODULAR)`,
+              {
+                batchName,
+                successfulChainGroups: hasSuccessfulChainGroups,
+              },
+              this.debugMode
+            );
+          }
+        })
+      );
+
+      // ========================================================================
+      // STEP 5: FINAL RESULT PROCESSING (MODULAR MODE)
+      // ========================================================================
+
+      // Set error state based on results (like original)
+      this.containsSendingError = !result.isSentSuccessfully;
+      this.isSending = false;
+
+      return result;
+    }
   }
 
   /**
@@ -2772,7 +3918,7 @@ export class EtherspotTransactionKit implements IInitial {
    * @returns The EtherspotProvider instance.
    */
   getEtherspotProvider(): EtherspotProvider {
-    return this.etherspotProvider;
+    return this.etherspotProvider.sanitized;
   }
 
   /**
@@ -2781,8 +3927,11 @@ export class EtherspotTransactionKit implements IInitial {
    * @param chainId - (Optional) The chain ID for which to get the SDK. Defaults to the provider's current chain.
    * @param forceNewInstance - (Optional) If true, forces creation of a new SDK instance.
    * @returns A promise that resolves to a ModularSdk instance.
+   * @throws {Error} If wallet mode is 'delegatedEoa' (SDK only available in 'modular' mode).
    *
    * @remarks
+   * - Only available in 'modular' wallet mode.
+   * - For 'delegatedEoa' mode, use getDelegatedEoaAccount(), getBundlerClient(), or getPublicClient() instead.
    * - Useful for advanced operations or direct SDK access.
    * - May perform network requests or SDK initialization.
    */
@@ -2791,6 +3940,16 @@ export class EtherspotTransactionKit implements IInitial {
     forceNewInstance?: boolean
   ): Promise<ModularSdk> {
     log('getSdk(): Called with', { chainId, forceNewInstance }, this.debugMode);
+
+    const walletMode = this.etherspotProvider.getWalletMode();
+    if (walletMode === 'delegatedEoa') {
+      this.throwError(
+        `getSdk() is only available in 'modular' wallet mode. ` +
+          `Current mode: '${walletMode}'. ` +
+          `For delegatedEoa mode, use getDelegatedEoaAccount(), getBundlerClient(), or getPublicClient() from the EtherspotProvider instead.`
+      );
+    }
+
     const sdk = await this.etherspotProvider.getSdk(chainId, forceNewInstance);
     log('getSdk(): Returning SDK', sdk, this.debugMode);
     return sdk;
@@ -2799,11 +3958,19 @@ export class EtherspotTransactionKit implements IInitial {
   /**
    * Polls for the transaction hash using a user operation hash and chain ID.
    *
+   * Supports both modular and delegatedEoa wallet modes. Uses appropriate client (Etherspot SDK or viem bundler client) to poll for user operation receipt and extract the transaction hash.
+   *
    * @param userOpHash - The user operation hash to query.
-   * @param txChainId - The chain ID to use for the SDK.
+   * @param txChainId - The chain ID to use for the SDK/client.
    * @param timeout - (Optional) Timeout in ms (default: 60000).
    * @param retryInterval - (Optional) Polling interval in ms (default: 2000).
    * @returns The transaction hash as a string, or null if not found in time.
+   *
+   * @remarks
+   * - **Modular Mode**: Uses Etherspot SDK's `getUserOpReceipt()` method
+   * - **DelegatedEoa Mode**: Uses viem bundler client's `getUserOperationReceipt()` method
+   * - **Polling**: Continuously polls until receipt is found or timeout is reached
+   * - **Error Handling**: Handles network errors and continues polling
    */
   public async getTransactionHash(
     userOpHash: string,
@@ -2811,31 +3978,126 @@ export class EtherspotTransactionKit implements IInitial {
     timeout: number = 60 * 1000,
     retryInterval: number = 2000
   ): Promise<string | null> {
-    const etherspotModularSdk = await this.getSdk(txChainId);
+    const walletMode = this.etherspotProvider.getWalletMode();
+    log(
+      `getTransactionHash(): Wallet mode: ${walletMode}`,
+      undefined,
+      this.debugMode
+    );
 
     let transactionHash: string | null = null;
     const timeoutTotal = Date.now() + timeout;
 
-    while (!transactionHash && Date.now() < timeoutTotal) {
-      await new Promise<void>((resolve) => setTimeout(resolve, retryInterval));
+    if (walletMode === 'delegatedEoa') {
+      // DelegatedEoa mode: Use viem bundler client
+      log(
+        'getTransactionHash(): Using delegatedEoa mode',
+        undefined,
+        this.debugMode
+      );
+
       try {
-        transactionHash =
-          await etherspotModularSdk.getUserOpReceipt(userOpHash);
+        // Get bundler client for the specified chain
+        const bundlerClient =
+          await this.etherspotProvider.getBundlerClient(txChainId);
+
+        log(
+          `getTransactionHash(): Got bundler client for chain ${txChainId}`,
+          undefined,
+          this.debugMode
+        );
+
+        // Poll for user operation receipt using bundler client
+        while (!transactionHash && Date.now() < timeoutTotal) {
+          await new Promise<void>((resolve) =>
+            setTimeout(resolve, retryInterval)
+          );
+
+          try {
+            log(
+              `getTransactionHash(): Polling for userOp receipt: ${userOpHash}`,
+              undefined,
+              this.debugMode
+            );
+
+            const receipt = await bundlerClient.getUserOperationReceipt({
+              hash: userOpHash as `0x${string}`,
+            });
+
+            if (receipt) {
+              transactionHash = receipt.receipt.transactionHash;
+              log(
+                `getTransactionHash(): Got transaction hash: ${transactionHash}`,
+                undefined,
+                this.debugMode
+              );
+            }
+          } catch (error) {
+            // User operation might not be mined yet, continue polling
+            log(
+              `getTransactionHash(): UserOp not yet mined, continuing to poll...`,
+              undefined,
+              this.debugMode
+            );
+          }
+        }
+
+        if (!transactionHash) {
+          console.warn(
+            'Failed to get the transaction hash within time limit. Please try again'
+          );
+        }
+
+        return transactionHash;
       } catch (error) {
+        const errorMessage = parseEtherspotErrorMessage(
+          error,
+          'Failed to get transaction hash in delegatedEoa mode!'
+        );
+        log(
+          `getTransactionHash(): Error in delegatedEoa mode: ${errorMessage}`,
+          error,
+          this.debugMode
+        );
         console.error(
-          'Error fetching transaction hash. Please check if the transaction has gone through, or try to send the transaction again:',
-          error
+          'Error fetching transaction hash in delegatedEoa mode:',
+          errorMessage
+        );
+        return null;
+      }
+    } else {
+      // Modular mode: Use Etherspot SDK
+      log(
+        'getTransactionHash(): Using modular mode',
+        undefined,
+        this.debugMode
+      );
+
+      const etherspotModularSdk = await this.getSdk(txChainId);
+
+      while (!transactionHash && Date.now() < timeoutTotal) {
+        await new Promise<void>((resolve) =>
+          setTimeout(resolve, retryInterval)
+        );
+        try {
+          transactionHash =
+            await etherspotModularSdk.getUserOpReceipt(userOpHash);
+        } catch (error) {
+          console.error(
+            'Error fetching transaction hash. Please check if the transaction has gone through, or try to send the transaction again:',
+            error
+          );
+        }
+      }
+
+      if (!transactionHash) {
+        console.warn(
+          'Failed to get the transaction hash within time limit. Please try again'
         );
       }
-    }
 
-    if (!transactionHash) {
-      console.warn(
-        'Failed to get the transaction hash within time limit. Please try again'
-      );
+      return transactionHash;
     }
-
-    return transactionHash;
   }
 
   /**
