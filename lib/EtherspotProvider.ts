@@ -42,21 +42,25 @@ import {
   BundlerClientExtended,
   DelegatedEoaModeConfig,
   EtherspotTransactionKitConfig,
+  PrivateConfig,
+  PublicConfig,
   WalletMode,
 } from './interfaces';
 
 // utils
-import { log, sanitizeObject } from './utils';
+import { log } from './utils';
 
 export class EtherspotProvider {
+  // Security: private fields (#) to prevent external access
+  #privateConfig: PrivateConfig;
+  #publicConfig: PublicConfig;
+
   private sdkPerChain: { [chainId: number]: ModularSdk | Promise<ModularSdk> } =
     {};
 
   private prevProvider: WalletProviderLike | null = null;
 
   private prevDelegatedEoaConfig: DelegatedEoaModeConfig | null = null;
-
-  private config: EtherspotTransactionKitConfig;
 
   // delegatedEoa mode infrastructure
   private publicClientPerChain: {
@@ -92,6 +96,25 @@ export class EtherspotProvider {
       );
     }
 
+    // Security: Separate sensitive and public data
+    this.#privateConfig = {
+      privateKey: 'privateKey' in config ? config.privateKey : undefined,
+      bundlerApiKey:
+        'bundlerApiKey' in config ? config.bundlerApiKey : undefined,
+      bundlerApiKeyFormat:
+        'bundlerApiKeyFormat' in config
+          ? config.bundlerApiKeyFormat
+          : undefined,
+    };
+
+    this.#publicConfig = {
+      chainId: config.chainId,
+      walletMode: config.walletMode,
+      debugMode: config.debugMode,
+      bundlerUrl: 'bundlerUrl' in config ? config.bundlerUrl : undefined,
+      provider: 'provider' in config ? config.provider : undefined,
+    };
+
     // Validate mode-specific requirements
     if (config.walletMode === 'modular' || !config.walletMode) {
       // Modular mode requires provider
@@ -116,8 +139,6 @@ export class EtherspotProvider {
         );
       }
     }
-
-    this.config = config;
   }
 
   /**
@@ -174,19 +195,50 @@ export class EtherspotProvider {
     }
 
     const walletModeChanged =
-      newConfig.walletMode && newConfig.walletMode !== this.config.walletMode;
+      newConfig.walletMode &&
+      newConfig.walletMode !== this.#publicConfig.walletMode;
 
-    this.config = {
-      ...this.config,
-      ...newConfig,
-    } as EtherspotTransactionKitConfig;
+    // Security: Update both private and public configs separately
+    this.#privateConfig = {
+      ...this.#privateConfig,
+      privateKey:
+        'privateKey' in newConfig
+          ? newConfig.privateKey
+          : this.#privateConfig.privateKey,
+      bundlerApiKey:
+        'bundlerApiKey' in newConfig
+          ? newConfig.bundlerApiKey
+          : this.#privateConfig.bundlerApiKey,
+      bundlerApiKeyFormat:
+        'bundlerApiKeyFormat' in newConfig
+          ? newConfig.bundlerApiKeyFormat
+          : this.#privateConfig.bundlerApiKeyFormat,
+    };
+
+    this.#publicConfig = {
+      ...this.#publicConfig,
+      chainId: newConfig.chainId ?? this.#publicConfig.chainId,
+      walletMode: newConfig.walletMode ?? this.#publicConfig.walletMode,
+      debugMode: newConfig.debugMode ?? this.#publicConfig.debugMode,
+      bundlerUrl:
+        'bundlerUrl' in newConfig
+          ? newConfig.bundlerUrl
+          : this.#publicConfig.bundlerUrl,
+      provider:
+        'provider' in newConfig
+          ? newConfig.provider
+          : this.#publicConfig.provider,
+    };
 
     // Clear all caches if wallet mode changed
     if (walletModeChanged) {
       this.clearAllCaches();
     } else if (this.getWalletMode() === 'delegatedEoa') {
       // Check if delegatedEoa config changed
-      const newConfigObject = this.createDelegatedEoaConfigObject(this.config);
+      const newConfigObject = this.createDelegatedEoaConfigObject({
+        ...this.#publicConfig,
+        ...this.#privateConfig,
+      } as EtherspotTransactionKitConfig);
       if (
         this.prevDelegatedEoaConfig &&
         !isEqual(this.prevDelegatedEoaConfig, newConfigObject)
@@ -196,7 +248,7 @@ export class EtherspotProvider {
       this.prevDelegatedEoaConfig = newConfigObject;
     }
 
-    return this.sanitized;
+    return this;
   }
 
   /**
@@ -207,11 +259,16 @@ export class EtherspotProvider {
    */
   private createBundlerConfig(chainId: number): BundlerConfig {
     const delegatedEoaConfig =
-      this.config.walletMode === 'delegatedEoa' ? this.config : null;
+      this.#publicConfig.walletMode === 'delegatedEoa'
+        ? {
+            bundlerUrl: this.#publicConfig.bundlerUrl,
+            bundlerApiKeyFormat: this.#privateConfig.bundlerApiKeyFormat,
+          }
+        : null;
 
     return new BundlerConfig(
       chainId,
-      this.config.bundlerApiKey,
+      this.#privateConfig.bundlerApiKey,
       delegatedEoaConfig?.bundlerUrl,
       delegatedEoaConfig?.bundlerApiKeyFormat
     );
@@ -227,7 +284,7 @@ export class EtherspotProvider {
    * @throws {Error} If wallet mode is not 'modular'.
    */
   async getSdk(
-    sdkChainId: number = this.config.chainId,
+    sdkChainId: number = this.#publicConfig.chainId,
     forceNewInstance: boolean = false,
     customChain?: Chain
   ): Promise<ModularSdk> {
@@ -240,16 +297,11 @@ export class EtherspotProvider {
       );
     }
 
-    // Cast to modular config once since we know we're in modular mode
-    const modularConfig = this.config as Extract<
-      EtherspotTransactionKitConfig,
-      { walletMode?: 'modular' }
-    >;
-
     // Check if provider has changed
     // If prevProvider is null (reset or first time), treat as changed
     const providerChanged =
-      !this.prevProvider || !isEqual(this.prevProvider, modularConfig.provider);
+      !this.prevProvider ||
+      !isEqual(this.prevProvider, this.#publicConfig.provider);
 
     if (
       sdkChainId in this.sdkPerChain &&
@@ -261,13 +313,13 @@ export class EtherspotProvider {
 
     this.sdkPerChain[sdkChainId] = (async () => {
       const etherspotModularSdk = new ModularSdk(
-        modularConfig.provider as WalletProvider,
+        this.#publicConfig.provider as WalletProvider,
         {
           chainId: +sdkChainId,
           chain: customChain,
           bundlerProvider: new EtherspotBundler(
             +sdkChainId,
-            this.config.bundlerApiKey ?? '__ETHERSPOT_BUNDLER_API_KEY__'
+            this.#privateConfig.bundlerApiKey ?? '__ETHERSPOT_BUNDLER_API_KEY__'
           ),
           factoryWallet: 'etherspot' as Factory,
         }
@@ -282,7 +334,7 @@ export class EtherspotProvider {
           log(
             `[EtherspotProvider] getSdk(): Attempt ${i}/3 failed to get counter factual address`,
             error,
-            this.config.debugMode
+            this.#publicConfig.debugMode
           );
 
           if (i < 3) {
@@ -298,11 +350,7 @@ export class EtherspotProvider {
       }
 
       if (this.getWalletMode() === 'modular' || !this.getWalletMode()) {
-        const modularConfig = this.config as Extract<
-          EtherspotTransactionKitConfig,
-          { walletMode?: 'modular' }
-        >;
-        this.prevProvider = modularConfig.provider;
+        this.prevProvider = this.#publicConfig.provider || null;
       }
       return etherspotModularSdk;
     })();
@@ -323,7 +371,7 @@ export class EtherspotProvider {
    * - Each chain ID gets its own client instance.
    */
   async getPublicClient(
-    chainId: number = this.config.chainId
+    chainId: number = this.#publicConfig.chainId
   ): Promise<PublicClient> {
     if (this.getWalletMode() !== 'delegatedEoa') {
       throw new Error(
@@ -355,7 +403,7 @@ export class EtherspotProvider {
         log(
           `[EtherspotProvider] getPublicClient(): Creating for chain ${chainId}`,
           { bundlerUrl: bundlerConfig.url },
-          this.config.debugMode
+          this.#publicConfig.debugMode
         );
 
         // Create public client
@@ -369,7 +417,7 @@ export class EtherspotProvider {
         log(
           `[EtherspotProvider] getPublicClient(): Error for chain ${chainId}`,
           error,
-          this.config.debugMode
+          this.#publicConfig.debugMode
         );
         throw error;
       }
@@ -391,7 +439,7 @@ export class EtherspotProvider {
    * - Each chain ID gets its own delegatedEoa account instance.
    */
   async getDelegatedEoaAccount(
-    chainId: number = this.config.chainId
+    chainId: number = this.#publicConfig.chainId
   ): Promise<SmartAccount<KernelSmartAccountImplementation<'0.7'>>> {
     if (this.getWalletMode() !== 'delegatedEoa') {
       throw new Error(
@@ -416,7 +464,7 @@ export class EtherspotProvider {
         log(
           `[EtherspotProvider] getDelegatedEoaAccount(): Creating for chain ${chainId}`,
           { eip7702Account: owner.address },
-          this.config.debugMode
+          this.#publicConfig.debugMode
         );
 
         // Create delegatedEoa account with EIP-7702
@@ -431,7 +479,7 @@ export class EtherspotProvider {
         log(
           `[EtherspotProvider] getDelegatedEoaAccount(): Error for chain ${chainId}`,
           error,
-          this.config.debugMode
+          this.#publicConfig.debugMode
         );
         throw error;
       }
@@ -453,7 +501,7 @@ export class EtherspotProvider {
    * - This is the same account used internally in getDelegatedEoaAccount().
    */
   async getOwnerAccount(
-    chainId: number = this.config.chainId
+    chainId: number = this.#publicConfig.chainId
   ): Promise<LocalAccount> {
     if (this.getWalletMode() !== 'delegatedEoa') {
       throw new Error(
@@ -463,12 +511,7 @@ export class EtherspotProvider {
       );
     }
 
-    const delegatedEoaConfig = this.config as Extract<
-      EtherspotTransactionKitConfig,
-      { walletMode: 'delegatedEoa' }
-    >;
-
-    if (!delegatedEoaConfig.privateKey) {
+    if (!this.#privateConfig.privateKey) {
       throw new Error(
         'getOwnerAccount(): privateKey not found in config. ' +
           'Please ensure the privateKey is set in config.'
@@ -476,12 +519,12 @@ export class EtherspotProvider {
     }
 
     // Create owner account from private key
-    const owner = privateKeyToAccount(delegatedEoaConfig.privateKey as Hex);
+    const owner = privateKeyToAccount(this.#privateConfig.privateKey as Hex);
 
     log(
       `[EtherspotProvider] getOwnerAccount(): Created owner account ${owner.address} for chain ${chainId}`,
       { ownerAddress: owner.address },
-      this.config.debugMode
+      this.#publicConfig.debugMode
     );
 
     return owner;
@@ -501,7 +544,7 @@ export class EtherspotProvider {
    * - Uses the bundler URL for proper EIP-7702 support.
    */
   async getWalletClient(
-    chainId: number = this.config.chainId
+    chainId: number = this.#publicConfig.chainId
   ): Promise<WalletClient> {
     if (this.getWalletMode() !== 'delegatedEoa') {
       throw new Error(
@@ -532,7 +575,7 @@ export class EtherspotProvider {
         log(
           `[EtherspotProvider] getWalletClient(): Creating for chain ${chainId}`,
           { bundlerUrl: bundlerConfig.url, ownerAddress: owner.address },
-          this.config.debugMode
+          this.#publicConfig.debugMode
         );
 
         // Create wallet client with bundler URL
@@ -547,7 +590,7 @@ export class EtherspotProvider {
         log(
           `[EtherspotProvider] getWalletClient(): Error for chain ${chainId}`,
           error,
-          this.config.debugMode
+          this.#publicConfig.debugMode
         );
         throw error;
       }
@@ -570,7 +613,7 @@ export class EtherspotProvider {
    * - The returned client is extended with publicActions and walletActions for full account abstraction support.
    */
   async getBundlerClient(
-    chainId: number = this.config.chainId
+    chainId: number = this.#publicConfig.chainId
   ): Promise<BundlerClientExtended> {
     if (this.getWalletMode() !== 'delegatedEoa') {
       throw new Error(
@@ -596,7 +639,7 @@ export class EtherspotProvider {
         log(
           `[EtherspotProvider] getBundlerClient(): Creating for chain ${chainId}`,
           { bundlerUrl: bundlerConfig.url },
-          this.config.debugMode
+          this.#publicConfig.debugMode
         );
 
         // Create bundler client with extended actions for account abstraction
@@ -612,7 +655,7 @@ export class EtherspotProvider {
         log(
           `[EtherspotProvider] getBundlerClient(): Error for chain ${chainId}`,
           error,
-          this.config.debugMode
+          this.#publicConfig.debugMode
         );
         throw error;
       }
@@ -635,12 +678,7 @@ export class EtherspotProvider {
       );
     }
 
-    const modularConfig = this.config as Extract<
-      EtherspotTransactionKitConfig,
-      { walletMode?: 'modular' }
-    >;
-
-    return modularConfig.provider;
+    return this.#publicConfig.provider!;
   }
 
   /**
@@ -648,7 +686,7 @@ export class EtherspotProvider {
    * @returns The chain ID as a number.
    */
   getChainId(): number {
-    return this.config.chainId;
+    return this.#publicConfig.chainId;
   }
 
   /**
@@ -656,7 +694,7 @@ export class EtherspotProvider {
    * @returns The wallet mode ('modular' or 'delegatedEoa'), defaults to 'modular' if not set.
    */
   getWalletMode(): WalletMode {
-    return this.config.walletMode ?? 'modular';
+    return this.#publicConfig.walletMode ?? 'modular';
   }
 
   /**
@@ -665,7 +703,7 @@ export class EtherspotProvider {
    */
   clearSdkCache(): this {
     this.sdkPerChain = {};
-    return this.sanitized;
+    return this;
   }
 
   /**
@@ -677,7 +715,7 @@ export class EtherspotProvider {
     this.delegatedEoaAccountPerChain = {};
     this.bundlerClientPerChain = {};
     this.walletClientPerChain = {};
-    return this.sanitized;
+    return this;
   }
 
   /**
@@ -692,23 +730,15 @@ export class EtherspotProvider {
     this.clearDelegatedEoaCache();
     this.prevProvider = null; // Reset provider tracking
     this.prevDelegatedEoaConfig = null; // Reset delegatedEoa config tracking
-    return this.sanitized;
+    return this;
   }
 
   /**
-   * Gets a copy of the current provider configuration with sensitive data sanitized.
-   * @returns The EtherspotTransactionKitConfig object with private keys and API keys removed.
+   * Gets a copy of the current public provider configuration.
+   * @returns The EtherspotTransactionKitConfig object with only public data.
    */
   getConfig(): EtherspotTransactionKitConfig {
-    return sanitizeObject(this.config) as EtherspotTransactionKitConfig;
-  }
-
-  /**
-   * Returns a sanitized version of this instance.
-   * This getter automatically sanitizes sensitive data when accessed.
-   */
-  get sanitized(): this {
-    return sanitizeObject(this) as this;
+    return { ...this.#publicConfig } as EtherspotTransactionKitConfig;
   }
 
   /**
@@ -724,7 +754,7 @@ export class EtherspotProvider {
     log(
       '[EtherspotProvider] destroy(): All resources cleaned up',
       undefined,
-      this.config.debugMode
+      this.#publicConfig.debugMode
     );
   }
 }

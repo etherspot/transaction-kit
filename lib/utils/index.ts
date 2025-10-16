@@ -68,15 +68,14 @@ export const log = (message: string, data?: any, debugMode?: boolean): void => {
 };
 
 /**
- * Comprehensive list of sensitive keys that should be redacted in any object.
- * This centralizes all sensitive data handling in one place.
+ * Sensitive keys specific to TransactionKit configuration.
+ * ONLY the critical security-sensitive keys that must never leak.
  */
-const SENSITIVE_KEYS = ['privateKey', 'apiKey', 'bundlerApiKey'];
+const SENSITIVE_KEYS = ['privateKey', 'bundlerApiKey', 'bundlerApiKeyFormat'];
 
 /**
  * Sanitizes any object by recursively sanitizing all properties and nested objects.
  * This utility prevents accidental exposure of sensitive data in logs or public methods.
- * Works for both simple configuration objects and complex class instances.
  *
  * @param obj - The object to sanitize
  * @returns A sanitized copy of the object

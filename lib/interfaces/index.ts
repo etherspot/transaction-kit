@@ -21,6 +21,22 @@ export interface TypePerId<T> {
 // Wallet Mode Types
 export type WalletMode = 'modular' | 'delegatedEoa';
 
+// Security: Private config interface for sensitive data
+export interface PrivateConfig {
+  privateKey?: string;
+  bundlerApiKey?: string;
+  bundlerApiKeyFormat?: string;
+}
+
+// Security: Public config interface for safe data
+export interface PublicConfig {
+  chainId: number;
+  walletMode?: WalletMode;
+  debugMode?: boolean;
+  bundlerUrl?: string;
+  provider?: WalletProviderLike;
+}
+
 // Modular mode specific config - requires a wallet provider
 export interface ModularModeConfig {
   provider: WalletProviderLike;
@@ -59,8 +75,8 @@ export interface IInitial {
 
   // Standalone methods (not chainable)
   getWalletAddress(chainId?: number): Promise<string | undefined>;
-  isSmartWallet(chainId?: number): Promise<boolean | undefined>;
-  installSmartWallet({
+  isDelegateSmartAccountToEoa(chainId?: number): Promise<boolean | undefined>;
+  delegateSmartAccountToEoa({
     chainId,
     isExecuting,
   }: {
@@ -73,7 +89,7 @@ export interface IInitial {
     delegateAddress: string;
     userOpHash?: string;
   }>;
-  uninstallSmartWallet?({
+  undelegateSmartAccountToEoa?({
     chainId,
     isExecuting,
   }: {

@@ -42,10 +42,11 @@ import { getChainFromId } from './network';
 
 // utils
 import { EtherspotUtils } from './EtherspotUtils';
-import { log, parseEtherspotErrorMessage, sanitizeObject } from './utils';
+import { log, parseEtherspotErrorMessage } from './utils';
 
 export class EtherspotTransactionKit implements IInitial {
-  private etherspotProvider: EtherspotProvider;
+  // Security: Use private field (#) to prevent external access
+  #etherspotProvider: EtherspotProvider;
 
   private batches: { [batchName: string]: TransactionBuilder[] } = {};
 
@@ -71,7 +72,7 @@ export class EtherspotTransactionKit implements IInitial {
   private workingTransaction?: TransactionBuilder;
 
   constructor(config: EtherspotTransactionKitConfig) {
-    this.etherspotProvider = new EtherspotProvider(config);
+    this.#etherspotProvider = new EtherspotProvider(config);
     this.debugMode = config.debugMode || false;
   }
 
@@ -106,14 +107,6 @@ export class EtherspotTransactionKit implements IInitial {
   }
 
   /**
-   * Returns a sanitized version of this instance.
-   * This getter automatically sanitizes sensitive data when accessed.
-   */
-  get sanitized() {
-    return sanitizeObject(this);
-  }
-
-  /**
    * Retrieves the wallet address for the current or specified chain.
    *
    * Behavior depends on wallet mode:
@@ -129,11 +122,12 @@ export class EtherspotTransactionKit implements IInitial {
    * @remarks
    * - Asynchronous; may perform network requests (particularly in modular mode).
    * - Address is cached per chain.
-   * - In delegatedEoa mode this returns the EOA address; EIP-7702 installation status is independent and can be checked via isSmartWallet().
+   * - In delegatedEoa mode this returns the EOA address; EIP-7702 installation status is independent and can be checked via isDelegateSmartAccountToEoa().
    */
   async getWalletAddress(chainId?: number): Promise<string | undefined> {
     log('getWalletAddress(): Called with chainId', chainId, this.debugMode);
-    const walletAddressChainId = chainId || this.etherspotProvider.getChainId();
+    const walletAddressChainId =
+      chainId || this.#etherspotProvider.getChainId();
 
     // Check if the walletAddress is already in the instance
     if (this.walletAddresses[walletAddressChainId]) {
@@ -145,7 +139,7 @@ export class EtherspotTransactionKit implements IInitial {
       return this.walletAddresses[walletAddressChainId];
     }
 
-    const walletMode = this.etherspotProvider.getWalletMode();
+    const walletMode = this.#etherspotProvider.getWalletMode();
     log(
       `getWalletAddress(): Wallet mode: ${walletMode}`,
       undefined,
@@ -156,7 +150,7 @@ export class EtherspotTransactionKit implements IInitial {
       if (walletMode === 'delegatedEoa') {
         // DelegatedEoa mode: Get address from delegatedEoa account
         const delegatedEoaAccount =
-          await this.etherspotProvider.getDelegatedEoaAccount(
+          await this.#etherspotProvider.getDelegatedEoaAccount(
             walletAddressChainId
           );
 
@@ -175,7 +169,7 @@ export class EtherspotTransactionKit implements IInitial {
       } else {
         // Modular mode: Get SDK instance for the chain
         const etherspotModularSdk =
-          await this.etherspotProvider.getSdk(walletAddressChainId);
+          await this.#etherspotProvider.getSdk(walletAddressChainId);
 
         let walletAddress: string | undefined;
         try {
@@ -223,47 +217,53 @@ export class EtherspotTransactionKit implements IInitial {
    * - This method checks for the presence of code at the EOA address using the public client.
    * - Returns false if the address has no code (regular EOA), true if it has code (designated EOA).
    */
-  async isSmartWallet(chainId?: number): Promise<boolean | undefined> {
-    const walletMode = this.etherspotProvider.getWalletMode();
+  async isDelegateSmartAccountToEoa(
+    chainId?: number
+  ): Promise<boolean | undefined> {
+    const walletMode = this.#etherspotProvider.getWalletMode();
 
-    log('isSmartWallet(): Called with chainId', chainId, this.debugMode);
     log(
-      `isSmartWallet(): Wallet mode: ${walletMode}`,
+      'isDelegateSmartAccountToEoa(): Called with chainId',
+      chainId,
+      this.debugMode
+    );
+    log(
+      `isDelegateSmartAccountToEoa(): Wallet mode: ${walletMode}`,
       undefined,
       this.debugMode
     );
 
     if (walletMode !== 'delegatedEoa') {
       this.throwError(
-        "isSmartWallet() is only available in 'delegatedEoa' wallet mode. " +
+        "isDelegateSmartAccountToEoa() is only available in 'delegatedEoa' wallet mode. " +
           `Current mode: '${walletMode}'. ` +
           'This method checks if an EOA has been upgraded to a smart account using EIP-7702 delegation.'
       );
     }
 
-    const checkChainId = chainId || this.etherspotProvider.getChainId();
+    const checkChainId = chainId || this.#etherspotProvider.getChainId();
 
     try {
       // Get the delegatedEoa account to check the EOA address
       const delegatedEoaAccount =
-        await this.etherspotProvider.getDelegatedEoaAccount(checkChainId);
+        await this.#etherspotProvider.getDelegatedEoaAccount(checkChainId);
       const eoaAddress = delegatedEoaAccount.address;
 
       log(
-        `isSmartWallet(): Checking if EOA ${eoaAddress} has been designated on chain ${checkChainId}`,
+        `isDelegateSmartAccountToEoa(): Checking if EOA ${eoaAddress} has been designated on chain ${checkChainId}`,
         { eoaAddress },
         this.debugMode
       );
 
       const publicClient =
-        await this.etherspotProvider.getPublicClient(checkChainId);
+        await this.#etherspotProvider.getPublicClient(checkChainId);
 
       const senderCode = await publicClient.getCode({
         address: eoaAddress,
       });
 
       log(
-        `isSmartWallet(): Got code at EOA address`,
+        `isDelegateSmartAccountToEoa(): Got code at EOA address`,
         { senderCode },
         this.debugMode
       );
@@ -274,7 +274,7 @@ export class EtherspotTransactionKit implements IInitial {
         senderCode.startsWith('0xef0100');
 
       log(
-        `isSmartWallet(): EOA ${eoaAddress} ${hasEIP7702Designation ? 'HAS' : 'DOES NOT HAVE'} EIP-7702 designation`,
+        `isDelegateSmartAccountToEoa(): EOA ${eoaAddress} ${hasEIP7702Designation ? 'HAS' : 'DOES NOT HAVE'} EIP-7702 designation`,
         { senderCode, hasEIP7702Designation },
         this.debugMode
       );
@@ -282,7 +282,7 @@ export class EtherspotTransactionKit implements IInitial {
       return hasEIP7702Designation;
     } catch (error) {
       log(
-        `isSmartWallet(): Failed to check smart wallet status for chain ${checkChainId}`,
+        `isDelegateSmartAccountToEoa(): Failed to check smart wallet status for chain ${checkChainId}`,
         error,
         this.debugMode
       );
@@ -310,7 +310,7 @@ export class EtherspotTransactionKit implements IInitial {
    * - If not installed, signs a Kernel authorization, and if `isExecuting` is true, submits a no-op UserOp to activate.
    * - If execution fails, the method returns the signed authorization so callers can retry submission externally.
    */
-  async installSmartWallet({
+  async delegateSmartAccountToEoa({
     chainId,
     isExecuting = true,
   }: {
@@ -323,18 +323,18 @@ export class EtherspotTransactionKit implements IInitial {
     delegateAddress: string;
     userOpHash?: string;
   }> {
-    const walletMode = this.etherspotProvider.getWalletMode();
-    const installChainId = chainId || this.etherspotProvider.getChainId();
+    const walletMode = this.#etherspotProvider.getWalletMode();
+    const installChainId = chainId || this.#etherspotProvider.getChainId();
 
     log(
-      'installSmartWallet(): Called',
+      'delegateSmartAccountToEoa(): Called',
       { installChainId, isExecuting },
       this.debugMode
     );
 
     if (walletMode !== 'delegatedEoa') {
       this.throwError(
-        "installSmartWallet() is only available in 'delegatedEoa' wallet mode. " +
+        "delegateSmartAccountToEoa() is only available in 'delegatedEoa' wallet mode. " +
           `Current mode: '${walletMode}'.`
       );
     }
@@ -342,19 +342,20 @@ export class EtherspotTransactionKit implements IInitial {
     try {
       // Get required clients and addresses
       const owner =
-        await this.etherspotProvider.getOwnerAccount(installChainId);
+        await this.#etherspotProvider.getOwnerAccount(installChainId);
       const bundlerClient =
-        await this.etherspotProvider.getBundlerClient(installChainId);
+        await this.#etherspotProvider.getBundlerClient(installChainId);
       const eoaAddress = owner.address as `0x${string}`;
       const delegateAddress = KernelVersionToAddressesMap[KERNEL_V3_3]
         .accountImplementationAddress as `0x${string}`;
 
       // Check if already installed
-      const isAlreadyInstalled = await this.isSmartWallet(installChainId);
+      const isAlreadyInstalled =
+        await this.isDelegateSmartAccountToEoa(installChainId);
 
       if (isAlreadyInstalled) {
         log(
-          'installSmartWallet(): Already installed',
+          'delegateSmartAccountToEoa(): Already installed',
           { eoaAddress, delegateAddress },
           this.debugMode
         );
@@ -376,7 +377,7 @@ export class EtherspotTransactionKit implements IInitial {
       }
 
       log(
-        'installSmartWallet(): Authorization signed',
+        'delegateSmartAccountToEoa(): Authorization signed',
         { authorization, eoaAddress, delegateAddress },
         this.debugMode
       );
@@ -394,7 +395,7 @@ export class EtherspotTransactionKit implements IInitial {
       // Execute UserOp with authorization
       if (authorization) {
         const delegatedEoaAccount =
-          await this.etherspotProvider.getDelegatedEoaAccount(installChainId);
+          await this.#etherspotProvider.getDelegatedEoaAccount(installChainId);
 
         try {
           const userOpHash = await bundlerClient.sendUserOperation({
@@ -410,7 +411,7 @@ export class EtherspotTransactionKit implements IInitial {
           });
 
           log(
-            'installSmartWallet(): UserOp executed with EIP-7702 authorization',
+            'delegateSmartAccountToEoa(): UserOp executed with EIP-7702 authorization',
             { userOpHash },
             this.debugMode
           );
@@ -425,7 +426,7 @@ export class EtherspotTransactionKit implements IInitial {
         } catch (executionError) {
           // Return the signed authorization so the caller can retry
           log(
-            'installSmartWallet(): UserOp execution failed, returning authorization for retry',
+            'delegateSmartAccountToEoa(): UserOp execution failed, returning authorization for retry',
             executionError,
             this.debugMode
           );
@@ -446,7 +447,7 @@ export class EtherspotTransactionKit implements IInitial {
         delegateAddress,
       };
     } catch (error) {
-      log('installSmartWallet(): Failed', error, this.debugMode);
+      log('delegateSmartAccountToEoa(): Failed', error, this.debugMode);
       throw error;
     }
   }
@@ -473,7 +474,7 @@ export class EtherspotTransactionKit implements IInitial {
    * - If userOp execution fails, the authorization is still returned so the caller can retry.
    * - After uninstallation, the EOA will function as a regular externally owned account.
    */
-  async uninstallSmartWallet({
+  async undelegateSmartAccountToEoa({
     chainId,
     isExecuting = true,
   }: {
@@ -484,18 +485,18 @@ export class EtherspotTransactionKit implements IInitial {
     eoaAddress: string;
     userOpHash?: string;
   }> {
-    const walletMode = this.etherspotProvider.getWalletMode();
-    const uninstallChainId = chainId || this.etherspotProvider.getChainId();
+    const walletMode = this.#etherspotProvider.getWalletMode();
+    const uninstallChainId = chainId || this.#etherspotProvider.getChainId();
 
     log(
-      'uninstallSmartWallet(): Called',
+      'undelegateSmartAccountToEoa(): Called',
       { uninstallChainId, isExecuting },
       this.debugMode
     );
 
     if (walletMode !== 'delegatedEoa') {
       this.throwError(
-        "uninstallSmartWallet() is only available in 'delegatedEoa' wallet mode. " +
+        "undelegateSmartAccountToEoa() is only available in 'delegatedEoa' wallet mode. " +
           `Current mode: '${walletMode}'.`
       );
     }
@@ -503,17 +504,18 @@ export class EtherspotTransactionKit implements IInitial {
     try {
       // Get required clients and addresses
       const owner =
-        await this.etherspotProvider.getOwnerAccount(uninstallChainId);
+        await this.#etherspotProvider.getOwnerAccount(uninstallChainId);
       const eoaAddress = owner.address as `0x${string}`;
       const zeroAddress =
         '0x0000000000000000000000000000000000000000' as `0x${string}`;
 
       // Check if already installed
-      const isAlreadyInstalled = await this.isSmartWallet(uninstallChainId);
+      const isAlreadyInstalled =
+        await this.isDelegateSmartAccountToEoa(uninstallChainId);
 
       if (!isAlreadyInstalled) {
         log(
-          'uninstallSmartWallet(): Wallet is not a smart wallet, no uninstall needed',
+          'undelegateSmartAccountToEoa(): Wallet is not a smart wallet, no uninstall needed',
           { eoaAddress },
           this.debugMode
         );
@@ -525,7 +527,7 @@ export class EtherspotTransactionKit implements IInitial {
 
       // Get wallet client from EtherspotProvider (uses bundler URL)
       const walletClient =
-        await this.etherspotProvider.getWalletClient(uninstallChainId);
+        await this.#etherspotProvider.getWalletClient(uninstallChainId);
 
       // Sign authorization to zero address to clear delegation
       const authorization = await walletClient.signAuthorization({
@@ -535,7 +537,7 @@ export class EtherspotTransactionKit implements IInitial {
       });
 
       log(
-        'uninstallSmartWallet(): Authorization signed',
+        'undelegateSmartAccountToEoa(): Authorization signed',
         { authorization, eoaAddress },
         this.debugMode
       );
@@ -561,7 +563,7 @@ export class EtherspotTransactionKit implements IInitial {
           });
 
           log(
-            'uninstallSmartWallet(): UserOp executed with EIP-7702 authorization',
+            'undelegateSmartAccountToEoa(): UserOp executed with EIP-7702 authorization',
             { userOpHash },
             this.debugMode
           );
@@ -574,7 +576,7 @@ export class EtherspotTransactionKit implements IInitial {
         } catch (executionError) {
           // Return the signed authorization so the caller can retry
           log(
-            'uninstallSmartWallet(): Send transaction execution failed, returning authorization for retry',
+            'undelegateSmartAccountToEoa(): Send transaction execution failed, returning authorization for retry',
             executionError,
             this.debugMode
           );
@@ -591,7 +593,7 @@ export class EtherspotTransactionKit implements IInitial {
         eoaAddress,
       };
     } catch (error) {
-      log('uninstallSmartWallet(): Failed', error, this.debugMode);
+      log('undelegateSmartAccountToEoa(): Failed', error, this.debugMode);
       throw error;
     }
   }
@@ -1023,7 +1025,7 @@ export class EtherspotTransactionKit implements IInitial {
     if (!this.selectedTransactionName || !this.workingTransaction) {
       const result = {
         to: '',
-        chainId: this.etherspotProvider.getChainId(),
+        chainId: this.#etherspotProvider.getChainId(),
         errorMessage: 'No named transaction to estimate. Call name() first.',
         errorType: 'VALIDATION_ERROR' as const,
         isEstimatedSuccessfully: false,
@@ -1033,11 +1035,11 @@ export class EtherspotTransactionKit implements IInitial {
         result,
         this.debugMode
       );
-      return { ...result, ...this.sanitized };
+      return { ...result, ...this };
     }
 
     // Only validate provider in modular mode
-    const walletMode = this.etherspotProvider.getWalletMode();
+    const walletMode = this.#etherspotProvider.getWalletMode();
     if (walletMode === 'modular') {
       log('estimate(): Getting provider...', undefined, this.debugMode);
       const provider = this.getProvider();
@@ -1073,14 +1075,14 @@ export class EtherspotTransactionKit implements IInitial {
         to: this.workingTransaction?.to || '',
         chainId:
           this.workingTransaction?.chainId ??
-          this.etherspotProvider.getChainId(),
+          this.#etherspotProvider.getChainId(),
         errorMessage,
         errorType,
         isEstimatedSuccessfully: false,
         ...partialResult,
       };
       log('estimate(): Returning error result.', result, this.debugMode);
-      return { ...result, ...this.sanitized };
+      return { ...result, ...this };
     };
 
     try {
@@ -1147,11 +1149,11 @@ export class EtherspotTransactionKit implements IInitial {
             this.debugMode
           );
           const delegatedEoaAccount =
-            await this.etherspotProvider.getDelegatedEoaAccount(
+            await this.#etherspotProvider.getDelegatedEoaAccount(
               transactionChainId
             );
           const bundlerClient =
-            await this.etherspotProvider.getBundlerClient(transactionChainId);
+            await this.#etherspotProvider.getBundlerClient(transactionChainId);
 
           log(
             'estimate(): Got delegatedEoa account and bundler client',
@@ -1160,16 +1162,16 @@ export class EtherspotTransactionKit implements IInitial {
           );
 
           // Check if EOA is designated (has EIP-7702 authorization)
-          const isSmartWalletDelegated =
-            await this.isSmartWallet(transactionChainId);
+          const isDelegateSmartAccountToEoaDelegated =
+            await this.isDelegateSmartAccountToEoa(transactionChainId);
           log(
-            `estimate(): EOA designation status: ${isSmartWalletDelegated ? 'designated' : 'NOT designated'}`,
-            { isSmartWalletDelegated },
+            `estimate(): EOA designation status: ${isDelegateSmartAccountToEoaDelegated ? 'designated' : 'NOT designated'}`,
+            { isDelegateSmartAccountToEoaDelegated },
             this.debugMode
           );
 
           // If EOA is not designated, return error - user must authorize first
-          if (!isSmartWalletDelegated) {
+          if (!isDelegateSmartAccountToEoaDelegated) {
             log(
               'estimate(): EOA is not designated. User must authorize EIP-7702 delegation first.',
               { eoaAddress: delegatedEoaAccount.address },
@@ -1216,7 +1218,7 @@ export class EtherspotTransactionKit implements IInitial {
 
           // Always use manual fee calculation for consistency and reliability
           const publicClient =
-            await this.etherspotProvider.getPublicClient(transactionChainId);
+            await this.#etherspotProvider.getPublicClient(transactionChainId);
 
           const maxFeePerGasResponse = await publicClient.estimateFeesPerGas();
 
@@ -1320,7 +1322,7 @@ export class EtherspotTransactionKit implements IInitial {
             result,
             this.debugMode
           );
-          return { ...result, ...this.sanitized };
+          return { ...result, ...this };
         } catch (estimationError) {
           const errorMessage = parseEtherspotErrorMessage(
             estimationError,
@@ -1347,7 +1349,7 @@ export class EtherspotTransactionKit implements IInitial {
 
         // Get fresh SDK instance to avoid state pollution
         log('estimate(): Getting SDK...', undefined, this.debugMode);
-        const etherspotModularSdk = await this.etherspotProvider.getSdk(
+        const etherspotModularSdk = await this.#etherspotProvider.getSdk(
           transactionChainId,
           true
         );
@@ -1421,7 +1423,7 @@ export class EtherspotTransactionKit implements IInitial {
           isEstimatedSuccessfully: true,
         };
         log('estimate(): Returning success result.', result, this.debugMode);
-        return { ...result, ...this.sanitized };
+        return { ...result, ...this };
       }
     } catch (error) {
       const errorMessage = parseEtherspotErrorMessage(
@@ -1501,7 +1503,7 @@ export class EtherspotTransactionKit implements IInitial {
     if (!this.selectedTransactionName || !this.workingTransaction) {
       const result = {
         to: '',
-        chainId: this.etherspotProvider.getChainId(),
+        chainId: this.#etherspotProvider.getChainId(),
         errorMessage: 'No named transaction to send. Call name() first.',
         errorType: 'VALIDATION_ERROR' as const,
         isEstimatedSuccessfully: false,
@@ -1512,11 +1514,11 @@ export class EtherspotTransactionKit implements IInitial {
         result,
         this.debugMode
       );
-      return { ...result, ...this.sanitized };
+      return { ...result, ...this };
     }
 
     // Only validate provider in modular mode
-    const walletMode = this.etherspotProvider.getWalletMode();
+    const walletMode = this.#etherspotProvider.getWalletMode();
     if (walletMode === 'modular') {
       log('send(): Getting provider...', undefined, this.debugMode);
       const provider = this.getProvider();
@@ -1552,7 +1554,7 @@ export class EtherspotTransactionKit implements IInitial {
         to: this.workingTransaction?.to || '',
         chainId:
           this.workingTransaction?.chainId ??
-          this.etherspotProvider.getChainId(),
+          this.#etherspotProvider.getChainId(),
         errorMessage,
         errorType,
         isEstimatedSuccessfully: false,
@@ -1560,7 +1562,7 @@ export class EtherspotTransactionKit implements IInitial {
         ...partialResult,
       };
       log('send(): Returning error result.', result, this.debugMode);
-      return { ...result, ...this.sanitized };
+      return { ...result, ...this };
     };
 
     try {
@@ -1599,11 +1601,11 @@ export class EtherspotTransactionKit implements IInitial {
             this.debugMode
           );
           const delegatedEoaAccount =
-            await this.etherspotProvider.getDelegatedEoaAccount(
+            await this.#etherspotProvider.getDelegatedEoaAccount(
               transactionChainId
             );
           const bundlerClient =
-            await this.etherspotProvider.getBundlerClient(transactionChainId);
+            await this.#etherspotProvider.getBundlerClient(transactionChainId);
 
           log(
             'send(): Got delegatedEoa account and bundler client',
@@ -1620,16 +1622,16 @@ export class EtherspotTransactionKit implements IInitial {
             undefined,
             this.debugMode
           );
-          const isSmartWalletDelegated =
-            await this.isSmartWallet(transactionChainId);
+          const isDelegateSmartAccountToEoaDelegated =
+            await this.isDelegateSmartAccountToEoa(transactionChainId);
           log(
-            `send(): EOA designation status: ${isSmartWalletDelegated ? 'designated' : 'NOT designated'}`,
-            { isSmartWalletDelegated },
+            `send(): EOA designation status: ${isDelegateSmartAccountToEoaDelegated ? 'designated' : 'NOT designated'}`,
+            { isDelegateSmartAccountToEoaDelegated },
             this.debugMode
           );
 
           // If EOA is not designated, return error - user must authorize first
-          if (!isSmartWalletDelegated) {
+          if (!isDelegateSmartAccountToEoaDelegated) {
             log(
               'send(): EOA is not designated. User must authorize EIP-7702 delegation first.',
               { eoaAddress: delegatedEoaAccount.address },
@@ -1680,7 +1682,7 @@ export class EtherspotTransactionKit implements IInitial {
               data: this.workingTransaction?.data,
               chainId:
                 this.workingTransaction?.chainId ??
-                this.etherspotProvider.getChainId(),
+                this.#etherspotProvider.getChainId(),
               isEstimatedSuccessfully: false,
               isSentSuccessfully: false,
             });
@@ -1750,7 +1752,7 @@ export class EtherspotTransactionKit implements IInitial {
             data: this.workingTransaction?.data,
             chainId:
               this.workingTransaction?.chainId ||
-              this.etherspotProvider.getChainId(),
+              this.#etherspotProvider.getChainId(),
           };
 
           // Remove transaction from state after successful send
@@ -1828,7 +1830,7 @@ export class EtherspotTransactionKit implements IInitial {
             result,
             this.debugMode
           );
-          return { ...result, ...this.sanitized };
+          return { ...result, ...this };
         } catch (setupError) {
           const errorMessage = parseEtherspotErrorMessage(
             setupError,
@@ -1853,7 +1855,7 @@ export class EtherspotTransactionKit implements IInitial {
 
         // Get fresh SDK instance to avoid state pollution
         log('send(): Getting SDK...', undefined, this.debugMode);
-        const etherspotModularSdk = await this.etherspotProvider.getSdk(
+        const etherspotModularSdk = await this.#etherspotProvider.getSdk(
           transactionChainId,
           true
         );
@@ -1963,7 +1965,7 @@ export class EtherspotTransactionKit implements IInitial {
             data: this.workingTransaction?.data,
             chainId:
               this.workingTransaction?.chainId ??
-              this.etherspotProvider.getChainId(),
+              this.#etherspotProvider.getChainId(),
             cost,
             userOp: finalUserOp,
             isEstimatedSuccessfully: true,
@@ -2017,7 +2019,7 @@ export class EtherspotTransactionKit implements IInitial {
           isSentSuccessfully: true,
         };
         log('send(): Returning success result.', result, this.debugMode);
-        return { ...result, ...this.sanitized };
+        return { ...result, ...this };
       }
     } catch (error) {
       const errorMessage = parseEtherspotErrorMessage(
@@ -2059,8 +2061,8 @@ export class EtherspotTransactionKit implements IInitial {
    *   - Each chain group is processed independently with its own SDK/client instance
    *   - Supports mixed-chain batches with proper cost aggregation
    * - **EIP-7702 Validation (DelegatedEoa Mode):**
-   *   - Validates EOA designation before estimation using `isSmartWallet()` check
-   *   - Requires prior authorization via `installSmartWallet()` method
+   *   - Validates EOA designation before estimation using `isDelegateSmartAccountToEoa()` check
+   *   - Requires prior authorization via `delegateSmartAccountToEoa()` method
    * - **Cost Aggregation:**
    *   - Tracks costs at both chain group and batch levels
    *   - Calculates total costs using current gas prices from `estimateFeesPerGas()`
@@ -2106,7 +2108,7 @@ export class EtherspotTransactionKit implements IInitial {
     this.isEstimating = true;
     this.containsEstimatingError = false;
 
-    const walletMode = this.etherspotProvider.getWalletMode();
+    const walletMode = this.#etherspotProvider.getWalletMode();
     log(
       `estimateBatches(): Wallet mode: ${walletMode}`,
       undefined,
@@ -2212,7 +2214,8 @@ export class EtherspotTransactionKit implements IInitial {
           // Group transactions by chainId for separate estimation per chain
           const chainIdToTxs = new Map<number, typeof batchTransactions>();
           for (const tx of batchTransactions) {
-            const txChainId = tx.chainId ?? this.etherspotProvider.getChainId();
+            const txChainId =
+              tx.chainId ?? this.#etherspotProvider.getChainId();
             const list = chainIdToTxs.get(txChainId) || [];
             list.push(tx);
             chainIdToTxs.set(txChainId, list);
@@ -2230,11 +2233,11 @@ export class EtherspotTransactionKit implements IInitial {
                 this.debugMode
               );
               const delegatedEoaAccount =
-                await this.etherspotProvider.getDelegatedEoaAccount(
+                await this.#etherspotProvider.getDelegatedEoaAccount(
                   groupChainId
                 );
               const bundlerClient =
-                await this.etherspotProvider.getBundlerClient(groupChainId);
+                await this.#etherspotProvider.getBundlerClient(groupChainId);
 
               log(
                 `estimateBatches(): Got account ${delegatedEoaAccount.address} and bundler client for batch ${batchName}`,
@@ -2264,10 +2267,11 @@ export class EtherspotTransactionKit implements IInitial {
               // ====================================================================
 
               // Ensure EOA is designated (EIP-7702) on this chain
-              const isDesignated = await this.isSmartWallet(groupChainId);
+              const isDesignated =
+                await this.isDelegateSmartAccountToEoa(groupChainId);
               if (!isDesignated) {
                 const errorMessage =
-                  'EOA is not designated for EIP-7702. Please authorize first via installSmartWallet().';
+                  'EOA is not designated for EIP-7702. Please authorize first via delegateSmartAccountToEoa().';
                 groupTxs.forEach((tx) => {
                   const resultObj = {
                     to: tx.to || '',
@@ -2316,7 +2320,7 @@ export class EtherspotTransactionKit implements IInitial {
               // ====================================================================
 
               const publicClient =
-                await this.etherspotProvider.getPublicClient(groupChainId);
+                await this.#etherspotProvider.getPublicClient(groupChainId);
               const fees = await publicClient.estimateFeesPerGas();
               const maxFeePerGas = fees.maxFeePerGas;
 
@@ -2531,7 +2535,8 @@ export class EtherspotTransactionKit implements IInitial {
           // Group transactions by chainId for separate estimation per chain
           const chainIdToTxs = new Map<number, typeof batchTransactions>();
           for (const tx of batchTransactions) {
-            const txChainId = tx.chainId ?? this.etherspotProvider.getChainId();
+            const txChainId =
+              tx.chainId ?? this.#etherspotProvider.getChainId();
             const list = chainIdToTxs.get(txChainId) || [];
             list.push(tx);
             chainIdToTxs.set(txChainId, list);
@@ -2553,7 +2558,7 @@ export class EtherspotTransactionKit implements IInitial {
                 undefined,
                 this.debugMode
               );
-              const etherspotModularSdk = await this.etherspotProvider.getSdk(
+              const etherspotModularSdk = await this.#etherspotProvider.getSdk(
                 groupChainId,
                 true // force new instance
               );
@@ -2808,8 +2813,8 @@ export class EtherspotTransactionKit implements IInitial {
    *   - Each chain group is processed independently with its own SDK/client instance
    *   - Supports mixed-chain batches with proper cost aggregation
    * - **EIP-7702 Validation (DelegatedEoa Mode):**
-   *   - Validates EOA designation before sending using `isSmartWallet()` check
-   *   - Requires prior authorization via `installSmartWallet()` method
+   *   - Validates EOA designation before sending using `isDelegateSmartAccountToEoa()` check
+   *   - Requires prior authorization via `delegateSmartAccountToEoa()` method
    * - **Gas Estimation & Cost Calculation:**
    *   - Estimates gas using bundler client (delegatedEoa) or SDK (modular)
    *   - Calculates total costs using current gas prices from `estimateFeesPerGas()`
@@ -2858,7 +2863,7 @@ export class EtherspotTransactionKit implements IInitial {
     this.isSending = true;
     this.containsSendingError = false;
 
-    const walletMode = this.etherspotProvider.getWalletMode();
+    const walletMode = this.#etherspotProvider.getWalletMode();
     log(`sendBatches(): Wallet mode: ${walletMode}`, undefined, this.debugMode);
 
     // Initialize result structure
@@ -2965,7 +2970,8 @@ export class EtherspotTransactionKit implements IInitial {
           // Group transactions by chainId for separate sending per chain
           const chainIdToTxs = new Map<number, typeof batchTransactions>();
           for (const tx of batchTransactions) {
-            const txChainId = tx.chainId ?? this.etherspotProvider.getChainId();
+            const txChainId =
+              tx.chainId ?? this.#etherspotProvider.getChainId();
             const list = chainIdToTxs.get(txChainId) || [];
             list.push(tx);
             chainIdToTxs.set(txChainId, list);
@@ -2993,11 +2999,11 @@ export class EtherspotTransactionKit implements IInitial {
                 this.debugMode
               );
               const delegatedEoaAccount =
-                await this.etherspotProvider.getDelegatedEoaAccount(
+                await this.#etherspotProvider.getDelegatedEoaAccount(
                   groupChainId
                 );
               const bundlerClient =
-                await this.etherspotProvider.getBundlerClient(groupChainId);
+                await this.#etherspotProvider.getBundlerClient(groupChainId);
 
               log(
                 `sendBatches(): Got account ${delegatedEoaAccount.address} and bundler client for batch ${batchName}`,
@@ -3027,10 +3033,11 @@ export class EtherspotTransactionKit implements IInitial {
               // ====================================================================
 
               // Ensure EOA is designated (EIP-7702) on this chain
-              const isDesignated = await this.isSmartWallet(groupChainId);
+              const isDesignated =
+                await this.isDelegateSmartAccountToEoa(groupChainId);
               if (!isDesignated) {
                 const errorMessage =
-                  'EOA is not designated for EIP-7702. Please authorize first via installSmartWallet().';
+                  'EOA is not designated for EIP-7702. Please authorize first via delegateSmartAccountToEoa().';
                 groupTxs.forEach((tx) => {
                   const resultObj = {
                     to: tx.to || '',
@@ -3081,7 +3088,7 @@ export class EtherspotTransactionKit implements IInitial {
               // ====================================================================
 
               const publicClient =
-                await this.etherspotProvider.getPublicClient(groupChainId);
+                await this.#etherspotProvider.getPublicClient(groupChainId);
               const fees = await publicClient.estimateFeesPerGas();
               const maxFeePerGas = fees.maxFeePerGas;
 
@@ -3399,7 +3406,8 @@ export class EtherspotTransactionKit implements IInitial {
           // Group transactions by chainId for separate sending per chain
           const chainIdToTxs = new Map<number, typeof batchTransactions>();
           for (const tx of batchTransactions) {
-            const txChainId = tx.chainId ?? this.etherspotProvider.getChainId();
+            const txChainId =
+              tx.chainId ?? this.#etherspotProvider.getChainId();
             const list = chainIdToTxs.get(txChainId) || [];
             list.push(tx);
             chainIdToTxs.set(txChainId, list);
@@ -3443,7 +3451,7 @@ export class EtherspotTransactionKit implements IInitial {
                 undefined,
                 this.debugMode
               );
-              const etherspotModularSdk = await this.etherspotProvider.getSdk(
+              const etherspotModularSdk = await this.#etherspotProvider.getSdk(
                 groupChainId,
                 true // force new instance
               );
@@ -3855,7 +3863,7 @@ export class EtherspotTransactionKit implements IInitial {
       this.containsSendingError = !result.isSentSuccessfully;
       this.isSending = false;
 
-      return result;
+      return { ...result, ...this };
     }
   }
 
@@ -3909,16 +3917,17 @@ export class EtherspotTransactionKit implements IInitial {
    * - For advanced operations, use getEtherspotProvider().
    */
   getProvider(): WalletProviderLike {
-    return this.etherspotProvider.getProvider();
+    return this.#etherspotProvider.getProvider();
   }
 
   /**
    * Returns the EtherspotProvider instance for advanced use.
+   * Security: Sensitive data (privateKey, bundlerApiKey) is protected by private fields.
    *
    * @returns The EtherspotProvider instance.
    */
   getEtherspotProvider(): EtherspotProvider {
-    return this.etherspotProvider.sanitized;
+    return this.#etherspotProvider;
   }
 
   /**
@@ -3941,7 +3950,7 @@ export class EtherspotTransactionKit implements IInitial {
   ): Promise<ModularSdk> {
     log('getSdk(): Called with', { chainId, forceNewInstance }, this.debugMode);
 
-    const walletMode = this.etherspotProvider.getWalletMode();
+    const walletMode = this.#etherspotProvider.getWalletMode();
     if (walletMode === 'delegatedEoa') {
       this.throwError(
         `getSdk() is only available in 'modular' wallet mode. ` +
@@ -3950,7 +3959,7 @@ export class EtherspotTransactionKit implements IInitial {
       );
     }
 
-    const sdk = await this.etherspotProvider.getSdk(chainId, forceNewInstance);
+    const sdk = await this.#etherspotProvider.getSdk(chainId, forceNewInstance);
     log('getSdk(): Returning SDK', sdk, this.debugMode);
     return sdk;
   }
@@ -3978,7 +3987,7 @@ export class EtherspotTransactionKit implements IInitial {
     timeout: number = 60 * 1000,
     retryInterval: number = 2000
   ): Promise<string | null> {
-    const walletMode = this.etherspotProvider.getWalletMode();
+    const walletMode = this.#etherspotProvider.getWalletMode();
     log(
       `getTransactionHash(): Wallet mode: ${walletMode}`,
       undefined,
@@ -3999,7 +4008,7 @@ export class EtherspotTransactionKit implements IInitial {
       try {
         // Get bundler client for the specified chain
         const bundlerClient =
-          await this.etherspotProvider.getBundlerClient(txChainId);
+          await this.#etherspotProvider.getBundlerClient(txChainId);
 
         log(
           `getTransactionHash(): Got bundler client for chain ${txChainId}`,
@@ -4119,7 +4128,7 @@ export class EtherspotTransactionKit implements IInitial {
     this.selectedTransactionName = undefined;
     this.selectedBatchName = undefined;
     this.walletAddresses = {};
-    this.etherspotProvider.clearAllCaches();
+    this.#etherspotProvider.clearAllCaches();
     log('reset(): State has been reset.', this.debugMode);
   }
 
