@@ -7,7 +7,6 @@ export * from './BundlerConfig';
 export * from './EtherspotProvider';
 export * from './EtherspotUtils';
 export * from './TransactionKit';
+export * from './constants';
 export * from './interfaces';
-export * from './network/constants';
-export * from './network/index';
 export * from './utils';

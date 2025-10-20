@@ -2136,6 +2136,7 @@ describe('DelegatedEoa Mode Integration', () => {
 
       const result = await transactionKit.delegateSmartAccountToEoa({
         chainId: 1,
+        delegateImmediatly: true,
       });
 
       expect(result.isAlreadyInstalled).toBe(false);
@@ -2172,7 +2173,7 @@ describe('DelegatedEoa Mode Integration', () => {
       expect(mockBundlerClient.sendUserOperation).not.toHaveBeenCalled();
     });
 
-    it('should return authorization without executing when isExecuting is false', async () => {
+    it('should return authorization without executing when delegateImmediatly is false', async () => {
       const mockOwner = {
         address: '0xowner123456789012345678901234567890',
       } as any;
@@ -2191,7 +2192,7 @@ describe('DelegatedEoa Mode Integration', () => {
 
       const result = await transactionKit.delegateSmartAccountToEoa({
         chainId: 1,
-        isExecuting: false,
+        delegateImmediatly: false,
       });
 
       expect(result.isAlreadyInstalled).toBe(false);
@@ -2256,6 +2257,7 @@ describe('DelegatedEoa Mode Integration', () => {
 
       const result = await transactionKit.undelegateSmartAccountToEoa({
         chainId: 1,
+        delegateImmediatly: true,
       });
 
       expect(result).toBeDefined();

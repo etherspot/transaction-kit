@@ -1,10 +1,17 @@
+/* eslint-disable quotes */
 import { sortBy } from 'lodash';
-import { toHex } from 'viem';
+import { Chain, toHex } from 'viem';
+
+// constants
+import {
+  NETWORK_NAME_TO_CHAIN_ID,
+  NetworkConfig,
+  NetworkNames,
+  Networks,
+} from '../constants';
 
 // interfaces
 import { TypePerId } from '../interfaces';
-
-// types
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const getObjectSortedByKeys = (object: TypePerId<any>) =>
@@ -114,3 +121,46 @@ export const sanitizeObject = (obj: any): any => {
 
   return sanitized;
 };
+
+export const CHAIN_ID_TO_NETWORK_NAME: { [key: number]: NetworkNames } =
+  Object.entries(NETWORK_NAME_TO_CHAIN_ID).reduce(
+    (result, [networkName, chainId]) => ({
+      ...result,
+      [chainId]: networkName,
+    }),
+    {}
+  );
+
+export function getNetworkConfig(key: number): NetworkConfig | undefined {
+  return Networks[key];
+}
+
+/**
+ * Converts a chain ID to a viem Chain object.
+ *
+ * @param chainId - The chain ID to convert
+ * @returns The viem Chain object for the given chain ID
+ * @throws {Error} If the chain ID is not supported or recognized
+ */
+export function getChainFromId(chainId: number): Chain {
+  const networkConfig = getNetworkConfig(chainId);
+
+  if (!networkConfig) {
+    const supportedChainIds = Object.keys(Networks)
+      .map(Number)
+      .sort((a, b) => a - b);
+    throw new Error(
+      `Unsupported chain ID: ${chainId}. ` +
+        `Supported chain IDs: ${supportedChainIds.join(', ')}`
+    );
+  }
+
+  if (!networkConfig.chain) {
+    throw new Error(
+      `Chain object not available for chain ID: ${chainId}. ` +
+        "This may be a custom network that doesn't have a viem chain definition."
+    );
+  }
+
+  return networkConfig.chain;
+}

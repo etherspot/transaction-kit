@@ -346,7 +346,7 @@ const App = () => {
         try {
           logAndUpdateState(`⚡ Installing smart wallet with execution...`);
           const result = await kit.delegateSmartAccountToEoa({
-            isExecuting: true,
+            delegateImmediatly: true,
           });
 
           if (result.isAlreadyInstalled) {
@@ -383,7 +383,7 @@ const App = () => {
         try {
           logAndUpdateState(`✍️ Signing authorization only...`);
           const result = await kit.delegateSmartAccountToEoa({
-            isExecuting: false,
+            delegateImmediatly: false,
           });
 
           if (result.isAlreadyInstalled) {
@@ -413,7 +413,7 @@ const App = () => {
         try {
           logAndUpdateState(`🗑️ Uninstalling smart wallet with execution...`);
           const result = await kit.undelegateSmartAccountToEoa?.({
-            isExecuting: true,
+            delegateImmediatly: true,
           });
 
           if (!result) {
@@ -454,7 +454,7 @@ const App = () => {
         try {
           logAndUpdateState(`✍️ Signing uninstall authorization only...`);
           const result = await kit.undelegateSmartAccountToEoa?.({
-            isExecuting: false,
+            delegateImmediatly: false,
           });
 
           if (!result) {

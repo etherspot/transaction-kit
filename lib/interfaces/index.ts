@@ -78,10 +78,10 @@ export interface IInitial {
   isDelegateSmartAccountToEoa(chainId?: number): Promise<boolean | undefined>;
   delegateSmartAccountToEoa({
     chainId,
-    isExecuting,
+    delegateImmediatly,
   }: {
     chainId?: number;
-    isExecuting?: boolean;
+    delegateImmediatly?: boolean;
   }): Promise<{
     authorization: SignAuthorizationReturnType | undefined;
     isAlreadyInstalled: boolean;
@@ -91,10 +91,10 @@ export interface IInitial {
   }>;
   undelegateSmartAccountToEoa?({
     chainId,
-    isExecuting,
+    delegateImmediatly,
   }: {
     chainId?: number;
-    isExecuting?: boolean;
+    delegateImmediatly?: boolean;
   }): Promise<{
     authorization: SignAuthorizationReturnType | undefined;
     eoaAddress: string;

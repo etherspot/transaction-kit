@@ -127,7 +127,10 @@ const sendDelegatedTransaction = async () => {
 
     if (!isDelegated) {
       // Delegate EOA to smart account first
-      await kit.delegateSmartAccountToEoa({ chainId: 137, isExecuting: true });
+      await kit.delegateSmartAccountToEoa({
+        chainId: 137,
+        delegateImmediatly: true,
+      });
     }
 
     // Create and send transaction
@@ -250,7 +253,7 @@ console.log('Is EOA delegated:', isDelegated);
 if (!isDelegated) {
   const delegationResult = await kit.delegateSmartAccountToEoa({
     chainId: 137,
-    isExecuting: true, // Set to false to get the authorization object and not execute
+    delegateImmediatly: true, // Set to false to get the authorization object and not execute
   });
 
   console.log('Delegation result:', delegationResult);
@@ -281,7 +284,7 @@ const sendWithDelegatedEoa = async () => {
 const removeDelegation = async () => {
   const undelegationResult = await kit.undelegateSmartAccountToEoa({
     chainId: 137,
-    isExecuting: true, // Set to false to get the authorization object and not execute
+    delegateImmediatly: true, // Set to false to get the authorization object and not execute
   });
 
   console.log('Undelegation result:', undelegationResult);

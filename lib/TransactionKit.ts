@@ -4,7 +4,7 @@ import {
   KERNEL_V3_3,
   KernelVersionToAddressesMap,
 } from '@zerodev/sdk/constants';
-import { isAddress } from 'viem';
+import { isAddress, zeroAddress } from 'viem';
 import { SignAuthorizationReturnType } from 'viem/accounts';
 
 // interfaces
@@ -37,12 +37,9 @@ import {
 // EtherspotProvider
 import { EtherspotProvider } from './EtherspotProvider';
 
-/// network
-import { getChainFromId } from './network';
-
 // utils
 import { EtherspotUtils } from './EtherspotUtils';
-import { log, parseEtherspotErrorMessage } from './utils';
+import { getChainFromId, log, parseEtherspotErrorMessage } from './utils';
 
 export class EtherspotTransactionKit implements IInitial {
   // Security: Use private field (#) to prevent external access
@@ -295,7 +292,7 @@ export class EtherspotTransactionKit implements IInitial {
    * enabling smart wallet features. The authorization is only signed if the EOA is not already designated.
    *
    * @param chainId - (Optional) The chain ID to install the smart wallet on. If not provided, uses the provider's current chain ID.
-   * @param isExecuting - (Optional) Whether to execute the installation transaction. Defaults to true.
+   * @param delegateImmediatly - (Optional) Whether to execute the installation transaction immediately. Defaults to false.
    * @returns A promise that resolves to an object containing:
    *   - `authorization`: The signed authorization (if signed), or undefined if already installed
    *   - `isAlreadyInstalled`: True if any EIP-7702 designation already exists; otherwise false
@@ -307,15 +304,15 @@ export class EtherspotTransactionKit implements IInitial {
    * @remarks
    * - Only available in 'delegatedEoa' wallet mode.
    * - First checks for any existing 7702 designation; if present, returns early as already installed.
-   * - If not installed, signs a Kernel authorization, and if `isExecuting` is true, submits a no-op UserOp to activate.
+   * - If not installed, signs a Kernel authorization, and if `delegateImmediatly` is true, submits a no-op UserOp to activate.
    * - If execution fails, the method returns the signed authorization so callers can retry submission externally.
    */
   async delegateSmartAccountToEoa({
     chainId,
-    isExecuting = true,
+    delegateImmediatly = false,
   }: {
     chainId?: number;
-    isExecuting?: boolean;
+    delegateImmediatly?: boolean;
   } = {}): Promise<{
     authorization: SignAuthorizationReturnType | undefined;
     isAlreadyInstalled: boolean;
@@ -328,7 +325,7 @@ export class EtherspotTransactionKit implements IInitial {
 
     log(
       'delegateSmartAccountToEoa(): Called',
-      { installChainId, isExecuting },
+      { installChainId, delegateImmediatly },
       this.debugMode
     );
 
@@ -383,7 +380,7 @@ export class EtherspotTransactionKit implements IInitial {
       );
 
       // If not executing, just return the authorization
-      if (!isExecuting) {
+      if (!delegateImmediatly) {
         return {
           authorization,
           isAlreadyInstalled: false,
@@ -457,7 +454,7 @@ export class EtherspotTransactionKit implements IInitial {
    * delegation to the zero address, effectively reverting the EOA to its original state.
    *
    * @param chainId - (Optional) The chain ID to uninstall the smart wallet from. If not provided, uses the provider's current chain ID.
-   * @param isExecuting - (Optional) Whether to execute the uninstallation transaction. Defaults to true.
+   * @param delegateImmediatly - (Optional) Whether to execute the uninstallation transaction immediately. Defaults to false.
    * @returns A promise that resolves to an object containing:
    *   - `authorization`: The signed authorization object to clear delegation
    *   - `eoaAddress`: The EOA address
@@ -469,17 +466,17 @@ export class EtherspotTransactionKit implements IInitial {
    * @remarks
    * - Only available in 'delegatedEoa' wallet mode.
    * - This clears the EIP-7702 delegation by authorizing the zero address (0x0000...0000).
-   * - If isExecuting is true, executes a "dead" transaction (0xdeadbeef) with the authorization to revoke EIP-7702.
-   * - If isExecuting is false, only signs and returns the authorization for later use.
+   * - If `delegateImmediatly` is true, executes a "dead" transaction (0xdeadbeef) with the authorization to revoke EIP-7702.
+   * - If `delegateImmediatly` is false, only signs and returns the authorization for later use.
    * - If userOp execution fails, the authorization is still returned so the caller can retry.
    * - After uninstallation, the EOA will function as a regular externally owned account.
    */
   async undelegateSmartAccountToEoa({
     chainId,
-    isExecuting = true,
+    delegateImmediatly = false,
   }: {
     chainId?: number;
-    isExecuting?: boolean;
+    delegateImmediatly?: boolean;
   } = {}): Promise<{
     authorization: SignAuthorizationReturnType | undefined;
     eoaAddress: string;
@@ -490,7 +487,7 @@ export class EtherspotTransactionKit implements IInitial {
 
     log(
       'undelegateSmartAccountToEoa(): Called',
-      { uninstallChainId, isExecuting },
+      { uninstallChainId, delegateImmediatly },
       this.debugMode
     );
 
@@ -506,8 +503,6 @@ export class EtherspotTransactionKit implements IInitial {
       const owner =
         await this.#etherspotProvider.getOwnerAccount(uninstallChainId);
       const eoaAddress = owner.address as `0x${string}`;
-      const zeroAddress =
-        '0x0000000000000000000000000000000000000000' as `0x${string}`;
 
       // Check if already installed
       const isAlreadyInstalled =
@@ -515,7 +510,7 @@ export class EtherspotTransactionKit implements IInitial {
 
       if (!isAlreadyInstalled) {
         log(
-          'undelegateSmartAccountToEoa(): Wallet is not a smart wallet, no uninstall needed',
+          'undelegateSmartAccountToEoa(): Wallet is not a delegated smart wallet, no uninstall needed',
           { eoaAddress },
           this.debugMode
         );
@@ -543,7 +538,7 @@ export class EtherspotTransactionKit implements IInitial {
       );
 
       // If not executing, just return the authorization
-      if (!isExecuting) {
+      if (!delegateImmediatly) {
         return {
           authorization,
           eoaAddress,
@@ -558,7 +553,7 @@ export class EtherspotTransactionKit implements IInitial {
             chain: getChainFromId(uninstallChainId),
             authorizationList: [authorization],
             to: owner.address,
-            data: '0xdeadbeef',
+            data: '0x' as `0x${string}`,
             type: 'eip7702',
           });
 
@@ -1733,7 +1728,7 @@ export class EtherspotTransactionKit implements IInitial {
 
               if (attempt === maxRetries) {
                 log(
-                  'send(): All attempts failed to retrieve user operation details. But the transaction was sent successfully.',
+                  `send(): ${maxRetries} attempts failed to retrieve user operation details. But the transaction was sent successfully.`,
                   undefined,
                   this.debugMode
                 );
@@ -2131,7 +2126,7 @@ export class EtherspotTransactionKit implements IInitial {
     if (batchesToEstimate.length === 0) {
       log('estimateBatches(): No batches to estimate', this.debugMode);
       this.isEstimating = false;
-      return result;
+      return { ...result, ...this };
     }
 
     // ========================================================================
@@ -2478,7 +2473,7 @@ export class EtherspotTransactionKit implements IInitial {
       this.containsEstimatingError = !result.isEstimatedSuccessfully;
       this.isEstimating = false;
 
-      return result;
+      return { ...result, ...this };
     } else {
       // ========================================================================
       // MODULAR MODE: Use Etherspot SDK for estimation
@@ -2784,7 +2779,7 @@ export class EtherspotTransactionKit implements IInitial {
       this.containsEstimatingError = !result.isEstimatedSuccessfully;
       this.isEstimating = false;
 
-      return result;
+      return { ...result, ...this };
     }
   }
 

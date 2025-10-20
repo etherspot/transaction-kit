@@ -1,5 +1,5 @@
-// network
-import { getNetworkConfig } from './network';
+// utils
+import { getNetworkConfig } from './utils';
 
 /**
  * BundlerConfig utility for managing bundler URLs with API keys.

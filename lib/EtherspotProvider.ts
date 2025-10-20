@@ -34,9 +34,6 @@ import { privateKeyToAccount } from 'viem/accounts';
 // bundler
 import { BundlerConfig } from './BundlerConfig';
 
-// network
-import { getNetworkConfig } from './network';
-
 // interfaces
 import {
   BundlerClientExtended,
@@ -48,7 +45,7 @@ import {
 } from './interfaces';
 
 // utils
-import { log } from './utils';
+import { getNetworkConfig, log } from './utils';
 
 export class EtherspotProvider {
   // Security: private fields (#) to prevent external access
