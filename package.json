@@ -1,7 +1,7 @@
 {
   "name": "@etherspot/transaction-kit",
   "description": "Framework-agnostic Etherspot Transaction Kit",
-  "version": "2.0.3",
+  "version": "2.1.0",
   "main": "dist/cjs/index.js",
   "scripts": {
     "rollup:build": "NODE_OPTIONS=--max-old-space-size=8192 rollup -c --bundleConfigAsCjs",
@@ -26,9 +26,10 @@
   "dependencies": {
     "@etherspot/eip1271-verification-util": "0.1.2",
     "@etherspot/modular-sdk": "6.1.1",
+    "@zerodev/sdk": "^5.5.3",
     "buffer": "6.0.3",
     "lodash": "4.17.21",
-    "viem": "2.21.54"
+    "viem": "2.38.0"
   },
   "module": "dist/esm/index.js",
   "types": "dist/index.d.ts",

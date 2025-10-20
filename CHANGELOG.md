@@ -1,11 +1,34 @@
 # Changelog
 
+## [2.1.0] - 2025-01-27
+
+### Added Changes
+
+- **EIP-7702 Support**: Added delegated EOA (Externally Owned Account) functionality with `isDelegateSmartAccountToEoa()`, `delegateSmartAccountToEoa()` and `undelegateSmartAccountToEoa()` methods for EIP-7702 transactions
+- **New Wallet Mode**: Introduced `walletMode` configuration with support for both `modular` and `delegatedEoa` modes
+- **Enhanced Security**: Added secure configuration management with separate `PrivateConfig` and `PublicConfig` interfaces for sensitive data handling
+- **Bundler Configuration**: Added `BundlerConfig` class for flexible bundler URL management with API key support and custom formatting options
+- **Client Management**: Added per-chain client management with `getPublicClient()`, `getBundlerClient()`, and `getWalletClient()` methods for efficient multi-chain operations
+- **Account Management**: Added `getDelegatedEoaAccount()` and `getOwnerAccount()` methods for EIP-7702 account operations and owner account access
+- **Network Constants and Support**: Added comprehensive network constants and supported networks configuration
+- **Batch Operations**: Enhanced batch processing with new `estimateBatches()` and `sendBatches()` methods for improved batch transaction handling on multi-chains
+- **Batch State Management**: Implemented intelligent batch state cleanup that removes successful chain groups and transactions from internal state after sending
+- **Multi-Chain Grouping**: Added chain-based transaction grouping within batches for efficient multi-chain processing and cost tracking
+- **ZeroDev Integration**: Added `@zerodev/sdk` dependency for enhanced account abstraction capabilities
+- **Viem Update**: Updated `viem` library to version `^2.38.0` for improved compatibility and features
+
+### Breaking Changes
+
+- **Configuration Structure**: Updated configuration interfaces with new security-focused structure separating public and private configurations
+- **Dependencies**: Added new `@zerodev/sdk` dependency requirement
+
 ## [2.0.3] - 2025-08-22
 
 ### Added Changes
 
 - `chainId` is mandatory in the `transaction()` method.
 - For `send` and `estimate`, the `etherspotModularSdk` is initialized using the transaction's `chainId` rather than the provider's `chainId`.
+
 ## [2.0.2] - 2025-07-24
 
 ### Added Changes

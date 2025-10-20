@@ -2,7 +2,7 @@
 
 > **The framework-agnostic Etherspot Transaction Kit that makes blockchain transactions feel like a walk in the park! 🌳**
 
-Ever felt like blockchain transactions were more complex than explaining quantum physics to a cat? Well, fret no more! TransactionKit is here to turn your transaction woes into smooth sailing. Built on top of Etherspot's Modular SDK, this library brings you a delightful, method-chained API that makes sending transactions as easy as ordering coffee. ☕
+Ever felt like blockchain transactions were more complex than explaining quantum physics to a cat? Well, fret no more! TransactionKit is here to turn your transaction woes into smooth sailing. Choose between Etherspot's Modular SDK for traditional smart accounts or cutting-edge EIP-7702 delegated EOAs - this library brings you a delightful, method-chained API that makes sending transactions as easy as ordering coffee. ☕
 
 ## ✨ What Makes TransactionKit Special?
 
@@ -13,6 +13,10 @@ Ever felt like blockchain transactions were more complex than explaining quantum
 - **🛡️ Error Handling**: Graceful error handling that won't make you pull your hair out
 - **📦 Batch Support**: Send multiple transactions in one go - efficiency is key!
 - **🔧 Debug Mode**: When things go sideways, we've got your back with detailed logging
+- **🔐 EIP-7702 Support**: Native support for delegated EOA (Externally Owned Account) functionality
+- **🏗️ Multiple Wallet Modes**: Choose between modular smart accounts or delegated EOA accounts (EIP-7702)
+- **🌐 Multi-Chain**: Enhanced batch operations with intelligent chain-based grouping
+- **⚙️ Flexible Bundler Configuration**: Custom bundler URLs with flexible API key formats
 
 ## 🎯 Target Environments
 
@@ -41,9 +45,11 @@ pnpm add @etherspot/transaction-kit
 
 ## 🚀 Quick Start
 
+### Quick Start with Modular Mode
+
 ### Basic Transaction Sending
 
-Here's how to send a simple transaction - it's easier than making toast! 🍞
+Here's how to send a simple transaction with the modular smart account - it's easier than making toast! 🍞
 
 ```typescript
 import { TransactionKit } from '@etherspot/transaction-kit';
@@ -64,6 +70,7 @@ const kit = TransactionKit({
   provider: client,
   chainId: 137, // Polygon mainnet
   bundlerApiKey: 'your-bundler-api-key', // Optional but recommended
+  walletMode: 'modular', // Optional: this is the default
 });
 
 // Send a transaction - it's that simple!
@@ -97,7 +104,56 @@ const sendTransaction = async () => {
 };
 ```
 
-### Batch Transactions
+### Quick Start with Delegated EOA Mode (EIP-7702)
+
+For users who want to use EIP-7702 delegated EOAs:
+
+```typescript
+import { TransactionKit } from '@etherspot/transaction-kit';
+
+// Initialize TransactionKit
+const kit = TransactionKit({
+  chainId: 137, // Polygon mainnet
+  privateKey: '0x...your-private-key...', // Required for EIP-7702
+  bundlerApiKey: 'your-bundler-api-key', // Optional but recommended
+  walletMode: 'delegatedEoa', // Required for EIP-7702
+});
+
+// Send a transaction with delegated EOA
+const sendDelegatedTransaction = async () => {
+  try {
+    // Check if EOA is delegated
+    const isDelegated = await kit.isDelegateSmartAccountToEoa(137);
+
+    if (!isDelegated) {
+      // Delegate EOA to smart account first
+      await kit.delegateSmartAccountToEoa({
+        chainId: 137,
+        delegateImmediately: true,
+      });
+    }
+
+    // Create and send transaction
+    const transaction = kit
+      .transaction({
+        to: '0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6',
+        value: '1000000000000000000', // 1 ETH
+        chainId: 137,
+      })
+      .name({ transactionName: 'delegated-tx' });
+
+    const result = await transaction.send();
+
+    if (result.isSentSuccessfully) {
+      console.log('🎉 Delegated EOA transaction sent!');
+    }
+  } catch (error) {
+    console.error('Transaction failed:', error);
+  }
+};
+```
+
+### Batch Transactions in Modular and Delegated EOA modes
 
 Want to send multiple transactions at once? We've got you covered! 🎯
 
@@ -110,6 +166,7 @@ const sendBatchTransactions = async () => {
       .transaction({
         to: '0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6',
         value: '500000000000000000', // 0.5 ETH
+        chainId: 137, // Optional but recommended for batched transaction
       })
       .name({ transactionName: 'tx1' })
       .addToBatch({ batchName: 'my-batch' });
@@ -119,6 +176,7 @@ const sendBatchTransactions = async () => {
       .transaction({
         to: '0x1234567890123456789012345678901234567890',
         value: '300000000000000000', // 0.3 ETH
+        chainId: 137, // Optional but recommended for batched transaction
       })
       .name({ transactionName: 'tx2' })
       .addToBatch({ batchName: 'my-batch' });
@@ -138,7 +196,7 @@ const sendBatchTransactions = async () => {
 };
 ```
 
-### Advanced Usage
+### Advanced Usage in Modular and Delegated EOA modes
 
 ```typescript
 // Update existing transactions
@@ -150,6 +208,7 @@ const updateTransaction = () => {
     .transaction({
       to: '0xNewAddress123456789012345678901234567890',
       value: '2000000000000000000', // 2 ETH
+      chainId: 137, // Optional
     })
     .update();
 };
@@ -173,15 +232,221 @@ const getWalletAddress = async () => {
 kit.setDebugMode(true);
 ```
 
+### EIP-7702 Delegated EOA Examples
+
+For EIP-7702 specific functionalities:
+
+```typescript
+// Initialize with delegated EOA mode
+const kit = TransactionKit({
+  chainId: 137, // Polygon
+  privateKey: '0x...your-private-key...',
+  bundlerApiKey: 'your-bundler-api-key',
+  walletMode: 'delegatedEoa',
+});
+
+// Check if EOA is delegated to a smart account
+const isDelegated = await kit.isDelegateSmartAccountToEoa(137);
+console.log('Is EOA delegated:', isDelegated);
+
+// Delegate EOA to smart account (if not already delegated)
+if (!isDelegated) {
+  const delegationResult = await kit.delegateSmartAccountToEoa({
+    chainId: 137,
+    delegateImmediately: true, // Set to false to get the authorization object and not execute
+  });
+
+  console.log('Delegation result:', delegationResult);
+  console.log('EOA Address:', delegationResult.eoaAddress);
+  console.log('Delegate Address:', delegationResult.delegateAddress);
+  console.log('Already installed:', delegationResult.isAlreadyInstalled);
+}
+
+// Send transactions using delegated EOA
+const sendWithDelegatedEoa = async () => {
+  const transaction = kit
+    .transaction({
+      to: '0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6',
+      value: '1000000000000000000', // 1 ETH
+      chainId: 137,
+    })
+    .name({ transactionName: 'delegated-tx' });
+
+  const result = await transaction.send();
+
+  if (result.isSentSuccessfully) {
+    console.log('🎉 Delegated EOA transaction sent!');
+    console.log('UserOp Hash:', result.userOpHash);
+  }
+};
+
+// Remove delegation (if needed)
+const removeDelegation = async () => {
+  const undelegationResult = await kit.undelegateSmartAccountToEoa({
+    chainId: 137,
+    delegateImmediately: true, // Set to false to get the authorization object and not execute
+  });
+
+  console.log('Undelegation result:', undelegationResult);
+};
+```
+
+### Multi-Chain Batch Operations
+
+Enhanced batch operations with chain-based grouping:
+
+```typescript
+// Create transactions across multiple chains
+const multiChainBatches = async () => {
+  // Ethereum transaction
+  kit
+    .transaction({
+      to: '0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6',
+      value: '1000000000000000000', // 1 ETH
+      chainId: 1, // Ethereum
+    })
+    .name({ transactionName: 'eth-tx' })
+    .addToBatch({ batchName: 'multi-chain-batch' });
+
+  // Polygon transaction
+  kit
+    .transaction({
+      to: '0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6',
+      value: '500000000000000000', // 0.5 ETH
+      chainId: 137, // Polygon
+    })
+    .name({ transactionName: 'poly-tx' })
+    .addToBatch({ batchName: 'multi-chain-batch' });
+
+  // Estimate costs across all chains
+  const estimates = await kit.estimateBatches();
+  console.log('Multi-chain estimates:', estimates);
+
+  // Send batches (automatically grouped by chain)
+  const result = await kit.sendBatches();
+
+  if (result.isSentSuccessfully) {
+    console.log('🎉 Multi-chain batch sent successfully!');
+    Object.entries(result.batches).forEach(([batchName, batchResult]) => {
+      console.log(`Batch "${batchName}":`, batchResult.userOpHash);
+    });
+  }
+};
+```
+
 ## 🔧 Configuration Options
+
+TransactionKit supports two wallet modes to suit different use cases:
+
+### Modular Mode (Default)
+
+Smart account functionality with Etherspot's Modular SDK:
 
 ```typescript
 const kit = TransactionKit({
   provider: yourWalletProvider, // Required: Your wallet provider
   chainId: 137, // Required: Default chain ID
   bundlerApiKey: 'your-api-key', // Optional: For better performance
+  bundlerUrl: 'https://your-bundler-url.com', // Optional: Custom bundler URL
+  bundlerApiKeyFormat: '?api-key=', // Optional: API key format (default: '?api-key=')
   debugMode: false, // Optional: Enable debug logging
+  walletMode: 'modular', // Optional: Default wallet mode
 });
+```
+
+### Delegated EOA Mode (EIP-7702)
+
+Advanced EIP-7702 functionality with delegated Externally Owned Accounts:
+
+```typescript
+const kit = TransactionKit({
+  chainId: 137, // Required: Default chain ID
+  privateKey: '0x...your-private-key...', // Required: EOA private key
+  bundlerApiKey: 'your-api-key', // Optional: For better performance
+  bundlerUrl: 'https://your-bundler-url.com', // Optional: Custom bundler URL
+  bundlerApiKeyFormat: '?api-key=', // Optional: API key format (default: '?api-key=')
+  debugMode: false, // Optional: Enable debug logging
+  walletMode: 'delegatedEoa', // Required: Delegated EOA mode
+});
+```
+
+**Note**: In delegated EOA mode, you don't need to provide a `provider` as the private key is used directly to create the account.
+
+### Wallet Mode Comparison
+
+| Feature                     | Modular Mode             | Delegated EOA Mode                 |
+| --------------------------- | ------------------------ | ---------------------------------- |
+| **Account Type**            | Etherspot Smart Account  | EIP-7702 Delegated EOA             |
+| **Provider Required**       | ✅ Yes (wallet provider) | ❌ No (uses private key)           |
+| **Private Key Required**    | ❌ No                    | ✅ Yes                             |
+| **Client-Side Safe**        | ✅ Yes                   | ⚠️ Depends on private key handling |
+| **Paymaster Support**       | ✅ Full support          | ⚠️ Not yet supported               |
+| **UserOp Overrides**        | ✅ Supported             | ⚠️ Not yet supported               |
+| **EIP-7702 Methods**        | ❌ Not available         | ✅ Yes                             |
+| **Modular SDK Integration** | ✅ Yes                   | ❌ No                              |
+| **ZeroDev Integration**     | ❌ No                    | ✅ Yes integration                 |
+
+### Advanced Bundler Configuration
+
+TransactionKit includes a `BundlerConfig` class for flexible bundler URL management:
+
+```typescript
+import { BundlerConfig } from '@etherspot/transaction-kit';
+
+// Basic bundler config with API key
+const bundlerConfig = new BundlerConfig(
+  137, // chainId
+  'your-api-key' // API key
+);
+console.log('Bundler URL:', bundlerConfig.url);
+
+// Custom bundler URL with API key
+const customBundlerConfig = new BundlerConfig(
+  137,
+  'your-api-key',
+  'https://your-custom-bundler.com', // custom URL
+  '?apikey=' // custom API key format
+);
+
+// Different API key formats
+const pathFormat = new BundlerConfig(
+  137,
+  'your-api-key',
+  'https://bundler.example.com',
+  '/api-key/' // Results in: https://bundler.example.com/api-key/your-api-key
+);
+
+const queryFormat = new BundlerConfig(
+  137,
+  'your-api-key',
+  'https://bundler.example.com',
+  '&key=' // Results in: https://bundler.example.com&key=your-api-key
+);
+```
+
+### Client Management
+
+Access underlying clients for advanced operations:
+
+```typescript
+// Get viem clients (delegatedEoa mode only)
+if (kit.getEtherspotProvider().getWalletMode() === 'delegatedEoa') {
+  const publicClient = await kit.getPublicClient(137);
+  const walletClient = await kit.getWalletClient(137);
+  const bundlerClient = await kit.getBundlerClient(137);
+
+  // Get account instances (delegatedEoa mode only)
+  const delegatedEoaAccount = await kit.getDelegatedEoaAccount(137);
+  const ownerAccount = await kit.getOwnerAccount(137);
+}
+
+// Get transaction hash from userOp hash (available in both modes)
+const txHash = await kit.getTransactionHash(
+  '0x123...userOpHash',
+  137, // txChainId
+  30000, // timeout (optional)
+  1000 // retry interval (optional)
+);
 ```
 
 ## 🛠️ Available Methods
@@ -197,19 +462,113 @@ const kit = TransactionKit({
 
 - `estimate()` - Estimate transaction cost
 - `send()` - Send a single transaction
-- `estimateBatches()` - Estimate batch costs
-- `sendBatches()` - Send all batches
+- `estimateBatches()` - Estimate batch costs with multi-chain support
+- `sendBatches()` - Send all batches with chain grouping
+
+### EIP-7702 Delegation Methods (delegatedEoa mode only)
+
+- `isDelegateSmartAccountToEoa()` - Check if EOA is delegated to a smart account
+- `delegateSmartAccountToEoa()` - Delegate EOA to smart account
+- `undelegateSmartAccountToEoa()` - Remove EOA delegation
+
+### Client Management Methods (delegatedEoa mode only)
+
+- `getPublicClient()` - Get viem PublicClient for a chain
+- `getBundlerClient()` - Get bundler client for account abstraction
+- `getWalletClient()` - Get viem WalletClient for a chain
+
+### Account Management Methods (delegatedEoa mode only)
+
+- `getDelegatedEoaAccount()` - Get delegated EOA account instance
+- `getOwnerAccount()` - Get the owner EOA account
 
 ### Utility Methods
 
 - `getWalletAddress()` - Get your wallet address
+- `getTransactionHash()` - Get transaction hash from userOp hash
 - `getState()` - Get current kit state
 - `setDebugMode()` - Enable/disable debug logging
 - `reset()` - Clear all transactions and batches
 - `getProvider()` - Get the underlying EtherspotProvider instance
-- `getSdk()` - Get the Modular SDK instance for a specific chain
+- `getEtherspotProvider()` - Get the EtherspotProvider instance directly
+- `getSdk()` - Get the Modular SDK instance for a specific chain (modular mode only)
 - `remove()` - Remove a named transaction or batch
 - `update()` - Update an existing named transaction or batched transaction
+
+## 🔒 Security Considerations
+
+### Private Key Handling in Delegated EOA Mode
+
+When using `walletMode: 'delegatedEoa'`, you must provide a private key. Here are important security considerations:
+
+**⚠️ Never expose private keys in client-side code or logs!**
+
+```typescript
+// ❌ BAD: Hardcoded private key
+const kit = TransactionKit({
+  privateKey: '0x1234567890abcdef...', // NEVER DO THIS!
+  walletMode: 'delegatedEoa',
+});
+
+// ✅ GOOD: Use environment variables
+const kit = TransactionKit({
+  privateKey: process.env.PRIVATE_KEY, // Server-side only
+  walletMode: 'delegatedEoa',
+});
+
+// ✅ GOOD: Use secure key management
+const kit = TransactionKit({
+  privateKey: await getSecurePrivateKey(), // From secure storage
+  walletMode: 'delegatedEoa',
+});
+```
+
+**Best Practices:**
+
+1. **Private Key Security**: Handle private keys securely - never hardcode them in client-side code
+2. **Environment Variables**: Store private keys in environment variables, never in code
+3. **Key Rotation**: Regularly rotate private keys for enhanced security
+4. **Access Control**: Implement proper access controls around private key usage
+5. **Audit Logging**: Log all transactions for security auditing
+6. **Secure Storage**: Use hardware security modules (HSM) or secure key management services for production
+
+### Important Limitations & Considerations
+
+#### Delegated EOA Mode Limitations
+
+- **Paymaster Support**: Currently not supported in delegated EOA mode
+- **UserOp Overrides**: Custom userOp overrides are not yet supported
+- **Private Key Security**: Requires careful private key handling
+- **ZeroDev Dependency**: Requires `@zerodev/sdk` package
+
+#### Modular Mode Limitations
+
+- **Provider Required**: Must provide a wallet provider
+- **No EIP-7702**: EIP-7702 delegation methods are not available
+- **Modular SDK Dependency**: Requires `@etherspot/modular-sdk` package
+
+#### General Considerations
+
+- **Multi-Chain UX Warning**: In modular mode, batches with multiple chainIds require multiple user signatures (one per chain)
+
+### Network Support
+
+TransactionKit includes comprehensive network constants and supports multiple blockchain networks:
+
+```typescript
+// Access network configurations
+import { getNetworkConfig } from '@etherspot/transaction-kit';
+
+// Get network configuration for a specific chain
+const networkConfig = getNetworkConfig(137); // Polygon
+console.log('Chain ID:', networkConfig.chainId);
+console.log('Bundler/RPC:', networkConfig.bundler); // Etherspot bundler endpoint
+console.log('Chain Object:', networkConfig.chain); // viem Chain object
+console.log('Entry Point:', networkConfig.contracts.entryPoint);
+console.log('Wallet Factory:', networkConfig.contracts.walletFactory);
+```
+
+The library automatically handles network-specific configurations for Etherspot bundler endpoints, smart contract addresses, and viem chain objects.
 
 ## 🤝 Contributing
 

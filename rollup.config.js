@@ -15,6 +15,8 @@ const external = [
   'viem',
   '@etherspot/eip1271-verification-util',
   'viem/chains',
+  'viem/account-abstraction',
+  '@zerodev/sdk',
 ];
 
 export default [

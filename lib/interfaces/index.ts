@@ -4,6 +4,9 @@ import {
   PaymasterApi,
   WalletProviderLike,
 } from '@etherspot/modular-sdk';
+import { type PublicActions, type WalletActions } from 'viem';
+import { type BundlerClient } from 'viem/account-abstraction';
+import { SignAuthorizationReturnType } from 'viem/accounts';
 
 // types
 import { BigNumberish } from '@etherspot/modular-sdk/dist/types/sdk/types/bignumber';
@@ -15,12 +18,49 @@ export interface TypePerId<T> {
   [id: string]: T;
 }
 
-// EtherspotProvider
-export interface EtherspotProviderConfig {
+// Wallet Mode Types
+export type WalletMode = 'modular' | 'delegatedEoa';
+
+// Security: Private config interface for sensitive data
+export interface PrivateConfig {
+  privateKey?: string;
+  bundlerApiKey?: string;
+  bundlerApiKeyFormat?: string;
+}
+
+// Security: Public config interface for safe data
+export interface PublicConfig {
+  chainId: number;
+  walletMode?: WalletMode;
+  debugMode?: boolean;
+  bundlerUrl?: string;
+  provider?: WalletProviderLike;
+}
+
+// Modular mode specific config - requires a wallet provider
+export interface ModularModeConfig {
   provider: WalletProviderLike;
   chainId: number;
   bundlerApiKey?: string;
+  debugMode?: boolean;
+  walletMode?: 'modular';
 }
+
+// delegatedEoa mode specific config - requires a private key for EIP-7702 operations
+export interface DelegatedEoaModeConfig {
+  chainId: number;
+  bundlerApiKey?: string;
+  bundlerUrl?: string;
+  bundlerApiKeyFormat?: string;
+  debugMode?: boolean;
+  walletMode: 'delegatedEoa';
+  privateKey: string;
+}
+
+// EtherspotTransactionKitConfig
+export type EtherspotTransactionKitConfig =
+  | ModularModeConfig
+  | DelegatedEoaModeConfig;
 
 // TransactionKit
 export interface IInitial {
@@ -35,6 +75,31 @@ export interface IInitial {
 
   // Standalone methods (not chainable)
   getWalletAddress(chainId?: number): Promise<string | undefined>;
+  isDelegateSmartAccountToEoa(chainId?: number): Promise<boolean | undefined>;
+  delegateSmartAccountToEoa({
+    chainId,
+    delegateImmediately,
+  }: {
+    chainId?: number;
+    delegateImmediately?: boolean;
+  }): Promise<{
+    authorization: SignAuthorizationReturnType | undefined;
+    isAlreadyInstalled: boolean;
+    eoaAddress: string;
+    delegateAddress: string;
+    userOpHash?: string;
+  }>;
+  undelegateSmartAccountToEoa?({
+    chainId,
+    delegateImmediately,
+  }: {
+    chainId?: number;
+    delegateImmediately?: boolean;
+  }): Promise<{
+    authorization: SignAuthorizationReturnType | undefined;
+    eoaAddress: string;
+    userOpHash?: string;
+  }>;
   getState(): IInstance;
   setDebugMode(enabled: boolean): void;
   getProvider(): WalletProviderLike;
@@ -142,10 +207,6 @@ export interface IInstance {
   walletAddresses: { [chainId: number]: string };
 }
 
-export interface EtherspotTransactionKitConfig extends EtherspotProviderConfig {
-  debugMode?: boolean;
-}
-
 export interface TransactionBuilder {
   chainId?: number;
   to?: string;
@@ -203,9 +264,24 @@ export interface TransactionSendResult {
 export interface BatchSendResult {
   batches: {
     [batchName: string]: {
+      // Flattened list of all transactions results across chain groups
       transactions: TransactionSendResult[];
-      userOpHash?: string;
+      // Per-chain group results within this batch
+      chainGroups?: {
+        [chainId: number]: {
+          transactions: TransactionSendResult[];
+          userOpHash?: string;
+          totalCost?: bigint;
+          errorMessage?: string;
+          isEstimatedSuccessfully: boolean;
+          isSentSuccessfully: boolean;
+        };
+      };
+      // Sum of all successful chain group total costs
+      totalCost?: bigint;
+      // Present when the overall batch sending failed (e.g., at least one chain group failed)
       errorMessage?: string;
+      // True only if all chain groups in this batch sent successfully
       isEstimatedSuccessfully: boolean;
       isSentSuccessfully: boolean;
     };
@@ -217,9 +293,22 @@ export interface BatchSendResult {
 export interface BatchEstimateResult {
   batches: {
     [batchName: string]: {
+      // Flattened list of all transactions results across chain groups
       transactions: TransactionEstimateResult[];
+      // Per-chain group results within this batch
+      chainGroups?: {
+        [chainId: number]: {
+          transactions: TransactionEstimateResult[];
+          totalCost?: bigint;
+          errorMessage?: string;
+          isEstimatedSuccessfully: boolean;
+        };
+      };
+      // Sum of all successful chain group total costs
       totalCost?: bigint;
+      // Present when the overall batch estimation failed (e.g., at least one chain group failed)
       errorMessage?: string;
+      // True only if all chain groups in this batch estimated successfully
       isEstimatedSuccessfully: boolean;
     };
   };
@@ -281,6 +370,10 @@ export type TransactionGasInfoForUserOp = {
   maxFeePerGas?: bigint;
   maxPriorityFeePerGas?: bigint;
 };
+
+export type BundlerClientExtended = BundlerClient &
+  PublicActions &
+  WalletActions;
 
 // TO DO - use when modules are added to transaction kit
 // // eslint-disable-next-line @typescript-eslint/naming-convention
