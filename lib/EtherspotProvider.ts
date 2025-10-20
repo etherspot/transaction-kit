@@ -236,10 +236,7 @@ export class EtherspotProvider {
         ...this.#publicConfig,
         ...this.#privateConfig,
       } as EtherspotTransactionKitConfig);
-      if (
-        this.prevDelegatedEoaConfig &&
-        !isEqual(this.prevDelegatedEoaConfig, newConfigObject)
-      ) {
+      if (!isEqual(this.prevDelegatedEoaConfig, newConfigObject)) {
         this.clearDelegatedEoaCache();
       }
       this.prevDelegatedEoaConfig = newConfigObject;
@@ -732,10 +729,10 @@ export class EtherspotProvider {
 
   /**
    * Gets a copy of the current public provider configuration.
-   * @returns The EtherspotTransactionKitConfig object with only public data.
+   * @returns The PublicConfig object with only public data.
    */
-  getConfig(): EtherspotTransactionKitConfig {
-    return { ...this.#publicConfig } as EtherspotTransactionKitConfig;
+  getConfig(): PublicConfig {
+    return { ...this.#publicConfig };
   }
 
   /**

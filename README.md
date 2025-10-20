@@ -129,7 +129,7 @@ const sendDelegatedTransaction = async () => {
       // Delegate EOA to smart account first
       await kit.delegateSmartAccountToEoa({
         chainId: 137,
-        delegateImmediatly: true,
+        delegateImmediately: true,
       });
     }
 
@@ -253,7 +253,7 @@ console.log('Is EOA delegated:', isDelegated);
 if (!isDelegated) {
   const delegationResult = await kit.delegateSmartAccountToEoa({
     chainId: 137,
-    delegateImmediatly: true, // Set to false to get the authorization object and not execute
+    delegateImmediately: true, // Set to false to get the authorization object and not execute
   });
 
   console.log('Delegation result:', delegationResult);
@@ -284,7 +284,7 @@ const sendWithDelegatedEoa = async () => {
 const removeDelegation = async () => {
   const undelegationResult = await kit.undelegateSmartAccountToEoa({
     chainId: 137,
-    delegateImmediatly: true, // Set to false to get the authorization object and not execute
+    delegateImmediately: true, // Set to false to get the authorization object and not execute
   });
 
   console.log('Undelegation result:', undelegationResult);
@@ -443,7 +443,7 @@ if (kit.getEtherspotProvider().getWalletMode() === 'delegatedEoa') {
 // Get transaction hash from userOp hash (available in both modes)
 const txHash = await kit.getTransactionHash(
   '0x123...userOpHash',
-  137, // chainId
+  137, // txChainId
   30000, // timeout (optional)
   1000 // retry interval (optional)
 );

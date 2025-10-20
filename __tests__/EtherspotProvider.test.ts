@@ -434,14 +434,14 @@ describe('EtherspotProvider', () => {
         });
       });
 
-      it('should use default bundler API key when not provided', () => {
+      it('should use default bundler API key when not provided', async () => {
         const configWithoutBundlerKey = {
           provider: mockProvider,
           chainId: 1,
         };
         const provider = new EtherspotProvider(configWithoutBundlerKey);
 
-        provider.getSdk();
+        await provider.getSdk();
 
         expect(MockedEtherspotBundler).toHaveBeenCalledWith(
           1,
@@ -756,7 +756,7 @@ describe('EtherspotProvider', () => {
     let privateKeyToAccountMock: jest.Mock;
     let createKernelAccountMock: jest.Mock;
 
-    const networkModulePath = '../lib/network';
+    const networkModulePath = '../lib/utils';
 
     beforeEach(() => {
       jest.resetModules();
@@ -1205,7 +1205,7 @@ describe('EtherspotProvider', () => {
         };
         const provider = new EtherspotProvider(configWithoutBundlerKey);
 
-        expect(provider.getConfig().bundlerApiKey).toBeUndefined();
+        expect((provider.getConfig() as any).bundlerApiKey).toBeUndefined();
       });
 
       it('should handle chainId as string (converted to number)', async () => {
@@ -1335,7 +1335,7 @@ describe('EtherspotProvider', () => {
           .mockResolvedValue({ smartAccount: true }),
       }));
 
-      jest.doMock('../lib/network', () => ({
+      jest.doMock('../lib/utils', () => ({
         getNetworkConfig: jest.fn().mockReturnValue({
           chain: { id: 1, name: 'MockChain' },
           bundler: 'https://rpc.etherspot.io/v2/1',

@@ -292,7 +292,7 @@ export class EtherspotTransactionKit implements IInitial {
    * enabling smart wallet features. The authorization is only signed if the EOA is not already designated.
    *
    * @param chainId - (Optional) The chain ID to install the smart wallet on. If not provided, uses the provider's current chain ID.
-   * @param delegateImmediatly - (Optional) Whether to execute the installation transaction immediately. Defaults to false.
+   * @param delegateImmediately - (Optional) Whether to execute the installation transaction immediately. Defaults to false.
    * @returns A promise that resolves to an object containing:
    *   - `authorization`: The signed authorization (if signed), or undefined if already installed
    *   - `isAlreadyInstalled`: True if any EIP-7702 designation already exists; otherwise false
@@ -304,15 +304,15 @@ export class EtherspotTransactionKit implements IInitial {
    * @remarks
    * - Only available in 'delegatedEoa' wallet mode.
    * - First checks for any existing 7702 designation; if present, returns early as already installed.
-   * - If not installed, signs a Kernel authorization, and if `delegateImmediatly` is true, submits a no-op UserOp to activate.
+   * - If not installed, signs a Kernel authorization, and if `delegateImmediately` is true, submits a no-op UserOp to activate.
    * - If execution fails, the method returns the signed authorization so callers can retry submission externally.
    */
   async delegateSmartAccountToEoa({
     chainId,
-    delegateImmediatly = false,
+    delegateImmediately = false,
   }: {
     chainId?: number;
-    delegateImmediatly?: boolean;
+    delegateImmediately?: boolean;
   } = {}): Promise<{
     authorization: SignAuthorizationReturnType | undefined;
     isAlreadyInstalled: boolean;
@@ -325,7 +325,7 @@ export class EtherspotTransactionKit implements IInitial {
 
     log(
       'delegateSmartAccountToEoa(): Called',
-      { installChainId, delegateImmediatly },
+      { installChainId, delegateImmediately },
       this.debugMode
     );
 
@@ -380,7 +380,7 @@ export class EtherspotTransactionKit implements IInitial {
       );
 
       // If not executing, just return the authorization
-      if (!delegateImmediatly) {
+      if (!delegateImmediately) {
         return {
           authorization,
           isAlreadyInstalled: false,
@@ -454,7 +454,7 @@ export class EtherspotTransactionKit implements IInitial {
    * delegation to the zero address, effectively reverting the EOA to its original state.
    *
    * @param chainId - (Optional) The chain ID to uninstall the smart wallet from. If not provided, uses the provider's current chain ID.
-   * @param delegateImmediatly - (Optional) Whether to execute the uninstallation transaction immediately. Defaults to false.
+   * @param delegateImmediately - (Optional) Whether to execute the uninstallation transaction immediately. Defaults to false.
    * @returns A promise that resolves to an object containing:
    *   - `authorization`: The signed authorization object to clear delegation
    *   - `eoaAddress`: The EOA address
@@ -466,17 +466,17 @@ export class EtherspotTransactionKit implements IInitial {
    * @remarks
    * - Only available in 'delegatedEoa' wallet mode.
    * - This clears the EIP-7702 delegation by authorizing the zero address (0x0000...0000).
-   * - If `delegateImmediatly` is true, executes a "dead" transaction (0xdeadbeef) with the authorization to revoke EIP-7702.
-   * - If `delegateImmediatly` is false, only signs and returns the authorization for later use.
+   * - If `delegateImmediately` is true, executes a "dead" transaction (0xdeadbeef) with the authorization to revoke EIP-7702.
+   * - If `delegateImmediately` is false, only signs and returns the authorization for later use.
    * - If userOp execution fails, the authorization is still returned so the caller can retry.
    * - After uninstallation, the EOA will function as a regular externally owned account.
    */
   async undelegateSmartAccountToEoa({
     chainId,
-    delegateImmediatly = false,
+    delegateImmediately = false,
   }: {
     chainId?: number;
-    delegateImmediatly?: boolean;
+    delegateImmediately?: boolean;
   } = {}): Promise<{
     authorization: SignAuthorizationReturnType | undefined;
     eoaAddress: string;
@@ -487,7 +487,7 @@ export class EtherspotTransactionKit implements IInitial {
 
     log(
       'undelegateSmartAccountToEoa(): Called',
-      { uninstallChainId, delegateImmediatly },
+      { uninstallChainId, delegateImmediately },
       this.debugMode
     );
 
@@ -538,7 +538,7 @@ export class EtherspotTransactionKit implements IInitial {
       );
 
       // If not executing, just return the authorization
-      if (!delegateImmediatly) {
+      if (!delegateImmediately) {
         return {
           authorization,
           eoaAddress,
