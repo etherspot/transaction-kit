@@ -1,4 +1,8 @@
 import { ModularSdk, PaymasterApi } from '@etherspot/modular-sdk';
+import {
+  KERNEL_V3_3,
+  KernelVersionToAddressesMap,
+} from '@zerodev/sdk/constants';
 import { isAddress, parseEther } from 'viem';
 
 // EtherspotPovider
@@ -21,7 +25,6 @@ jest.mock('../lib/EtherspotProvider');
 jest.mock('../lib/EtherspotUtils');
 jest.mock('@etherspot/modular-sdk');
 jest.mock('@zerodev/sdk', () => ({
-  constants: { KERNEL_V3_3: 'KERNEL_V3_3' },
   createKernelAccount: jest.fn().mockResolvedValue({ smartAccount: true }),
 }));
 jest.mock('viem', () => {
@@ -2418,6 +2421,164 @@ describe('DelegatedEoa Mode Integration', () => {
       );
       expect(result.errorType).toBe('VALIDATION_ERROR');
     });
+
+    describe('authorization parameter', () => {
+      const realKernelAddress = KernelVersionToAddressesMap[KERNEL_V3_3]
+        .accountImplementationAddress as `0x${string}`;
+      const validAuthorization = {
+        address: realKernelAddress,
+        chainId: 1,
+        nonce: 0,
+        r: ('0x' + '1'.repeat(64)) as `0x${string}`,
+        s: ('0x' + '2'.repeat(64)) as `0x${string}`,
+        v: BigInt(27),
+        yParity: 0,
+      } as any;
+      const invalidKernelAuthorization = {
+        address:
+          '0xInvalidKernelAddress123456789012345678901234' as `0x${string}`,
+        chainId: 1,
+        nonce: 0,
+        r: ('0x' + '1'.repeat(64)) as `0x${string}`,
+        s: ('0x' + '2'.repeat(64)) as `0x${string}`,
+        v: BigInt(27),
+        yParity: 0,
+      } as any;
+      const wrongChainIdAuthorization = {
+        address: realKernelAddress,
+        chainId: 137,
+        nonce: 0,
+        r: ('0x' + '1'.repeat(64)) as `0x${string}`,
+        s: ('0x' + '2'.repeat(64)) as `0x${string}`,
+        v: BigInt(27),
+        yParity: 0,
+      } as any;
+
+      it('should estimate with valid authorization when EOA is not designated', async () => {
+        const mockAccount = {
+          address: '0xdelegatedeoa123456789012345678901234567890',
+          encodeCalls: jest.fn().mockReturnValue('0xencodedcalls'),
+        } as any;
+        const mockBundlerClient = {
+          estimateUserOperationGas: jest.fn().mockResolvedValue({
+            preVerificationGas: BigInt(100000),
+            verificationGasLimit: BigInt(100000),
+            callGasLimit: BigInt(100000),
+          }),
+        } as any;
+        const mockPublicClient = {
+          getCode: jest.fn().mockResolvedValue('0x'), // Not designated
+          estimateFeesPerGas: jest.fn().mockResolvedValue({
+            maxFeePerGas: BigInt(20000000000),
+            maxPriorityFeePerGas: BigInt(2000000000),
+          }),
+          getTransactionCount: jest.fn().mockResolvedValue(5),
+        } as any;
+
+        mockProvider.getDelegatedEoaAccount.mockResolvedValue(mockAccount);
+        mockProvider.getBundlerClient.mockResolvedValue(mockBundlerClient);
+        mockProvider.getPublicClient.mockResolvedValue(mockPublicClient);
+
+        transactionKit.transaction({
+          to: '0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6',
+          chainId: 1,
+          value: '1000000000000000000',
+        });
+        transactionKit.name({ transactionName: 'delegated-tx' });
+
+        const result = await transactionKit.estimate({
+          authorization: validAuthorization,
+        });
+
+        expect(result.isEstimatedSuccessfully).toBe(true);
+        expect(mockBundlerClient.estimateUserOperationGas).toHaveBeenCalledWith(
+          expect.objectContaining({
+            authorization: validAuthorization,
+          })
+        );
+      });
+
+      it('should reject authorization with wrong chainId', async () => {
+        const mockAccount = {
+          address: '0xdelegatedeoa123456789012345678901234567890',
+          encodeCalls: jest.fn().mockReturnValue('0xencodedcalls'),
+        } as any;
+        const mockPublicClient = {
+          getCode: jest.fn().mockResolvedValue('0x'),
+        } as any;
+
+        mockProvider.getDelegatedEoaAccount.mockResolvedValue(mockAccount);
+        mockProvider.getPublicClient.mockResolvedValue(mockPublicClient);
+
+        transactionKit.transaction({
+          to: '0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6',
+          chainId: 1,
+          value: '1000000000000000000',
+        });
+        transactionKit.name({ transactionName: 'delegated-tx' });
+
+        const result = await transactionKit.estimate({
+          authorization: wrongChainIdAuthorization,
+        });
+
+        expect(result.isEstimatedSuccessfully).toBe(false);
+        expect(result.errorMessage).toContain(
+          'Authorization chain ID (137) does not match transaction chain ID (1)'
+        );
+        expect(result.errorType).toBe('VALIDATION_ERROR');
+      });
+
+      it('should reject invalid Kernel authorization', async () => {
+        const mockAccount = {
+          address: '0xdelegatedeoa123456789012345678901234567890',
+          encodeCalls: jest.fn().mockReturnValue('0xencodedcalls'),
+        } as any;
+        const mockPublicClient = {
+          getCode: jest.fn().mockResolvedValue('0x'),
+        } as any;
+
+        mockProvider.getDelegatedEoaAccount.mockResolvedValue(mockAccount);
+        mockProvider.getPublicClient.mockResolvedValue(mockPublicClient);
+
+        transactionKit.transaction({
+          to: '0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6',
+          chainId: 1,
+          value: '1000000000000000000',
+        });
+        transactionKit.name({ transactionName: 'delegated-tx' });
+
+        const result = await transactionKit.estimate({
+          authorization: invalidKernelAuthorization,
+        });
+
+        expect(result.isEstimatedSuccessfully).toBe(false);
+        expect(result.errorMessage).toContain(
+          'does not match Kernel v3.3 implementation'
+        );
+        expect(result.errorType).toBe('VALIDATION_ERROR');
+      });
+
+      it('should reject authorization in modular mode', async () => {
+        mockProvider.getWalletMode.mockReturnValue('modular');
+
+        transactionKit.transaction({
+          to: '0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6',
+          chainId: 1,
+          value: '1000000000000000000',
+        });
+        transactionKit.name({ transactionName: 'delegated-tx' });
+
+        const result = await transactionKit.estimate({
+          authorization: validAuthorization,
+        });
+
+        expect(result.isEstimatedSuccessfully).toBe(false);
+        expect(result.errorMessage).toContain(
+          'authorization is only supported in delegatedEoa mode'
+        );
+        expect(result.errorType).toBe('VALIDATION_ERROR');
+      });
+    });
   });
 
   describe('send with delegatedEoa mode', () => {
@@ -2486,6 +2647,118 @@ describe('DelegatedEoa Mode Integration', () => {
       );
       expect(result.errorType).toBe('VALIDATION_ERROR');
     });
+
+    describe('authorization parameter', () => {
+      const realKernelAddress = KernelVersionToAddressesMap[KERNEL_V3_3]
+        .accountImplementationAddress as `0x${string}`;
+      const validAuthorization = {
+        address: realKernelAddress,
+        chainId: 1,
+        nonce: 0,
+        r: ('0x' + '1'.repeat(64)) as `0x${string}`,
+        s: ('0x' + '2'.repeat(64)) as `0x${string}`,
+        v: BigInt(27),
+        yParity: 0,
+      } as any;
+      const wrongChainIdAuthorization = {
+        address: realKernelAddress,
+        chainId: 137,
+        nonce: 0,
+        r: ('0x' + '1'.repeat(64)) as `0x${string}`,
+        s: ('0x' + '2'.repeat(64)) as `0x${string}`,
+        v: BigInt(27),
+        yParity: 0,
+      } as any;
+
+      it('should send with valid authorization when EOA is not designated', async () => {
+        const mockAccount = {
+          address: '0xdelegatedeoa123456789012345678901234567890',
+          encodeCalls: jest.fn().mockReturnValue('0xencodedcalls'),
+        } as any;
+        const mockBundlerClient = {
+          estimateUserOperationGas: jest.fn().mockResolvedValue({
+            preVerificationGas: BigInt(100000),
+            verificationGasLimit: BigInt(100000),
+            callGasLimit: BigInt(100000),
+          }),
+          sendUserOperation: jest.fn().mockResolvedValue('0xuserOpHash'),
+          getUserOperation: jest.fn().mockResolvedValue({
+            userOperation: {
+              sender: '0xdelegatedeoa123456789012345678901234567890',
+              nonce: BigInt(5),
+              callData: '0xencodedcalls',
+              callGasLimit: BigInt(100000),
+              verificationGasLimit: BigInt(100000),
+              preVerificationGas: BigInt(100000),
+              maxFeePerGas: BigInt(20000000000),
+              maxPriorityFeePerGas: BigInt(2000000000),
+              signature: '0xsig',
+              paymasterAndData: '0x',
+            },
+          }),
+        } as any;
+        const mockPublicClient = {
+          getCode: jest.fn().mockResolvedValue('0x'), // Not designated
+          estimateFeesPerGas: jest.fn().mockResolvedValue({
+            maxFeePerGas: BigInt(20000000000),
+            maxPriorityFeePerGas: BigInt(2000000000),
+          }),
+          getTransactionCount: jest.fn().mockResolvedValue(5),
+        } as any;
+
+        mockProvider.getDelegatedEoaAccount.mockResolvedValue(mockAccount);
+        mockProvider.getBundlerClient.mockResolvedValue(mockBundlerClient);
+        mockProvider.getPublicClient.mockResolvedValue(mockPublicClient);
+
+        transactionKit.transaction({
+          to: '0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6',
+          chainId: 1,
+          value: '1000000000000000000',
+        });
+        transactionKit.name({ transactionName: 'delegated-send-tx' });
+
+        const result = await transactionKit.send({
+          authorization: validAuthorization,
+        });
+
+        expect(result.isSentSuccessfully).toBe(true);
+        expect(mockBundlerClient.sendUserOperation).toHaveBeenCalledWith(
+          expect.objectContaining({
+            authorization: validAuthorization,
+          })
+        );
+      }, 10000); // 10 second timeout
+
+      it('should reject authorization with wrong chainId in send', async () => {
+        const mockAccount = {
+          address: '0xdelegatedeoa123456789012345678901234567890',
+          encodeCalls: jest.fn().mockReturnValue('0xencodedcalls'),
+        } as any;
+        const mockPublicClient = {
+          getCode: jest.fn().mockResolvedValue('0x'),
+        } as any;
+
+        mockProvider.getDelegatedEoaAccount.mockResolvedValue(mockAccount);
+        mockProvider.getPublicClient.mockResolvedValue(mockPublicClient);
+
+        transactionKit.transaction({
+          to: '0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6',
+          chainId: 1,
+          value: '1000000000000000000',
+        });
+        transactionKit.name({ transactionName: 'delegated-send-tx' });
+
+        const result = await transactionKit.send({
+          authorization: wrongChainIdAuthorization,
+        });
+
+        expect(result.isEstimatedSuccessfully).toBe(false);
+        expect(result.errorMessage).toContain(
+          'Authorization chain ID (137) does not match transaction chain ID (1)'
+        );
+        expect(result.errorType).toBe('VALIDATION_ERROR');
+      });
+    });
   });
 
   describe('getTransactionHash with delegatedEoa mode', () => {
@@ -2543,6 +2816,305 @@ describe('DelegatedEoa Mode Integration', () => {
       );
 
       expect(result).toBeNull();
+    });
+  });
+
+  describe('estimateBatches with delegatedEoa mode and authorization', () => {
+    const realKernelAddress = KernelVersionToAddressesMap[KERNEL_V3_3]
+      .accountImplementationAddress as `0x${string}`;
+    const validAuthorization = {
+      address: realKernelAddress,
+      chainId: 1,
+      nonce: 0,
+      r: ('0x' + '1'.repeat(64)) as `0x${string}`,
+      s: ('0x' + '2'.repeat(64)) as `0x${string}`,
+      v: BigInt(27),
+      yParity: 0,
+    } as any;
+
+    beforeEach(() => {
+      mockProvider.getWalletMode.mockReturnValue('delegatedEoa');
+      transactionKit.reset();
+    });
+
+    it('should estimate batches with valid authorization', async () => {
+      const mockAccount = {
+        address: '0xdelegatedeoa123456789012345678901234567890',
+        encodeCalls: jest.fn().mockReturnValue('0xencodedcalls'),
+      } as any;
+      const mockBundlerClient = {
+        estimateUserOperationGas: jest.fn().mockResolvedValue({
+          preVerificationGas: BigInt(100000),
+          verificationGasLimit: BigInt(100000),
+          callGasLimit: BigInt(100000),
+        }),
+      } as any;
+      const mockPublicClient = {
+        getCode: jest
+          .fn()
+          .mockResolvedValueOnce('0x') // For isDelegateSmartAccountToEoa check - not designated
+          .mockResolvedValue('0x'), // For any subsequent calls
+        estimateFeesPerGas: jest.fn().mockResolvedValue({
+          maxFeePerGas: BigInt(20000000000),
+          maxPriorityFeePerGas: BigInt(2000000000),
+        }),
+        getTransactionCount: jest.fn().mockResolvedValue(5),
+      } as any;
+
+      mockProvider.getDelegatedEoaAccount.mockResolvedValue(mockAccount);
+      mockProvider.getBundlerClient.mockResolvedValue(mockBundlerClient);
+      mockProvider.getPublicClient.mockResolvedValue(mockPublicClient);
+
+      transactionKit.transaction({
+        to: '0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6',
+        chainId: 1,
+        value: '1000000000000000000',
+      });
+      transactionKit.name({ transactionName: 'batch-tx1' });
+      transactionKit.addToBatch({ batchName: 'test-batch' });
+
+      const result = await transactionKit.estimateBatches({
+        onlyBatchNames: ['test-batch'],
+        authorization: validAuthorization,
+      });
+
+      expect(result.isEstimatedSuccessfully).toBe(true);
+      if (result.batches['test-batch']?.errorMessage) {
+        throw new Error(
+          `Batch estimation failed: ${result.batches['test-batch'].errorMessage}`
+        );
+      }
+      expect(mockBundlerClient.estimateUserOperationGas).toHaveBeenCalledWith(
+        expect.objectContaining({
+          authorization: validAuthorization,
+        })
+      );
+    });
+
+    it('should reject authorization in modular mode for estimateBatches', async () => {
+      mockProvider.getWalletMode.mockReturnValue('modular');
+
+      transactionKit.transaction({
+        to: '0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6',
+        chainId: 1,
+        value: '1000000000000000000',
+      });
+      transactionKit.name({ transactionName: 'batch-tx1' });
+      transactionKit.addToBatch({ batchName: 'test-batch' });
+
+      await expect(
+        transactionKit.estimateBatches({
+          onlyBatchNames: ['test-batch'],
+          authorization: validAuthorization,
+        })
+      ).rejects.toThrow('authorization is only supported in delegatedEoa mode');
+    });
+
+    it('should handle multi-chain batches with authorization (only matching chain)', async () => {
+      const mockAccount = {
+        address: '0xdelegatedeoa123456789012345678901234567890',
+        encodeCalls: jest.fn().mockReturnValue('0xencodedcalls'),
+      } as any;
+      const mockBundlerClientChain1 = {
+        estimateUserOperationGas: jest.fn().mockResolvedValue({
+          preVerificationGas: BigInt(100000),
+          verificationGasLimit: BigInt(100000),
+          callGasLimit: BigInt(100000),
+        }),
+      } as any;
+      const mockBundlerClientChain137 = {
+        estimateUserOperationGas: jest.fn().mockResolvedValue({
+          preVerificationGas: BigInt(100000),
+          verificationGasLimit: BigInt(100000),
+          callGasLimit: BigInt(100000),
+        }),
+      } as any;
+      const mockPublicClientChain1 = {
+        getCode: jest
+          .fn()
+          .mockResolvedValueOnce('0x') // For isDelegateSmartAccountToEoa check - not designated
+          .mockResolvedValue('0x'), // For any subsequent calls
+        estimateFeesPerGas: jest.fn().mockResolvedValue({
+          maxFeePerGas: BigInt(20000000000),
+          maxPriorityFeePerGas: BigInt(2000000000),
+        }),
+        getTransactionCount: jest.fn().mockResolvedValue(5),
+      } as any;
+      const mockPublicClientChain137 = {
+        getCode: jest.fn().mockResolvedValue('0xef01001234'), // Chain 137 - designated
+        estimateFeesPerGas: jest.fn().mockResolvedValue({
+          maxFeePerGas: BigInt(20000000000),
+          maxPriorityFeePerGas: BigInt(2000000000),
+        }),
+        getTransactionCount: jest.fn().mockResolvedValue(5),
+      } as any;
+
+      mockProvider.getDelegatedEoaAccount.mockImplementation((chainId) => {
+        return Promise.resolve(mockAccount);
+      });
+      mockProvider.getBundlerClient.mockImplementation((chainId) => {
+        return Promise.resolve(
+          chainId === 1 ? mockBundlerClientChain1 : mockBundlerClientChain137
+        );
+      });
+      mockProvider.getPublicClient.mockImplementation((chainId) => {
+        return Promise.resolve(
+          chainId === 1 ? mockPublicClientChain1 : mockPublicClientChain137
+        );
+      });
+
+      // Add transaction on chain 1 (matches authorization)
+      transactionKit.transaction({
+        to: '0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6',
+        chainId: 1,
+        value: '1000000000000000000',
+      });
+      transactionKit.name({ transactionName: 'batch-tx1' });
+      transactionKit.addToBatch({ batchName: 'mixed-batch' });
+
+      // Add transaction on chain 137 (doesn't match authorization)
+      transactionKit.transaction({
+        to: '0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6',
+        chainId: 137,
+        value: '2000000000000000000',
+      });
+      transactionKit.name({ transactionName: 'batch-tx2' });
+      transactionKit.addToBatch({ batchName: 'mixed-batch' });
+
+      const result = await transactionKit.estimateBatches({
+        onlyBatchNames: ['mixed-batch'],
+        authorization: validAuthorization,
+      });
+
+      if (result.batches['mixed-batch']?.errorMessage) {
+        throw new Error(
+          `Multi-chain batch estimation failed: ${result.batches['mixed-batch'].errorMessage}`
+        );
+      }
+      expect(result.isEstimatedSuccessfully).toBe(true);
+      // Authorization should only be passed to chain 1 UserOperation
+      expect(
+        mockBundlerClientChain1.estimateUserOperationGas
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({
+          authorization: validAuthorization,
+        })
+      );
+      // Chain 137 should not receive authorization (different chainId)
+      expect(
+        mockBundlerClientChain137.estimateUserOperationGas
+      ).toHaveBeenCalledWith(
+        expect.not.objectContaining({
+          authorization: expect.anything(),
+        })
+      );
+    });
+  });
+
+  describe('sendBatches with delegatedEoa mode and authorization', () => {
+    const realKernelAddress = KernelVersionToAddressesMap[KERNEL_V3_3]
+      .accountImplementationAddress as `0x${string}`;
+    const validAuthorization = {
+      address: realKernelAddress,
+      chainId: 1,
+      nonce: 0,
+      r: ('0x' + '1'.repeat(64)) as `0x${string}`,
+      s: ('0x' + '2'.repeat(64)) as `0x${string}`,
+      v: BigInt(27),
+      yParity: 0,
+    } as any;
+
+    beforeEach(() => {
+      mockProvider.getWalletMode.mockReturnValue('delegatedEoa');
+      transactionKit.reset();
+    });
+
+    it('should send batches with valid authorization', async () => {
+      const mockAccount = {
+        address: '0xdelegatedeoa123456789012345678901234567890',
+        encodeCalls: jest.fn().mockReturnValue('0xencodedcalls'),
+      } as any;
+      const mockBundlerClient = {
+        estimateUserOperationGas: jest.fn().mockResolvedValue({
+          preVerificationGas: BigInt(100000),
+          verificationGasLimit: BigInt(100000),
+          callGasLimit: BigInt(100000),
+        }),
+        sendUserOperation: jest.fn().mockResolvedValue('0xuserOpHash'),
+        getUserOperation: jest.fn().mockResolvedValue({
+          userOperation: {
+            sender: '0xdelegatedeoa123456789012345678901234567890',
+            nonce: BigInt(5),
+            callData: '0xencodedcalls',
+            callGasLimit: BigInt(100000),
+            verificationGasLimit: BigInt(100000),
+            preVerificationGas: BigInt(100000),
+            maxFeePerGas: BigInt(20000000000),
+            maxPriorityFeePerGas: BigInt(2000000000),
+            signature: '0xsig',
+            paymasterAndData: '0x',
+          },
+        }),
+      } as any;
+      const mockPublicClient = {
+        getCode: jest
+          .fn()
+          .mockResolvedValueOnce('0x') // For isDelegateSmartAccountToEoa check - not designated
+          .mockResolvedValue('0x'), // For any subsequent calls
+        estimateFeesPerGas: jest.fn().mockResolvedValue({
+          maxFeePerGas: BigInt(20000000000),
+          maxPriorityFeePerGas: BigInt(2000000000),
+        }),
+        getTransactionCount: jest.fn().mockResolvedValue(5),
+      } as any;
+
+      mockProvider.getDelegatedEoaAccount.mockResolvedValue(mockAccount);
+      mockProvider.getBundlerClient.mockResolvedValue(mockBundlerClient);
+      mockProvider.getPublicClient.mockResolvedValue(mockPublicClient);
+
+      transactionKit.transaction({
+        to: '0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6',
+        chainId: 1,
+        value: '1000000000000000000',
+      });
+      transactionKit.name({ transactionName: 'batch-tx1' });
+      transactionKit.addToBatch({ batchName: 'test-batch' });
+
+      const result = await transactionKit.sendBatches({
+        onlyBatchNames: ['test-batch'],
+        authorization: validAuthorization,
+      });
+
+      if (result.batches['test-batch']?.errorMessage) {
+        throw new Error(
+          `Batch send failed: ${result.batches['test-batch'].errorMessage}`
+        );
+      }
+      expect(result.isSentSuccessfully).toBe(true);
+      expect(mockBundlerClient.sendUserOperation).toHaveBeenCalledWith(
+        expect.objectContaining({
+          authorization: validAuthorization,
+        })
+      );
+    });
+
+    it('should reject authorization in modular mode for sendBatches', async () => {
+      mockProvider.getWalletMode.mockReturnValue('modular');
+
+      transactionKit.transaction({
+        to: '0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6',
+        chainId: 1,
+        value: '1000000000000000000',
+      });
+      transactionKit.name({ transactionName: 'batch-tx1' });
+      transactionKit.addToBatch({ batchName: 'test-batch' });
+
+      await expect(
+        transactionKit.sendBatches({
+          onlyBatchNames: ['test-batch'],
+          authorization: validAuthorization,
+        })
+      ).rejects.toThrow('authorization is only supported in delegatedEoa mode');
     });
   });
 });

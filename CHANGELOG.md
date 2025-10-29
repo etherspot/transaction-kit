@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.1.1] - 2025-01-27
+
+### Added Changes
+
+- **Authorization parameter**: Added optional `authorization` parameter to `estimate()`, `send()`, `estimateBatches()`, and `sendBatches()` in `delegatedEoa` mode. This allows providing a freshly signed EIP-7702 authorization so delegation can occur atomically as part of the UserOperation. Not supported in `modular` mode.
+
 ## [2.1.0] - 2025-01-27
 
 ### Added Changes

@@ -291,6 +291,81 @@ const removeDelegation = async () => {
 };
 ```
 
+### Using the authorization parameter (delegatedEoa mode)
+
+You can perform EOA delegation and a transaction atomically by passing a freshly signed authorization to `estimate()`, `send()`, `estimateBatches()`, or `sendBatches()`.
+
+#### Single Transaction Example
+
+```typescript
+// 1) Get a signed authorization without executing the installation
+const { authorization } = await kit.delegateSmartAccountToEoa({
+  chainId: 137,
+  delegateImmediately: false,
+});
+
+if (!authorization) {
+  // Already delegated, proceed without the authorization parameter
+}
+
+// 2) Create and name a transaction on the SAME chain as authorization.chainId
+kit
+  .transaction({
+    to: '0x000000000000000000000000000000000000dEaD',
+    value: '100000000000000',
+    chainId: authorization?.chainId ?? 137,
+  })
+  .name({ transactionName: 'txWithAuth' });
+
+// 3) Estimate or send by passing the authorization (delegation will be executed within the UserOp)
+const named = kit.name({ transactionName: 'txWithAuth' });
+const estimate = await named.estimate({ authorization });
+const result = await named.send({ authorization });
+```
+
+#### Batch Example
+
+```typescript
+// 1) Get a signed authorization without executing the installation
+const { authorization } = await kit.delegateSmartAccountToEoa({
+  chainId: 137,
+  delegateImmediately: false,
+});
+
+if (!authorization) {
+  // Already delegated, proceed without the authorization parameter
+}
+
+// 2) Create transactions on the SAME chain as authorization.chainId
+kit
+  .transaction({
+    to: '0x000000000000000000000000000000000000dEaD',
+    value: '100000000000000',
+    chainId: authorization?.chainId ?? 137,
+  })
+  .name({ transactionName: 'batch-tx1' })
+  .addToBatch({ batchName: 'auth-batch' });
+
+kit
+  .transaction({
+    to: '0x000000000000000000000000000000000000beef',
+    value: '200000000000000',
+    chainId: authorization?.chainId ?? 137,
+  })
+  .name({ transactionName: 'batch-tx2' })
+  .addToBatch({ batchName: 'auth-batch' });
+
+// 3) Estimate or send batches by passing the authorization (delegation will be executed within the UserOp)
+const estimate = await kit.estimateBatches({ authorization });
+const result = await kit.sendBatches({ authorization });
+```
+
+Notes:
+- The `authorization` must match the transaction `chainId` and Kernel v3.3 implementation.
+- For multi-chain batches, the `authorization` will only be applied to chain groups matching the authorization's `chainId`.
+- `authorization` is only supported in `delegatedEoa` mode; using it in `modular` mode will cause validation errors.
+- If the EOA is already delegated, `authorization` is not required.
+
 ### Multi-Chain Batch Operations
 
 Enhanced batch operations with chain-based grouping:
@@ -470,6 +545,8 @@ const txHash = await kit.getTransactionHash(
 - `isDelegateSmartAccountToEoa()` - Check if EOA is delegated to a smart account
 - `delegateSmartAccountToEoa()` - Delegate EOA to smart account
 - `undelegateSmartAccountToEoa()` - Remove EOA delegation
+
+When calling `delegateSmartAccountToEoa({ delegateImmediately: false })`, the method returns an `authorization` object that can be passed to `estimate({ authorization })`, `send({ authorization })`, `estimateBatches({ authorization })`, and `sendBatches({ authorization })` for atomic delegation-and-execution flows.
 
 ### Client Management Methods (delegatedEoa mode only)
 

@@ -228,11 +228,13 @@ export interface EstimateSingleTransactionParams {
   paymasterDetails?: PaymasterApi;
   gasDetails?: TransactionGasInfoForUserOp;
   callGasLimit?: bigint;
+  authorization?: SignAuthorizationReturnType;
 }
 
 export interface SendSingleTransactionParams {
   paymasterDetails?: PaymasterApi;
   userOpOverrides?: Partial<UserOp>;
+  authorization?: SignAuthorizationReturnType;
 }
 
 export interface TransactionEstimateResult {
@@ -338,11 +340,13 @@ export interface NameParams {
 export interface SendBatchesParams {
   onlyBatchNames?: string[];
   paymasterDetails?: PaymasterApi;
+  authorization?: SignAuthorizationReturnType;
 }
 
 export interface EstimateBatchesParams {
   onlyBatchNames?: string[];
   paymasterDetails?: PaymasterApi;
+  authorization?: SignAuthorizationReturnType;
 }
 
 type EtherspotPromiseOrValue<T> = T | Promise<T>;
