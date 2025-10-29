@@ -288,6 +288,69 @@ export class EtherspotTransactionKit implements IInitial {
   }
 
   /**
+   * Validates that an authorization object matches the Kernel v3.3 implementation.
+   *
+   * @param authorization - The authorization object to validate.
+   * @param chainId - The chain ID to check the Kernel address for.
+   * @returns True if the authorization matches Kernel v3.3, false otherwise.
+   * @throws {Error} If wallet mode is not 'delegatedEoa'.
+   *
+   * @remarks
+   * - Only available in delegatedEoa wallet mode.
+   * - Checks if the authorization's contract address matches Kernel v3.3 for the given chain.
+   */
+  private validateKernelAuthorization(
+    authorization: SignAuthorizationReturnType,
+    chainId: number
+  ): boolean {
+    const walletMode = this.#etherspotProvider.getWalletMode();
+    if (walletMode !== 'delegatedEoa') {
+      this.throwError(
+        "validateKernelAuthorization() is only available in 'delegatedEoa' wallet mode. " +
+          `Current mode: '${walletMode}'.`
+      );
+    }
+
+    // Get the expected Kernel v3.3 address for this chain
+    const expectedKernelAddress = KernelVersionToAddressesMap[KERNEL_V3_3]
+      .accountImplementationAddress as `0x${string}`;
+
+    // Our implementation: viem's signAuthorization returns an object
+    // where the Kernel implementation address is exposed as `address`.
+    // If it is not present, we consider it invalid for our implementation.
+    const authorizationAddress = authorization?.address;
+
+    if (!authorizationAddress) {
+      log(
+        'validateKernelAuthorization(): Authorization missing address field; rejecting as non-Kernel authorization',
+        { authorization },
+        this.debugMode
+      );
+      return false;
+    }
+
+    // Normalize addresses to lowercase for comparison
+    const normalizedAuthAddress = authorizationAddress.toLowerCase();
+    const normalizedKernelAddress = expectedKernelAddress.toLowerCase();
+
+    const isValid = normalizedAuthAddress === normalizedKernelAddress;
+
+    if (!isValid) {
+      log(
+        'validateKernelAuthorization(): Authorization contract address does not match Kernel v3.3',
+        {
+          authorizationAddress: normalizedAuthAddress,
+          expectedKernelAddress: normalizedKernelAddress,
+          chainId,
+        },
+        this.debugMode
+      );
+    }
+
+    return isValid;
+  }
+
+  /**
    * This method authorizes the EOA to delegate control to a Kernel smart account implementation and EIP-7702,
    * enabling smart wallet features. The authorization is only signed if the EOA is not already designated.
    *
@@ -966,6 +1029,7 @@ export class EtherspotTransactionKit implements IInitial {
    *   - `paymasterDetails`: Paymaster API details for sponsored transactions (modular mode only)
    *   - `gasDetails`: Custom gas settings for the user operation (modular mode only).
    *   - `callGasLimit`: Optional override for the call gas limit (modular mode only).
+   *   - `authorization`: EIP-7702 authorization to delegate EOA during estimation (delegatedEoa mode only). If provided, delegation happens as part of the estimation UserOp. Authorization must match the transaction's chainId and Kernel v3.3 implementation. Not supported in modular mode (validation error).
    *
    * @returns A promise that resolves to a `TransactionEstimateResult` combined with `IEstimatedTransaction`, containing:
    *   - Transaction details (to, value, data, chainId)
@@ -997,13 +1061,15 @@ export class EtherspotTransactionKit implements IInitial {
    *   - Call after specifying and naming a transaction.
    *   - For batch estimation, use `estimateBatches()` instead.
    * - **delegatedEoa mode:**
-   *   - Requires the EOA to be designated (EIP-7702). If not, returns a validation error instructing to authorize first.
+   *   - Requires the EOA to be designated (EIP-7702). If not designated and no `authorization` provided, returns a validation error instructing to authorize first.
+   *   - If `authorization` parameter is provided, uses it to delegate the EOA during estimation.
    *   - `paymasterDetails` and manual `userOpOverrides` are not supported.
    */
   async estimate({
     paymasterDetails,
     gasDetails,
     callGasLimit,
+    authorization,
   }: EstimateSingleTransactionParams = {}): Promise<
     TransactionEstimateResult & IEstimatedTransaction
   > {
@@ -1036,6 +1102,27 @@ export class EtherspotTransactionKit implements IInitial {
     // Only validate provider in modular mode
     const walletMode = this.#etherspotProvider.getWalletMode();
     if (walletMode === 'modular') {
+      // Reject authorization in modular mode
+      if (authorization) {
+        const result = {
+          to: this.workingTransaction?.to || '',
+          chainId:
+            this.workingTransaction?.chainId ??
+            this.#etherspotProvider.getChainId(),
+          errorMessage:
+            'authorization is only supported in delegatedEoa mode. Remove authorization or switch walletMode to delegatedEoa.',
+          errorType: 'VALIDATION_ERROR' as const,
+          isEstimatedSuccessfully: false,
+        };
+        log(
+          'estimate(): authorization provided in modular mode',
+          result,
+          this.debugMode
+        );
+        this.isEstimating = false;
+        this.containsEstimatingError = true;
+        return { ...result, ...this };
+      }
       log('estimate(): Getting provider...', undefined, this.debugMode);
       const provider = this.getProvider();
       log('estimate(): Got provider:', provider, this.debugMode);
@@ -1156,7 +1243,7 @@ export class EtherspotTransactionKit implements IInitial {
             this.debugMode
           );
 
-          // Check if EOA is designated (has EIP-7702 authorization)
+          // Check if EOA is designated (has EIP-7702 authorization), unless authorization is provided
           const isDelegateSmartAccountToEoaDelegated =
             await this.isDelegateSmartAccountToEoa(transactionChainId);
           log(
@@ -1165,18 +1252,66 @@ export class EtherspotTransactionKit implements IInitial {
             this.debugMode
           );
 
-          // If EOA is not designated, return error - user must authorize first
-          if (!isDelegateSmartAccountToEoaDelegated) {
+          // If EOA is not designated and no authorization provided, return error
+          if (!isDelegateSmartAccountToEoaDelegated && !authorization) {
             log(
               'estimate(): EOA is not designated. User must authorize EIP-7702 delegation first.',
               { eoaAddress: delegatedEoaAccount.address },
               this.debugMode
             );
             return setErrorAndReturn(
-              'EOA is not yet designated as a smart account. The EOA must first authorize EIP-7702 delegation before transactions can be estimated. ' +
+              'EOA is not yet designated as a smart account. The EOA must first authorize EIP-7702 delegation before transactions can be estimated, or provide authorization parameter. ' +
                 'This is a one-time authorization that designates the EOA to use smart account functionality.',
               'VALIDATION_ERROR',
               {}
+            );
+          }
+
+          // Validate authorization matches Kernel v3.3 implementation if provided
+          if (authorization && transactionChainId) {
+            // Validate authorization chain ID matches transaction chain ID
+            const authChainId = authorization?.chainId;
+            if (
+              authChainId !== undefined &&
+              authChainId !== transactionChainId
+            ) {
+              return setErrorAndReturn(
+                `Invalid authorization: Authorization chain ID (${authChainId}) does not match transaction chain ID (${transactionChainId}). ` +
+                  `Please use an authorization signed for chain ${transactionChainId}.`,
+                'VALIDATION_ERROR',
+                {}
+              );
+            }
+
+            const isValidAuthorization = this.validateKernelAuthorization(
+              authorization,
+              transactionChainId
+            );
+            if (!isValidAuthorization) {
+              const expectedKernelAddress = KernelVersionToAddressesMap[
+                KERNEL_V3_3
+              ].accountImplementationAddress as `0x${string}`;
+              return setErrorAndReturn(
+                `Invalid authorization: The provided authorization does not match Kernel v3.3 implementation. ` +
+                  `Only Kernel v3.3 (${expectedKernelAddress}) authorizations are supported. ` +
+                  `Please use delegateSmartAccountToEoa() to get a valid Kernel authorization.`,
+                'VALIDATION_ERROR',
+                {}
+              );
+            }
+          }
+
+          // Log if using authorization for delegation
+          if (authorization && !isDelegateSmartAccountToEoaDelegated) {
+            log(
+              'estimate(): Using provided authorization to delegate EOA during transaction estimation',
+              {
+                authorizationAddress: authorization?.address,
+                authorizationChainId: authorization?.chainId,
+                authorizationNonce: authorization?.nonce,
+                transactionChainId,
+              },
+              this.debugMode
             );
           }
 
@@ -1194,6 +1329,9 @@ export class EtherspotTransactionKit implements IInitial {
           const gasEstimate = await bundlerClient.estimateUserOperationGas({
             account: delegatedEoaAccount,
             calls: [call],
+            ...(authorization && !isDelegateSmartAccountToEoaDelegated
+              ? { authorization }
+              : {}),
           });
 
           log(
@@ -1448,6 +1586,7 @@ export class EtherspotTransactionKit implements IInitial {
    * @param params - (Optional) Send parameters:
    *   - `paymasterDetails`: Paymaster API details for sponsored transactions. Not supported in delegatedEoa mode (validation error).
    *   - `userOpOverrides`: Optional overrides for user operation fields. Not supported in delegatedEoa mode (validation error).
+   *   - `authorization`: EIP-7702 authorization to delegate EOA during transaction execution (delegatedEoa mode only). If provided, delegation happens as part of the transaction UserOp. Authorization must match the transaction's chainId and Kernel v3.3 implementation. Not supported in modular mode (validation error).
    *
    * @returns A promise that resolves to a `TransactionSendResult` combined with `ISentTransaction`, containing:
    *   - Transaction details (to, value, data, chainId)
@@ -1479,13 +1618,15 @@ export class EtherspotTransactionKit implements IInitial {
    *   - Call after specifying and naming a transaction.
    *   - For batch sending, use `sendBatches()` instead.
    * - **delegatedEoa mode:**
-   *   - Requires the EOA to be designated (EIP-7702). If not, returns a validation error instructing to authorize first.
+   *   - Requires the EOA to be designated (EIP-7702). If not designated and no `authorization` provided, returns a validation error instructing to authorize first.
+   *   - If `authorization` parameter is provided, uses it to delegate the EOA during transaction execution.
    *   - Obtains the delegated EOA account and bundler client to submit a UserOp.
    *   - `paymasterDetails` and `userOpOverrides` are not supported.
    */
   async send({
     paymasterDetails,
     userOpOverrides,
+    authorization,
   }: SendSingleTransactionParams = {}): Promise<
     TransactionSendResult & ISentTransaction
   > {
@@ -1515,6 +1656,28 @@ export class EtherspotTransactionKit implements IInitial {
     // Only validate provider in modular mode
     const walletMode = this.#etherspotProvider.getWalletMode();
     if (walletMode === 'modular') {
+      // Reject authorization in modular mode
+      if (authorization) {
+        const result = {
+          to: this.workingTransaction?.to || '',
+          chainId:
+            this.workingTransaction?.chainId ??
+            this.#etherspotProvider.getChainId(),
+          errorMessage:
+            'authorization is only supported in delegatedEoa mode. Remove authorization or switch walletMode to delegatedEoa.',
+          errorType: 'VALIDATION_ERROR' as const,
+          isEstimatedSuccessfully: false,
+          isSentSuccessfully: false,
+        };
+        log(
+          'send(): authorization provided in modular mode',
+          result,
+          this.debugMode
+        );
+        this.isSending = false;
+        this.containsSendingError = true;
+        return { ...result, ...this };
+      }
       log('send(): Getting provider...', undefined, this.debugMode);
       const provider = this.getProvider();
       log('send(): Got provider:', provider, this.debugMode);
@@ -1611,7 +1774,7 @@ export class EtherspotTransactionKit implements IInitial {
             this.debugMode
           );
 
-          // Check if EOA is designated (has EIP-7702 authorization)
+          // Check if EOA is designated (has EIP-7702 authorization), unless authorization is provided
           log(
             'send(): Checking EOA designation status...',
             undefined,
@@ -1625,18 +1788,66 @@ export class EtherspotTransactionKit implements IInitial {
             this.debugMode
           );
 
-          // If EOA is not designated, return error - user must authorize first
-          if (!isDelegateSmartAccountToEoaDelegated) {
+          // If EOA is not designated and no authorization provided, return error
+          if (!isDelegateSmartAccountToEoaDelegated && !authorization) {
             log(
               'send(): EOA is not designated. User must authorize EIP-7702 delegation first.',
               { eoaAddress: delegatedEoaAccount.address },
               this.debugMode
             );
             return setErrorAndReturn(
-              'EOA is not yet designated as a smart account. The EOA must first authorize EIP-7702 delegation before transactions can be sent. ' +
+              'EOA is not yet designated as a smart account. The EOA must first authorize EIP-7702 delegation before transactions can be sent, or provide authorization parameter. ' +
                 'This is a one-time authorization that designates the EOA to use smart account functionality.',
               'VALIDATION_ERROR',
               {}
+            );
+          }
+
+          // Validate authorization matches Kernel v3.3 implementation if provided
+          if (authorization && transactionChainId) {
+            // Validate authorization chain ID matches transaction chain ID
+            const authChainId = authorization?.chainId;
+            if (
+              authChainId !== undefined &&
+              authChainId !== transactionChainId
+            ) {
+              return setErrorAndReturn(
+                `Invalid authorization: Authorization chain ID (${authChainId}) does not match transaction chain ID (${transactionChainId}). ` +
+                  `Please use an authorization signed for chain ${transactionChainId}.`,
+                'VALIDATION_ERROR',
+                {}
+              );
+            }
+
+            const isValidAuthorization = this.validateKernelAuthorization(
+              authorization,
+              transactionChainId
+            );
+            if (!isValidAuthorization) {
+              const expectedKernelAddress = KernelVersionToAddressesMap[
+                KERNEL_V3_3
+              ].accountImplementationAddress as `0x${string}`;
+              return setErrorAndReturn(
+                `Invalid authorization: The provided authorization does not match Kernel v3.3 implementation. ` +
+                  `Only Kernel v3.3 (${expectedKernelAddress}) authorizations are supported. ` +
+                  `Please use delegateSmartAccountToEoa() to get a valid Kernel authorization.`,
+                'VALIDATION_ERROR',
+                {}
+              );
+            }
+          }
+
+          // Log if using authorization for delegation
+          if (authorization && !isDelegateSmartAccountToEoaDelegated) {
+            log(
+              'send(): Using provided authorization to delegate EOA during transaction execution',
+              {
+                authorizationAddress: authorization?.address,
+                authorizationChainId: authorization?.chainId,
+                authorizationNonce: authorization?.nonce,
+                transactionChainId,
+              },
+              this.debugMode
             );
           }
 
@@ -1656,6 +1867,9 @@ export class EtherspotTransactionKit implements IInitial {
             userOpHash = await bundlerClient.sendUserOperation({
               account: delegatedEoaAccount,
               calls: [call],
+              ...(authorization && !isDelegateSmartAccountToEoaDelegated
+                ? { authorization }
+                : {}),
             });
             log('send(): Got userOpHash:', userOpHash, this.debugMode);
           } catch (sendError) {
@@ -2039,6 +2253,7 @@ export class EtherspotTransactionKit implements IInitial {
    * @param params - (Optional) Estimation parameters:
    *   - `onlyBatchNames`: Array of batch names to estimate. If omitted, all batches are estimated.
    *   - `paymasterDetails`: Paymaster API details for sponsored transactions (modular mode only).
+   *   - `authorization`: EIP-7702 authorization to delegate EOA during batch estimation (delegatedEoa mode only). If provided, delegation happens as part of the batch UserOp. Authorization must match Kernel v3.3 implementation. For multi-chain batches, authorization is only applied to chain groups matching the authorization's chainId. Not supported in modular mode (validation error).
    *
    * @returns A promise that resolves to a `BatchEstimateResult` containing:
    *   - A mapping of batch names to their estimation results with chain group breakdown
@@ -2057,7 +2272,8 @@ export class EtherspotTransactionKit implements IInitial {
    *   - Supports mixed-chain batches with proper cost aggregation
    * - **EIP-7702 Validation (DelegatedEoa Mode):**
    *   - Validates EOA designation before estimation using `isDelegateSmartAccountToEoa()` check
-   *   - Requires prior authorization via `delegateSmartAccountToEoa()` method
+   *   - If `authorization` parameter is provided, uses it to delegate the EOA during batch estimation
+   *   - Otherwise, requires prior authorization via `delegateSmartAccountToEoa()` method
    * - **Cost Aggregation:**
    *   - Tracks costs at both chain group and batch levels
    *   - Calculates total costs using current gas prices from `estimateFeesPerGas()`
@@ -2073,6 +2289,7 @@ export class EtherspotTransactionKit implements IInitial {
   async estimateBatches({
     onlyBatchNames,
     paymasterDetails,
+    authorization,
   }: EstimateBatchesParams = {}): Promise<BatchEstimateResult> {
     // ========================================================================
     // STEP 1: INPUT VALIDATION AND SETUP
@@ -2135,6 +2352,14 @@ export class EtherspotTransactionKit implements IInitial {
 
     // Modular mode requires a Web3 provider for SDK operations
     if (walletMode === 'modular') {
+      // Reject authorization in modular mode
+      if (authorization) {
+        this.isEstimating = false;
+        this.containsEstimatingError = true;
+        this.throwError(
+          'estimateBatches(): authorization is only supported in delegatedEoa mode. Remove authorization or switch walletMode to delegatedEoa.'
+        );
+      }
       // Get the provider
       const provider = this.getProvider();
       // Validation: if there is no provider, return error
@@ -2261,12 +2486,12 @@ export class EtherspotTransactionKit implements IInitial {
               // EIP-7702 VALIDATION: Check if EOA is designated for smart wallet
               // ====================================================================
 
-              // Ensure EOA is designated (EIP-7702) on this chain
+              // Ensure EOA is designated (EIP-7702) on this chain, unless authorization is provided
               const isDesignated =
                 await this.isDelegateSmartAccountToEoa(groupChainId);
-              if (!isDesignated) {
+              if (!isDesignated && !authorization) {
                 const errorMessage =
-                  'EOA is not designated for EIP-7702. Please authorize first via delegateSmartAccountToEoa().';
+                  'EOA is not designated for EIP-7702. Please authorize first via delegateSmartAccountToEoa() or provide authorization parameter.';
                 groupTxs.forEach((tx) => {
                   const resultObj = {
                     to: tx.to || '',
@@ -2290,6 +2515,55 @@ export class EtherspotTransactionKit implements IInitial {
                 continue;
               }
 
+              // Validate authorization matches Kernel v3.3 implementation if provided
+              // Note: Authorization will only be used for chain groups where chainId matches
+              // (enforced by the conditional `authorization && !isDesignated` when calling bundler)
+              if (authorization) {
+                const isValidAuthorization = this.validateKernelAuthorization(
+                  authorization,
+                  groupChainId
+                );
+                if (!isValidAuthorization) {
+                  const expectedKernelAddress = KernelVersionToAddressesMap[
+                    KERNEL_V3_3
+                  ].accountImplementationAddress as `0x${string}`;
+                  const errorMessage =
+                    `Invalid authorization: The provided authorization does not match Kernel v3.3 implementation. ` +
+                    `Only Kernel v3.3 (${expectedKernelAddress}) authorizations are supported. ` +
+                    `Please use delegateSmartAccountToEoa() to get a valid Kernel authorization.`;
+                  groupTxs.forEach((tx) => {
+                    const resultObj = {
+                      to: tx.to || '',
+                      value: tx.value?.toString(),
+                      data: tx.data,
+                      chainId: tx.chainId || groupChainId,
+                      errorMessage,
+                      errorType: 'VALIDATION_ERROR' as const,
+                      isEstimatedSuccessfully: false,
+                    };
+                    groupEstimated.push(resultObj);
+                    estimatedTransactions.push(resultObj);
+                  });
+
+                  chainGroups[groupChainId] = {
+                    transactions: groupEstimated,
+                    errorMessage,
+                    isEstimatedSuccessfully: false,
+                  };
+                  batchAllGroupsSuccessful = false;
+                  continue;
+                }
+              }
+
+              // Log if using authorization for delegation
+              if (authorization && !isDesignated) {
+                log(
+                  `estimateBatches(): Using provided authorization to delegate EOA during batch estimation (chain ${groupChainId})`,
+                  undefined,
+                  this.debugMode
+                );
+              }
+
               // ====================================================================
               // GAS ESTIMATION: Get gas limits from bundler
               // ====================================================================
@@ -2300,9 +2574,18 @@ export class EtherspotTransactionKit implements IInitial {
                 undefined,
                 this.debugMode
               );
+              // Only use authorization if chain IDs match (for multi-chain batch compatibility)
+              // Require authChainId to be defined and match groupChainId for security
+              const authChainId = authorization?.chainId;
+              const shouldUseAuthorization =
+                authorization &&
+                !isDesignated &&
+                authChainId !== undefined &&
+                authChainId === groupChainId;
               const gasEstimate = await bundlerClient.estimateUserOperationGas({
                 account: delegatedEoaAccount,
                 calls,
+                ...(shouldUseAuthorization ? { authorization } : {}),
               });
               log(
                 `estimateBatches(): Got gas estimate for batch ${batchName} (chain ${groupChainId})`,
@@ -2789,7 +3072,9 @@ export class EtherspotTransactionKit implements IInitial {
    * Provides comprehensive batch sending with support for both modular and delegatedEoa wallet modes. Groups transactions by chainId for efficient multi-chain processing, estimates gas and costs, and sends user operations with proper error handling.
    *
    * @param params - (Optional) Send parameters:
+   *   - `onlyBatchNames`: Array of batch names to send (if undefined, sends all batches).
    *   - `paymasterDetails`: Paymaster API details for sponsored transactions (modular mode only).
+   *   - `authorization`: EIP-7702 authorization to delegate EOA during batch execution (delegatedEoa mode only). If provided, delegation happens as part of the batch UserOp. Authorization must match Kernel v3.3 implementation. For multi-chain batches, authorization is only applied to chain groups matching the authorization's chainId. Not supported in modular mode (validation error).
    *
    * @returns A promise that resolves to a `BatchSendResult` containing:
    *   - A mapping of batch names to their send results with chain group breakdown
@@ -2809,7 +3094,8 @@ export class EtherspotTransactionKit implements IInitial {
    *   - Supports mixed-chain batches with proper cost aggregation
    * - **EIP-7702 Validation (DelegatedEoa Mode):**
    *   - Validates EOA designation before sending using `isDelegateSmartAccountToEoa()` check
-   *   - Requires prior authorization via `delegateSmartAccountToEoa()` method
+   *   - If `authorization` parameter is provided, uses it to delegate the EOA during batch execution
+   *   - Otherwise, requires prior authorization via `delegateSmartAccountToEoa()` method
    * - **Gas Estimation & Cost Calculation:**
    *   - Estimates gas using bundler client (delegatedEoa) or SDK (modular)
    *   - Calculates total costs using current gas prices from `estimateFeesPerGas()`
@@ -2828,6 +3114,7 @@ export class EtherspotTransactionKit implements IInitial {
   async sendBatches({
     onlyBatchNames,
     paymasterDetails,
+    authorization,
   }: SendBatchesParams = {}): Promise<BatchSendResult> {
     // ========================================================================
     // STEP 1: INPUT VALIDATION AND SETUP
@@ -2887,6 +3174,14 @@ export class EtherspotTransactionKit implements IInitial {
 
     // Modular mode requires a Web3 provider for SDK operations
     if (walletMode === 'modular') {
+      // Reject authorization in modular mode
+      if (authorization) {
+        this.isSending = false;
+        this.containsSendingError = true;
+        this.throwError(
+          'sendBatches(): authorization is only supported in delegatedEoa mode. Remove authorization or switch walletMode to delegatedEoa.'
+        );
+      }
       // Get the provider
       const provider = this.getProvider();
       // Validation: if there is no provider, return error
@@ -3027,12 +3322,12 @@ export class EtherspotTransactionKit implements IInitial {
               // EIP-7702 VALIDATION: Check if EOA is designated for smart wallet
               // ====================================================================
 
-              // Ensure EOA is designated (EIP-7702) on this chain
+              // Ensure EOA is designated (EIP-7702) on this chain, unless authorization is provided
               const isDesignated =
                 await this.isDelegateSmartAccountToEoa(groupChainId);
-              if (!isDesignated) {
+              if (!isDesignated && !authorization) {
                 const errorMessage =
-                  'EOA is not designated for EIP-7702. Please authorize first via delegateSmartAccountToEoa().';
+                  'EOA is not designated for EIP-7702. Please authorize first via delegateSmartAccountToEoa() or provide authorization parameter.';
                 groupTxs.forEach((tx) => {
                   const resultObj = {
                     to: tx.to || '',
@@ -3058,6 +3353,57 @@ export class EtherspotTransactionKit implements IInitial {
                 continue;
               }
 
+              // Validate authorization matches Kernel v3.3 implementation if provided
+              // Note: Authorization will only be used for chain groups where chainId matches
+              // (enforced by the conditional `authorization && !isDesignated` when calling bundler)
+              if (authorization) {
+                const isValidAuthorization = this.validateKernelAuthorization(
+                  authorization,
+                  groupChainId
+                );
+                if (!isValidAuthorization) {
+                  const expectedKernelAddress = KernelVersionToAddressesMap[
+                    KERNEL_V3_3
+                  ].accountImplementationAddress as `0x${string}`;
+                  const errorMessage =
+                    `Invalid authorization: The provided authorization does not match Kernel v3.3 implementation. ` +
+                    `Only Kernel v3.3 (${expectedKernelAddress}) authorizations are supported. ` +
+                    `Please use delegateSmartAccountToEoa() to get a valid Kernel authorization.`;
+                  groupTxs.forEach((tx) => {
+                    const resultObj = {
+                      to: tx.to || '',
+                      value: tx.value?.toString(),
+                      data: tx.data,
+                      chainId: tx.chainId || groupChainId,
+                      errorMessage,
+                      errorType: 'VALIDATION_ERROR' as const,
+                      isEstimatedSuccessfully: false,
+                      isSentSuccessfully: false,
+                    };
+                    groupSent.push(resultObj);
+                    sentTransactions.push(resultObj);
+                  });
+
+                  chainGroups[groupChainId] = {
+                    transactions: groupSent,
+                    errorMessage,
+                    isEstimatedSuccessfully: false,
+                    isSentSuccessfully: false,
+                  };
+                  batchAllGroupsSuccessful = false;
+                  continue;
+                }
+              }
+
+              // Log if using authorization for delegation
+              if (authorization && !isDesignated) {
+                log(
+                  `sendBatches(): Using provided authorization to delegate EOA during batch execution (chain ${groupChainId})`,
+                  undefined,
+                  this.debugMode
+                );
+              }
+
               // ====================================================================
               // GAS ESTIMATION: Get gas limits from bundler
               // ====================================================================
@@ -3068,9 +3414,18 @@ export class EtherspotTransactionKit implements IInitial {
                 undefined,
                 this.debugMode
               );
+              // Only use authorization if chain IDs match (for multi-chain batch compatibility)
+              // Require authChainId to be defined and match groupChainId for security
+              const authChainId = authorization?.chainId;
+              const shouldUseAuthorization =
+                authorization &&
+                !isDesignated &&
+                authChainId !== undefined &&
+                authChainId === groupChainId;
               const gasEstimate = await bundlerClient.estimateUserOperationGas({
                 account: delegatedEoaAccount,
                 calls,
+                ...(shouldUseAuthorization ? { authorization } : {}),
               });
               log(
                 `sendBatches(): Got gas estimate for batch ${batchName} (chain ${groupChainId})`,
@@ -3111,9 +3466,11 @@ export class EtherspotTransactionKit implements IInitial {
               );
               let userOpHash: string;
               try {
+                // Only use authorization if chain IDs match (reuse check from estimation above)
                 userOpHash = await bundlerClient.sendUserOperation({
                   account: delegatedEoaAccount,
                   calls: calls,
+                  ...(shouldUseAuthorization ? { authorization } : {}),
                 });
                 log(
                   `sendBatches(): Got userOpHash for batch ${batchName} (chain ${groupChainId}):`,

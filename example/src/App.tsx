@@ -625,6 +625,527 @@ const App = () => {
   ];
 
   // ============================================================================
+  // Authorization Tests (DelegatedEoa Mode)
+  // ============================================================================
+  const authorizationScenarios = [
+    {
+      label: '💰 Estimate Single with Authorization',
+      action: async (logAndUpdateState: (msg: string) => void) => {
+        try {
+          // Enable debug mode for detailed logs
+          kit.setDebugMode(true);
+
+          // Get authorization
+          const authResult = await kit.delegateSmartAccountToEoa({
+            delegateImmediately: false,
+          });
+          if (!authResult.authorization) {
+            logAndUpdateState(
+              `⚠️ Authorization already active or failed: ${authResult.eoaAddress}`
+            );
+            return;
+          }
+          const auth = authResult.authorization;
+          logAndUpdateState(
+            `📝 Authorization signed: address=${auth.address}, chainId=${auth.chainId}, nonce=${auth.nonce}`
+          );
+
+          // Create transaction on auth chain IMMEDIATELY after signing authorization
+          logAndUpdateState(
+            `📝 Creating transaction on chain ${auth.chainId}...`
+          );
+          kit.transaction({
+            chainId: auth.chainId,
+            to: '0x000000000000000000000000000000000000dead',
+            value: parseEther('0.00000000001').toString(),
+          });
+          kit.name({ transactionName: 'txWithAuth' });
+          logAndUpdateState(`✅ Transaction created and named 'txWithAuth'`);
+
+          // Estimate with authorization IMMEDIATELY after creating transaction
+          logAndUpdateState(`📊 Calling estimate() with authorization...`);
+          const named = kit.name({
+            transactionName: 'txWithAuth',
+          }) as INamedTransaction;
+          const result = await named.estimate({ authorization: auth } as any);
+          logAndUpdateState(
+            `✅ Estimate with auth: ${JSON.stringify(result, bigIntReplacer)}`
+          );
+        } catch (e) {
+          logAndUpdateState(`❌ Error: ${(e as Error).message}`);
+        }
+      },
+    },
+    {
+      label: '💰 Estimate Single without Authorization',
+      action: async (logAndUpdateState: (msg: string) => void) => {
+        try {
+          kit.setDebugMode(true);
+          // Create a small tx on chain 10
+          kit.transaction({
+            chainId: 10,
+            to: '0x000000000000000000000000000000000000dead',
+            value: parseEther('0.00000000001').toString(),
+          });
+          kit.name({ transactionName: 'txWithoutAuth' });
+          const named = kit.name({
+            transactionName: 'txWithoutAuth',
+          }) as INamedTransaction;
+          const result = await named.estimate();
+          logAndUpdateState(
+            `✅ Estimate without auth: ${JSON.stringify(result, bigIntReplacer)}`
+          );
+        } catch (e) {
+          logAndUpdateState(`❌ Error: ${(e as Error).message}`);
+        }
+      },
+    },
+    {
+      label: '📤 Send Single with Authorization',
+      action: async (logAndUpdateState: (msg: string) => void) => {
+        try {
+          // Enable debug mode for detailed logs
+          kit.setDebugMode(true);
+
+          // Get authorization
+          const authResult = await kit.delegateSmartAccountToEoa({
+            delegateImmediately: false,
+          });
+          if (!authResult.authorization) {
+            logAndUpdateState(
+              `⚠️ Authorization already active or failed: ${authResult.eoaAddress}`
+            );
+            return;
+          }
+          const auth = authResult.authorization;
+          logAndUpdateState(
+            `📝 Authorization signed: address=${auth.address}, chainId=${auth.chainId}, nonce=${auth.nonce}`
+          );
+
+          // Create transaction on auth chain
+          logAndUpdateState(
+            `📝 Creating transaction on chain ${auth.chainId}...`
+          );
+          kit.transaction({
+            chainId: auth.chainId,
+            to: '0x000000000000000000000000000000000000dead',
+            value: parseEther('0.00000000001').toString(),
+          });
+          kit.name({ transactionName: 'txSendWithAuth' });
+          logAndUpdateState(
+            `✅ Transaction created and named 'txSendWithAuth'`
+          );
+
+          // Send with authorization
+          logAndUpdateState(`📤 Calling send() with authorization...`);
+          const named = kit.name({
+            transactionName: 'txSendWithAuth',
+          }) as INamedTransaction;
+          const result = await named.send({ authorization: auth } as any);
+          logAndUpdateState(
+            `✅ Send with auth: ${JSON.stringify(result, bigIntReplacer)}`
+          );
+        } catch (e) {
+          logAndUpdateState(`❌ Error: ${(e as Error).message}`);
+        }
+      },
+    },
+    {
+      label: '📤 Send Single without Authorization',
+      action: async (logAndUpdateState: (msg: string) => void) => {
+        try {
+          kit.setDebugMode(true);
+          // Create a small tx on chain 10
+          kit.transaction({
+            chainId: 10,
+            to: '0x000000000000000000000000000000000000dead',
+            value: parseEther('0.00000000001').toString(),
+          });
+          kit.name({ transactionName: 'txSendNoAuth' });
+          const named = kit.name({
+            transactionName: 'txSendNoAuth',
+          }) as INamedTransaction;
+          const result = await named.send();
+          logAndUpdateState(
+            `✅ Send without auth: ${JSON.stringify(result, bigIntReplacer)}`
+          );
+        } catch (e) {
+          logAndUpdateState(`❌ Error: ${(e as Error).message}`);
+        }
+      },
+    },
+    {
+      label: '📊 Estimate Batches (Same Chain) with Authorization',
+      action: async (logAndUpdateState: (msg: string) => void) => {
+        try {
+          // Get authorization
+          const authResult = await kit.delegateSmartAccountToEoa({
+            delegateImmediately: false,
+          });
+          if (!authResult.authorization) {
+            logAndUpdateState(
+              `⚠️ Authorization already active or failed: ${authResult.eoaAddress}`
+            );
+            return;
+          }
+          const auth = authResult.authorization;
+
+          // Create same-chain batch
+          kit.transaction({
+            chainId: auth.chainId,
+            to: '0x000000000000000000000000000000000000dead',
+            value: parseEther('0.00000000001').toString(),
+          });
+          (
+            kit.name({ transactionName: 'sameBatch1' }) as INamedTransaction
+          ).addToBatch({ batchName: 'sameAuthEstimate' });
+
+          kit.transaction({
+            chainId: auth.chainId,
+            to: '0x000000000000000000000000000000000000beef',
+            value: parseEther('0.00000000002').toString(),
+          });
+          (
+            kit.name({ transactionName: 'sameBatch2' }) as INamedTransaction
+          ).addToBatch({ batchName: 'sameAuthEstimate' });
+
+          const result = await kit.estimateBatches({
+            onlyBatchNames: ['sameAuthEstimate'],
+            authorization: auth,
+          } as any);
+          logAndUpdateState(
+            `✅ Estimate same-chain with auth: ${JSON.stringify(result, bigIntReplacer)}`
+          );
+        } catch (e) {
+          logAndUpdateState(`❌ Error: ${(e as Error).message}`);
+        }
+      },
+    },
+    {
+      label: '📊 Estimate Batches (Same Chain) without Authorization',
+      action: async (logAndUpdateState: (msg: string) => void) => {
+        try {
+          // Create same-chain batch
+          kit.transaction({
+            chainId: 10,
+            to: '0x000000000000000000000000000000000000dead',
+            value: parseEther('0.00000000001').toString(),
+          });
+          (
+            kit.name({ transactionName: 'sameNoAuth1' }) as INamedTransaction
+          ).addToBatch({ batchName: 'sameNoAuthEstimate' });
+
+          kit.transaction({
+            chainId: 10,
+            to: '0x000000000000000000000000000000000000beef',
+            value: parseEther('0.00000000002').toString(),
+          });
+          (
+            kit.name({ transactionName: 'sameNoAuth2' }) as INamedTransaction
+          ).addToBatch({ batchName: 'sameNoAuthEstimate' });
+
+          const result = await kit.estimateBatches({
+            onlyBatchNames: ['sameNoAuthEstimate'],
+          });
+          logAndUpdateState(
+            `✅ Estimate same-chain without auth: ${JSON.stringify(result, bigIntReplacer)}`
+          );
+        } catch (e) {
+          logAndUpdateState(`❌ Error: ${(e as Error).message}`);
+        }
+      },
+    },
+    {
+      label: '📊 Estimate Batches (Mixed Chains) with Authorization',
+      action: async (logAndUpdateState: (msg: string) => void) => {
+        try {
+          // Get authorization
+          const authResult = await kit.delegateSmartAccountToEoa({
+            delegateImmediately: false,
+          });
+          if (!authResult.authorization) {
+            logAndUpdateState(
+              `⚠️ Authorization already active or failed: ${authResult.eoaAddress}`
+            );
+            return;
+          }
+          const auth = authResult.authorization;
+
+          // Create mixed-chain batch (one on 10, one on 137)
+          kit.transaction({
+            chainId: auth.chainId,
+            to: '0x000000000000000000000000000000000000dead',
+            value: parseEther('0.00000000001').toString(),
+          });
+          (
+            kit.name({ transactionName: 'mixedAuth1' }) as INamedTransaction
+          ).addToBatch({ batchName: 'mixedAuthEstimate' });
+
+          kit.transaction({
+            chainId: auth.chainId === 10 ? 137 : 10,
+            to: '0x000000000000000000000000000000000000beef',
+            value: parseEther('0.00000000002').toString(),
+          });
+          (
+            kit.name({ transactionName: 'mixedAuth2' }) as INamedTransaction
+          ).addToBatch({ batchName: 'mixedAuthEstimate' });
+
+          const result = await kit.estimateBatches({
+            onlyBatchNames: ['mixedAuthEstimate'],
+            authorization: auth,
+          } as any);
+          logAndUpdateState(
+            `✅ Estimate mixed-chains with auth (auth used only on matching chain): ${JSON.stringify(result, bigIntReplacer)}`
+          );
+        } catch (e) {
+          logAndUpdateState(`❌ Error: ${(e as Error).message}`);
+        }
+      },
+    },
+    {
+      label: '📊 Estimate Batches (Mixed Chains) without Authorization',
+      action: async (logAndUpdateState: (msg: string) => void) => {
+        try {
+          // Create mixed-chain batch (10 and 137)
+          kit.transaction({
+            chainId: 10,
+            to: '0x000000000000000000000000000000000000dead',
+            value: parseEther('0.00000000001').toString(),
+          });
+          (
+            kit.name({ transactionName: 'mixedNoAuth1' }) as INamedTransaction
+          ).addToBatch({ batchName: 'mixedNoAuthEstimate' });
+
+          kit.transaction({
+            chainId: 137,
+            to: '0x000000000000000000000000000000000000beef',
+            value: parseEther('0.00000000002').toString(),
+          });
+          (
+            kit.name({ transactionName: 'mixedNoAuth2' }) as INamedTransaction
+          ).addToBatch({ batchName: 'mixedNoAuthEstimate' });
+
+          const result = await kit.estimateBatches({
+            onlyBatchNames: ['mixedNoAuthEstimate'],
+          });
+          logAndUpdateState(
+            `✅ Estimate mixed-chains without auth: ${JSON.stringify(result, bigIntReplacer)}`
+          );
+        } catch (e) {
+          logAndUpdateState(`❌ Error: ${(e as Error).message}`);
+        }
+      },
+    },
+    {
+      label: '🚀 Send Batches (Same Chain) with Authorization',
+      action: async (logAndUpdateState: (msg: string) => void) => {
+        try {
+          // Get authorization
+          const authResult = await kit.delegateSmartAccountToEoa({
+            delegateImmediately: false,
+          });
+          if (!authResult.authorization) {
+            logAndUpdateState(
+              `⚠️ Authorization already active or failed: ${authResult.eoaAddress}`
+            );
+            return;
+          }
+          const auth = authResult.authorization;
+
+          // Create same-chain batch
+          kit.transaction({
+            chainId: auth.chainId,
+            to: '0x000000000000000000000000000000000000dead',
+            value: parseEther('0.00000000001').toString(),
+          });
+          (
+            kit.name({ transactionName: 'sameSendAuth1' }) as INamedTransaction
+          ).addToBatch({ batchName: 'sameAuthSend' });
+
+          kit.transaction({
+            chainId: auth.chainId,
+            to: '0x000000000000000000000000000000000000beef',
+            value: parseEther('0.00000000002').toString(),
+          });
+          (
+            kit.name({ transactionName: 'sameSendAuth2' }) as INamedTransaction
+          ).addToBatch({ batchName: 'sameAuthSend' });
+
+          const result = await kit.sendBatches({
+            onlyBatchNames: ['sameAuthSend'],
+            authorization: auth,
+          } as any);
+          logAndUpdateState(
+            `✅ Send same-chain with auth: ${JSON.stringify(result, bigIntReplacer)}`
+          );
+        } catch (e) {
+          logAndUpdateState(`❌ Error: ${(e as Error).message}`);
+        }
+      },
+    },
+    {
+      label: '🚀 Send Batches (Same Chain) without Authorization',
+      action: async (logAndUpdateState: (msg: string) => void) => {
+        try {
+          // Create same-chain batch
+          kit.transaction({
+            chainId: 10,
+            to: '0x000000000000000000000000000000000000dead',
+            value: parseEther('0.00000000001').toString(),
+          });
+          (
+            kit.name({
+              transactionName: 'sameSendNoAuth1',
+            }) as INamedTransaction
+          ).addToBatch({ batchName: 'sameNoAuthSend' });
+
+          kit.transaction({
+            chainId: 10,
+            to: '0x000000000000000000000000000000000000beef',
+            value: parseEther('0.00000000002').toString(),
+          });
+          (
+            kit.name({
+              transactionName: 'sameSendNoAuth2',
+            }) as INamedTransaction
+          ).addToBatch({ batchName: 'sameNoAuthSend' });
+
+          const result = await kit.sendBatches({
+            onlyBatchNames: ['sameNoAuthSend'],
+          });
+          logAndUpdateState(
+            `✅ Send same-chain without auth: ${JSON.stringify(result, bigIntReplacer)}`
+          );
+        } catch (e) {
+          logAndUpdateState(`❌ Error: ${(e as Error).message}`);
+        }
+      },
+    },
+    {
+      label: '🚀 Send Batches (Mixed Chains) with Authorization',
+      action: async (logAndUpdateState: (msg: string) => void) => {
+        try {
+          // Get authorization
+          const authResult = await kit.delegateSmartAccountToEoa({
+            delegateImmediately: false,
+          });
+          if (!authResult.authorization) {
+            logAndUpdateState(
+              `⚠️ Authorization already active or failed: ${authResult.eoaAddress}`
+            );
+            return;
+          }
+          const auth = authResult.authorization;
+
+          // Create mixed-chain batch (10 and 137)
+          kit.transaction({
+            chainId: auth.chainId,
+            to: '0x000000000000000000000000000000000000dead',
+            value: parseEther('0.00000000001').toString(),
+          });
+          (
+            kit.name({ transactionName: 'mixedSendAuth1' }) as INamedTransaction
+          ).addToBatch({ batchName: 'mixedAuthSend' });
+
+          kit.transaction({
+            chainId: auth.chainId === 10 ? 137 : 10,
+            to: '0x000000000000000000000000000000000000beef',
+            value: parseEther('0.00000000002').toString(),
+          });
+          (
+            kit.name({ transactionName: 'mixedSendAuth2' }) as INamedTransaction
+          ).addToBatch({ batchName: 'mixedAuthSend' });
+
+          const result = await kit.sendBatches({
+            onlyBatchNames: ['mixedAuthSend'],
+            authorization: auth,
+          } as any);
+          logAndUpdateState(
+            `✅ Send mixed-chains with auth (auth used only on matching chain): ${JSON.stringify(result, bigIntReplacer)}`
+          );
+        } catch (e) {
+          logAndUpdateState(`❌ Error: ${(e as Error).message}`);
+        }
+      },
+    },
+    {
+      label: '🚀 Send Batches (Mixed Chains) without Authorization',
+      action: async (logAndUpdateState: (msg: string) => void) => {
+        try {
+          // Create mixed-chain batch (10 and 137)
+          kit.transaction({
+            chainId: 10,
+            to: '0x000000000000000000000000000000000000dead',
+            value: parseEther('0.00000000001').toString(),
+          });
+          (
+            kit.name({
+              transactionName: 'mixedSendNoAuth1',
+            }) as INamedTransaction
+          ).addToBatch({ batchName: 'mixedNoAuthSend' });
+
+          kit.transaction({
+            chainId: 137,
+            to: '0x000000000000000000000000000000000000beef',
+            value: parseEther('0.00000000002').toString(),
+          });
+          (
+            kit.name({
+              transactionName: 'mixedSendNoAuth2',
+            }) as INamedTransaction
+          ).addToBatch({ batchName: 'mixedNoAuthSend' });
+
+          const result = await kit.sendBatches({
+            onlyBatchNames: ['mixedNoAuthSend'],
+          });
+          logAndUpdateState(
+            `✅ Send mixed-chains without auth: ${JSON.stringify(result, bigIntReplacer)}`
+          );
+        } catch (e) {
+          logAndUpdateState(`❌ Error: ${(e as Error).message}`);
+        }
+      },
+    },
+    {
+      label: '❌ Modular Mode: Estimate with Authorization (Should Fail)',
+      action: async (logAndUpdateState: (msg: string) => void) => {
+        try {
+          // Get authorization
+          const authResult = await kit.delegateSmartAccountToEoa({
+            delegateImmediately: false,
+          });
+          if (!authResult.authorization) {
+            logAndUpdateState(
+              `⚠️ Authorization already active or failed: ${authResult.eoaAddress}`
+            );
+            return;
+          }
+          const auth = authResult.authorization;
+
+          // Create transaction
+          kit.transaction({
+            chainId: auth.chainId,
+            to: '0x000000000000000000000000000000000000dead',
+            value: parseEther('0.001').toString(),
+          });
+          kit.name({ transactionName: 'modularTxWithAuth' });
+
+          // Try to estimate with authorization in modular mode (should be rejected)
+          const named = kit.name({
+            transactionName: 'modularTxWithAuth',
+          }) as INamedTransaction;
+          const result = await named.estimate({ authorization: auth } as any);
+          logAndUpdateState(
+            `✅ Modular estimate with auth (validation error expected): ${JSON.stringify(result, bigIntReplacer)}`
+          );
+        } catch (e) {
+          logAndUpdateState(`❌ Error: ${(e as Error).message}`);
+        }
+      },
+    },
+  ];
+
+  // ============================================================================
   // Error Handling & Edge Cases (All Modes)
   // ============================================================================
   const errorScenarios = [
@@ -2148,6 +2669,46 @@ const App = () => {
           ))}
         </div>
       </div>
+
+      {/* Authorization Tests */}
+      {walletMode === 'delegatedEoa' && (
+        <div
+          style={{
+            background: '#FFFDE7',
+            padding: 16,
+            borderRadius: 8,
+            marginBottom: 24,
+          }}
+        >
+          <h3 style={{ marginTop: 0, marginBottom: 12 }}>
+            🔐 Authorization Tests (DelegatedEoa Mode)
+          </h3>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {authorizationScenarios.map((scenario, i) => (
+              <button
+                key={`auth-${i}`}
+                style={{
+                  padding: '10px 16px',
+                  background: '#FBC02D',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: 4,
+                  cursor: 'pointer',
+                  fontSize: 13,
+                }}
+                onClick={() => scenario.action(logAndUpdateState)}
+              >
+                {scenario.label}
+              </button>
+            ))}
+          </div>
+          <div style={{ marginTop: 8, fontSize: 12, color: '#6c757d' }}>
+            Each button signs authorization, creates transaction(s), and
+            estimates/sends with authorization. Transactions are created on the
+            authorization's chain.
+          </div>
+        </div>
+      )}
 
       {/* Error Handling & Edge Cases */}
       <div
