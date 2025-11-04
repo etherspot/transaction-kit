@@ -114,7 +114,7 @@ import { TransactionKit } from '@etherspot/transaction-kit';
 // Initialize TransactionKit
 const kit = TransactionKit({
   chainId: 137, // Polygon mainnet
-  privateKey: '0x...your-private-key...', // Required for EIP-7702
+  privateKey: '0x...your-private-key...', // Required for EIP-7702 (either privateKey or ownerAccount)
   bundlerApiKey: 'your-bundler-api-key', // Optional but recommended
   walletMode: 'delegatedEoa', // Required for EIP-7702
 });
@@ -240,7 +240,7 @@ For EIP-7702 specific functionalities:
 // Initialize with delegated EOA mode
 const kit = TransactionKit({
   chainId: 137, // Polygon
-  privateKey: '0x...your-private-key...',
+  privateKey: '0x...your-private-key...', // Required for EIP-7702 (either privateKey or ownerAccount)
   bundlerApiKey: 'your-bundler-api-key',
   walletMode: 'delegatedEoa',
 });
@@ -361,6 +361,7 @@ const result = await kit.sendBatches({ authorization });
 ```
 
 Notes:
+
 - The `authorization` must match the transaction `chainId` and Kernel v3.3 implementation.
 - For multi-chain batches, the `authorization` will only be applied to chain groups matching the authorization's `chainId`.
 - `authorization` is only supported in `delegatedEoa` mode; using it in `modular` mode will cause validation errors.
@@ -436,7 +437,7 @@ Advanced EIP-7702 functionality with delegated Externally Owned Accounts:
 ```typescript
 const kit = TransactionKit({
   chainId: 137, // Required: Default chain ID
-  privateKey: '0x...your-private-key...', // Required: EOA private key
+  privateKey: '0x...your-private-key...', // Required for EIP-7702 (either privateKey or ownerAccount)
   bundlerApiKey: 'your-api-key', // Optional: For better performance
   bundlerUrl: 'https://your-bundler-url.com', // Optional: Custom bundler URL
   bundlerApiKeyFormat: '?api-key=', // Optional: API key format (default: '?api-key=')
@@ -445,21 +446,21 @@ const kit = TransactionKit({
 });
 ```
 
-**Note**: In delegated EOA mode, you don't need to provide a `provider` as the private key is used directly to create the account.
+**Note**: In delegated EOA mode, you don't need to provide a `provider`. You can provide either a `privateKey` or an `ownerAccount` (a `LocalAccount` from viem) directly, but not both. The `ownerAccount` option is useful when you already have a `LocalAccount` object and want to bypass the `privateKey` conversion.
 
 ### Wallet Mode Comparison
 
-| Feature                     | Modular Mode             | Delegated EOA Mode                 |
-| --------------------------- | ------------------------ | ---------------------------------- |
-| **Account Type**            | Etherspot Smart Account  | EIP-7702 Delegated EOA             |
-| **Provider Required**       | ✅ Yes (wallet provider) | ❌ No (uses private key)           |
-| **Private Key Required**    | ❌ No                    | ✅ Yes                             |
-| **Client-Side Safe**        | ✅ Yes                   | ⚠️ Depends on private key handling |
-| **Paymaster Support**       | ✅ Full support          | ⚠️ Not yet supported               |
-| **UserOp Overrides**        | ✅ Supported             | ⚠️ Not yet supported               |
-| **EIP-7702 Methods**        | ❌ Not available         | ✅ Yes                             |
-| **Modular SDK Integration** | ✅ Yes                   | ❌ No                              |
-| **ZeroDev Integration**     | ❌ No                    | ✅ Yes integration                 |
+| Feature                                | Modular Mode             | Delegated EOA Mode                         |
+| -------------------------------------- | ------------------------ | ------------------------------------------ |
+| **Account Type**                       | Etherspot Smart Account  | EIP-7702 Delegated EOA                     |
+| **Provider Required**                  | ✅ Yes (wallet provider) | ❌ No (uses privateKey or ownerAccount)    |
+| **Private Key/Owner Account Required** | ❌ No                    | ✅ Yes (either privateKey or ownerAccount) |
+| **Client-Side Safe**                   | ✅ Yes                   | ⚠️ Depends on private key/account handling |
+| **Paymaster Support**                  | ✅ Full support          | ⚠️ Not yet supported                       |
+| **UserOp Overrides**                   | ✅ Supported             | ⚠️ Not yet supported                       |
+| **EIP-7702 Methods**                   | ❌ Not available         | ✅ Yes                                     |
+| **Modular SDK Integration**            | ✅ Yes                   | ❌ No                                      |
+| **ZeroDev Integration**                | ❌ No                    | ✅ Yes integration                         |
 
 ### Advanced Bundler Configuration
 
@@ -574,11 +575,11 @@ When calling `delegateSmartAccountToEoa({ delegateImmediately: false })`, the me
 
 ## 🔒 Security Considerations
 
-### Private Key Handling in Delegated EOA Mode
+### Private Key and Owner Account Handling in Delegated EOA Mode
 
-When using `walletMode: 'delegatedEoa'`, you must provide a private key. Here are important security considerations:
+When using `walletMode: 'delegatedEoa'`, you must provide either a `privateKey` or an `ownerAccount` (LocalAccount from viem). Here are important security considerations:
 
-**⚠️ Never expose private keys in client-side code or logs!**
+**⚠️ Never expose private keys or owner accounts in client-side code or logs!**
 
 ```typescript
 // ❌ BAD: Hardcoded private key
@@ -593,7 +594,7 @@ const kit = TransactionKit({
   walletMode: 'delegatedEoa',
 });
 
-// ✅ GOOD: Use secure key management
+// ✅ GOOD: Use secure key management (works with both privateKey and ownerAccount)
 const kit = TransactionKit({
   privateKey: await getSecurePrivateKey(), // From secure storage
   walletMode: 'delegatedEoa',
@@ -602,12 +603,13 @@ const kit = TransactionKit({
 
 **Best Practices:**
 
-1. **Private Key Security**: Handle private keys securely - never hardcode them in client-side code
+1. **Private Key/Owner Account Security**: Handle private keys and owner accounts securely - never hardcode them in client-side code
 2. **Environment Variables**: Store private keys in environment variables, never in code
 3. **Key Rotation**: Regularly rotate private keys for enhanced security
-4. **Access Control**: Implement proper access controls around private key usage
+4. **Access Control**: Implement proper access controls around private key and owner account usage
 5. **Audit Logging**: Log all transactions for security auditing
 6. **Secure Storage**: Use hardware security modules (HSM) or secure key management services for production
+7. **Owner Account Usage**: When using `ownerAccount`, ensure the underlying private key is handled securely
 
 ### Important Limitations & Considerations
 
@@ -615,7 +617,7 @@ const kit = TransactionKit({
 
 - **Paymaster Support**: Currently not supported in delegated EOA mode
 - **UserOp Overrides**: Custom userOp overrides are not yet supported
-- **Private Key Security**: Requires careful private key handling
+- **Private Key/Owner Account Security**: Requires careful private key or owner account handling
 - **ZeroDev Dependency**: Requires `@zerodev/sdk` package
 
 #### Modular Mode Limitations

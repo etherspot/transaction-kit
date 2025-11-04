@@ -83,7 +83,8 @@ export class EtherspotProvider {
    * @param config - The provider configuration.
    * @throws {Error} If provider is not provided in modular mode.
    * @throws {Error} If chainId is invalid.
-   * @throws {Error} If privateKey is missing in delegatedEoa mode.
+   * @throws {Error} If neither privateKey nor ownerAccount is provided in delegatedEoa mode.
+   * @throws {Error} If both privateKey and ownerAccount are provided in delegatedEoa mode.
    */
   constructor(config: EtherspotTransactionKitConfig) {
     // Validate chainId (required for all modes)
@@ -96,6 +97,7 @@ export class EtherspotProvider {
     // Security: Separate sensitive and public data
     this.#privateConfig = {
       privateKey: 'privateKey' in config ? config.privateKey : undefined,
+      ownerAccount: 'ownerAccount' in config ? config.ownerAccount : undefined,
       bundlerApiKey:
         'bundlerApiKey' in config ? config.bundlerApiKey : undefined,
       bundlerApiKeyFormat:
@@ -125,14 +127,23 @@ export class EtherspotProvider {
         );
       }
     } else if (config.walletMode === 'delegatedEoa') {
-      // DelegatedEoa mode requires privateKey
+      // DelegatedEoa mode requires either privateKey or ownerAccount (but not both)
       const delegatedEoaConfig = config as Extract<
         EtherspotTransactionKitConfig,
         { walletMode: 'delegatedEoa' }
       >;
-      if (!delegatedEoaConfig.privateKey) {
+      const hasPrivateKey = !!delegatedEoaConfig.privateKey;
+      const hasOwnerAccount = !!delegatedEoaConfig.ownerAccount;
+
+      if (!hasPrivateKey && !hasOwnerAccount) {
         throw new Error(
-          'privateKey is required when walletMode is "delegatedEoa". Please provide a private key in the configuration.'
+          'Either privateKey or ownerAccount is required when walletMode is "delegatedEoa". Please provide a private key or a LocalAccount (ownerAccount) in the configuration.'
+        );
+      }
+
+      if (hasPrivateKey && hasOwnerAccount) {
+        throw new Error(
+          'Cannot provide both privateKey and ownerAccount in delegatedEoa mode. Please provide either privateKey or ownerAccount, but not both.'
         );
       }
     }
@@ -157,11 +168,13 @@ export class EtherspotProvider {
     return {
       chainId: delegatedEoaConfig.chainId,
       privateKey: delegatedEoaConfig.privateKey,
+      // Store ownerAccount address as string for comparison (not in DelegatedEoaModeConfig type)
+      ownerAccountAddress: delegatedEoaConfig.ownerAccount?.address,
       bundlerUrl: delegatedEoaConfig.bundlerUrl,
       bundlerApiKey: delegatedEoaConfig.bundlerApiKey,
       bundlerApiKeyFormat: delegatedEoaConfig.bundlerApiKeyFormat,
       walletMode: 'delegatedEoa',
-    };
+    } as DelegatedEoaModeConfig & { ownerAccountAddress?: string };
   }
 
   /**
@@ -195,13 +208,58 @@ export class EtherspotProvider {
       newConfig.walletMode &&
       newConfig.walletMode !== this.#publicConfig.walletMode;
 
+    // Validate delegatedEoa mode requirements if we'll be in that mode after update
+    const finalWalletMode =
+      newConfig.walletMode ?? this.#publicConfig.walletMode;
+
+    if (finalWalletMode === 'delegatedEoa') {
+      // Calculate what will exist after update (accounting for clearing logic):
+      // - If setting privateKey, ownerAccount will be cleared
+      // - If setting ownerAccount, privateKey will be cleared
+      // - If setting neither, both keep their current values
+      const willHavePrivateKey =
+        'privateKey' in newConfig
+          ? !!newConfig.privateKey
+          : 'ownerAccount' in newConfig
+            ? false // Will be cleared when ownerAccount is set
+            : !!this.#privateConfig.privateKey;
+
+      const willHaveOwnerAccount =
+        'ownerAccount' in newConfig
+          ? !!newConfig.ownerAccount
+          : 'privateKey' in newConfig
+            ? false // Will be cleared when privateKey is set
+            : !!this.#privateConfig.ownerAccount;
+
+      if (!willHavePrivateKey && !willHaveOwnerAccount) {
+        throw new Error(
+          'Either privateKey or ownerAccount is required when walletMode is "delegatedEoa". Please provide a private key or a LocalAccount (ownerAccount) in the configuration.'
+        );
+      }
+
+      if (willHavePrivateKey && willHaveOwnerAccount) {
+        throw new Error(
+          'Cannot provide both privateKey and ownerAccount in delegatedEoa mode. Please provide either privateKey or ownerAccount, but not both.'
+        );
+      }
+    }
+
     // Security: Update both private and public configs separately
+    // When switching between privateKey and ownerAccount, clear the opposite field
     this.#privateConfig = {
       ...this.#privateConfig,
       privateKey:
         'privateKey' in newConfig
           ? newConfig.privateKey
-          : this.#privateConfig.privateKey,
+          : 'ownerAccount' in newConfig
+            ? undefined // Clear privateKey if ownerAccount is being set
+            : this.#privateConfig.privateKey,
+      ownerAccount:
+        'ownerAccount' in newConfig
+          ? newConfig.ownerAccount
+          : 'privateKey' in newConfig
+            ? undefined // Clear ownerAccount if privateKey is being set
+            : this.#privateConfig.ownerAccount,
       bundlerApiKey:
         'bundlerApiKey' in newConfig
           ? newConfig.bundlerApiKey
@@ -483,15 +541,16 @@ export class EtherspotProvider {
   }
 
   /**
-   * Gets the owner account (EOA) from the private key in config (delegatedEoa mode).
+   * Gets the owner account (EOA) from the config (delegatedEoa mode).
+   * Returns the ownerAccount directly if provided, otherwise creates it from privateKey.
    *
    * @param chainId - (Optional) The chain ID.
-   * @returns A promise that resolves to the owner account created from the private key.
-   * @throws {Error} If wallet mode is not 'delegatedEoa' or private key is not available.
+   * @returns A promise that resolves to the owner account.
+   * @throws {Error} If wallet mode is not 'delegatedEoa' or neither ownerAccount nor privateKey is available.
    *
    * @remarks
    * - Only available in delegatedEoa wallet mode.
-   * - Creates a new account instance each time (no caching needed for simple account creation).
+   * - Returns the ownerAccount directly if provided in config, otherwise creates from privateKey.
    * - This is the same account used internally in getDelegatedEoaAccount().
    */
   async getOwnerAccount(
@@ -505,10 +564,21 @@ export class EtherspotProvider {
       );
     }
 
+    // If ownerAccount is provided directly, return it
+    if (this.#privateConfig.ownerAccount) {
+      log(
+        `[EtherspotProvider] getOwnerAccount(): Using provided owner account ${this.#privateConfig.ownerAccount.address} for chain ${chainId}`,
+        { ownerAddress: this.#privateConfig.ownerAccount.address },
+        this.#publicConfig.debugMode
+      );
+      return this.#privateConfig.ownerAccount;
+    }
+
+    // Otherwise, create from private key
     if (!this.#privateConfig.privateKey) {
       throw new Error(
-        'getOwnerAccount(): privateKey not found in config. ' +
-          'Please ensure the privateKey is set in config.'
+        'getOwnerAccount(): Neither ownerAccount nor privateKey found in config. ' +
+          'Please ensure either ownerAccount or privateKey is set in config.'
       );
     }
 
@@ -516,7 +586,7 @@ export class EtherspotProvider {
     const owner = privateKeyToAccount(this.#privateConfig.privateKey as Hex);
 
     log(
-      `[EtherspotProvider] getOwnerAccount(): Created owner account ${owner.address} for chain ${chainId}`,
+      `[EtherspotProvider] getOwnerAccount(): Created owner account ${owner.address} from privateKey for chain ${chainId}`,
       { ownerAddress: owner.address },
       this.#publicConfig.debugMode
     );

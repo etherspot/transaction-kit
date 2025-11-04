@@ -4,7 +4,11 @@ import {
   PaymasterApi,
   WalletProviderLike,
 } from '@etherspot/modular-sdk';
-import { type PublicActions, type WalletActions } from 'viem';
+import {
+  type LocalAccount,
+  type PublicActions,
+  type WalletActions,
+} from 'viem';
 import { type BundlerClient } from 'viem/account-abstraction';
 import { SignAuthorizationReturnType } from 'viem/accounts';
 
@@ -24,6 +28,7 @@ export type WalletMode = 'modular' | 'delegatedEoa';
 // Security: Private config interface for sensitive data
 export interface PrivateConfig {
   privateKey?: string;
+  ownerAccount?: LocalAccount;
   bundlerApiKey?: string;
   bundlerApiKeyFormat?: string;
 }
@@ -46,7 +51,7 @@ export interface ModularModeConfig {
   walletMode?: 'modular';
 }
 
-// delegatedEoa mode specific config - requires a private key for EIP-7702 operations
+// delegatedEoa mode specific config - requires either a private key or ownerAccount (LocalAccount) for EIP-7702 operations
 export interface DelegatedEoaModeConfig {
   chainId: number;
   bundlerApiKey?: string;
@@ -54,7 +59,9 @@ export interface DelegatedEoaModeConfig {
   bundlerApiKeyFormat?: string;
   debugMode?: boolean;
   walletMode: 'delegatedEoa';
-  privateKey: string;
+  // Either privateKey or ownerAccount must be provided (but not both)
+  privateKey?: string;
+  ownerAccount?: LocalAccount;
 }
 
 // EtherspotTransactionKitConfig

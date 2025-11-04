@@ -5,6 +5,7 @@ import {
 } from '@etherspot/modular-sdk';
 import { isEqual } from 'lodash';
 import { Chain } from 'viem';
+import { privateKeyToAccount } from 'viem/accounts';
 
 // EtherspotProvider
 import { EtherspotProvider } from '../lib/EtherspotProvider';
@@ -189,25 +190,35 @@ describe('EtherspotProvider', () => {
         }
       );
 
-      const missingPrivateKeyCases = [
-        { privateKey: undefined },
-        { privateKey: null },
-        { privateKey: '' },
-      ];
+      it('should throw when neither privateKey nor ownerAccount is provided in delegatedEoa mode', () => {
+        expect(
+          () =>
+            new EtherspotProvider({
+              chainId: 1,
+              walletMode: 'delegatedEoa',
+            } as EtherspotTransactionKitConfig)
+        ).toThrow(
+          'Either privateKey or ownerAccount is required when walletMode is "delegatedEoa"'
+        );
+      });
 
-      test.each(missingPrivateKeyCases)(
-        'should throw for missing privateKey in delegatedEoa mode: $privateKey',
-        ({ privateKey }) => {
-          expect(
-            () =>
-              new EtherspotProvider({
-                chainId: 1,
-                walletMode: 'delegatedEoa',
-                privateKey: privateKey as any,
-              })
-          ).toThrow('privateKey is required when walletMode is "delegatedEoa"');
-        }
-      );
+      it('should throw when both privateKey and ownerAccount are provided in delegatedEoa mode', () => {
+        const ownerAccount = privateKeyToAccount(
+          '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+        );
+        expect(
+          () =>
+            new EtherspotProvider({
+              chainId: 1,
+              walletMode: 'delegatedEoa',
+              privateKey:
+                '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+              ownerAccount,
+            } as EtherspotTransactionKitConfig)
+        ).toThrow(
+          'Cannot provide both privateKey and ownerAccount in delegatedEoa mode'
+        );
+      });
 
       it('should accept valid privateKey formats in delegatedEoa mode', () => {
         const validPrivateKeys = [
@@ -223,9 +234,23 @@ describe('EtherspotProvider', () => {
                 chainId: 1,
                 walletMode: 'delegatedEoa',
                 privateKey,
-              })
+              } as EtherspotTransactionKitConfig)
           ).not.toThrow();
         });
+      });
+
+      it('should accept ownerAccount in delegatedEoa mode', () => {
+        const ownerAccount = privateKeyToAccount(
+          '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+        );
+        expect(
+          () =>
+            new EtherspotProvider({
+              chainId: 1,
+              walletMode: 'delegatedEoa',
+              ownerAccount,
+            } as EtherspotTransactionKitConfig)
+        ).not.toThrow();
       });
     });
   });
@@ -284,10 +309,12 @@ describe('EtherspotProvider', () => {
       });
 
       it('should handle wallet mode changes in updateConfig', () => {
-        // Test switching wallet mode (no validation in updateConfig)
+        // Test switching wallet mode (must provide privateKey or ownerAccount)
         expect(() => {
           etherspotProvider.updateConfig({
             walletMode: 'delegatedEoa',
+            privateKey:
+              '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
           });
         }).not.toThrow();
 
@@ -327,6 +354,130 @@ describe('EtherspotProvider', () => {
         etherspotProvider.updateConfig({ debugMode: true });
         expect(etherspotProvider.getConfig().debugMode).toBe(true);
         expect(etherspotProvider.getChainId()).toBe(137); // Should remain unchanged
+      });
+
+      describe('updateConfig with delegatedEoa mode and ownerAccount', () => {
+        it('should update config with ownerAccount in delegatedEoa mode', () => {
+          const delegated = new EtherspotProvider({
+            chainId: 1,
+            walletMode: 'delegatedEoa',
+            privateKey:
+              '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+          } as EtherspotTransactionKitConfig);
+
+          const newOwnerAccount = privateKeyToAccount(
+            '0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'
+          );
+
+          delegated.updateConfig({
+            walletMode: 'delegatedEoa',
+            ownerAccount: newOwnerAccount,
+          });
+
+          expect(delegated.getWalletMode()).toBe('delegatedEoa');
+        });
+
+        it('should clear privateKey when switching to ownerAccount', async () => {
+          const delegated = new EtherspotProvider({
+            chainId: 1,
+            walletMode: 'delegatedEoa',
+            privateKey:
+              '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+          } as EtherspotTransactionKitConfig);
+
+          const newOwnerAccount = privateKeyToAccount(
+            '0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'
+          );
+
+          delegated.updateConfig({
+            walletMode: 'delegatedEoa',
+            ownerAccount: newOwnerAccount,
+          });
+
+          // getOwnerAccount should return the new ownerAccount
+          const owner = await delegated.getOwnerAccount();
+          expect(owner.address).toBe(newOwnerAccount.address);
+          expect(owner).toBe(newOwnerAccount);
+        });
+
+        it('should clear ownerAccount when switching to privateKey', async () => {
+          const initialOwnerAccount = privateKeyToAccount(
+            '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+          );
+          const delegated = new EtherspotProvider({
+            chainId: 1,
+            walletMode: 'delegatedEoa',
+            ownerAccount: initialOwnerAccount,
+          } as EtherspotTransactionKitConfig);
+
+          const newPrivateKey =
+            '0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb';
+
+          delegated.updateConfig({
+            walletMode: 'delegatedEoa',
+            privateKey: newPrivateKey,
+          });
+
+          // getOwnerAccount should create from the new privateKey
+          const owner = await delegated.getOwnerAccount();
+          expect(owner.address).not.toBe(initialOwnerAccount.address);
+          // Address from new privateKey should be different
+          const expectedAccount = privateKeyToAccount(newPrivateKey);
+          expect(owner.address).toBe(expectedAccount.address);
+        });
+
+        it('should throw when updating to delegatedEoa mode without privateKey or ownerAccount', () => {
+          expect(() => {
+            etherspotProvider.updateConfig({
+              walletMode: 'delegatedEoa',
+            });
+          }).toThrow(
+            'Either privateKey or ownerAccount is required when walletMode is "delegatedEoa"'
+          );
+        });
+
+        it('should throw when both privateKey and ownerAccount are provided in updateConfig', () => {
+          const delegated = new EtherspotProvider({
+            chainId: 1,
+            walletMode: 'delegatedEoa',
+            privateKey:
+              '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+          } as EtherspotTransactionKitConfig);
+
+          const ownerAccount = privateKeyToAccount(
+            '0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'
+          );
+
+          expect(() => {
+            delegated.updateConfig({
+              walletMode: 'delegatedEoa',
+              privateKey:
+                '0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc',
+              ownerAccount,
+            });
+          }).toThrow(
+            'Cannot provide both privateKey and ownerAccount in delegatedEoa mode'
+          );
+        });
+
+        it('should throw when clearing both privateKey and ownerAccount', () => {
+          const delegated = new EtherspotProvider({
+            chainId: 1,
+            walletMode: 'delegatedEoa',
+            privateKey:
+              '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+          } as EtherspotTransactionKitConfig);
+
+          expect(() => {
+            delegated.updateConfig({
+              walletMode: 'delegatedEoa',
+              privateKey: undefined,
+              ownerAccount: undefined,
+            });
+          }).toThrow(
+            'Either privateKey or ownerAccount is required when walletMode is "delegatedEoa"'
+          );
+        });
       });
 
       describe('Validation errors', () => {
@@ -737,7 +888,11 @@ describe('EtherspotProvider', () => {
       it('should return updated wallet mode after config update', () => {
         expect(etherspotProvider.getWalletMode()).toBe('modular');
 
-        etherspotProvider.updateConfig({ walletMode: 'delegatedEoa' });
+        etherspotProvider.updateConfig({
+          walletMode: 'delegatedEoa',
+          privateKey:
+            '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+        });
         expect(etherspotProvider.getWalletMode()).toBe('delegatedEoa');
       });
     });
@@ -884,6 +1039,20 @@ describe('EtherspotProvider', () => {
         expect(owner.address).toBeDefined();
       });
 
+      it('should return ownerAccount directly when provided', async () => {
+        const expectedAccount = privateKeyToAccount(
+          '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+        );
+        const delegated = new EtherspotProvider({
+          chainId: 1,
+          walletMode: 'delegatedEoa',
+          ownerAccount: expectedAccount,
+        } as EtherspotTransactionKitConfig);
+        const owner = await delegated.getOwnerAccount();
+        expect(owner.address).toBe(expectedAccount.address);
+        expect(owner).toBe(expectedAccount);
+      });
+
       it('should handle invalid private key format', async () => {
         const delegated = new EtherspotProvider({
           chainId: 1,
@@ -892,6 +1061,25 @@ describe('EtherspotProvider', () => {
         } as EtherspotTransactionKitConfig);
 
         await expect(delegated.getOwnerAccount()).rejects.toThrow();
+      });
+
+      it('should throw when neither ownerAccount nor privateKey is available', () => {
+        const delegated = new EtherspotProvider({
+          chainId: 1,
+          walletMode: 'delegatedEoa',
+          privateKey:
+            '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+        } as EtherspotTransactionKitConfig);
+
+        expect(() => {
+          delegated.updateConfig({
+            walletMode: 'delegatedEoa',
+            privateKey: undefined,
+            ownerAccount: undefined,
+          });
+        }).toThrow(
+          'Either privateKey or ownerAccount is required when walletMode is "delegatedEoa"'
+        );
       });
 
       it('should handle concurrent calls to same method', async () => {
@@ -913,10 +1101,36 @@ describe('EtherspotProvider', () => {
           promise3,
         ]);
 
-        // All should return the same result (cached) - same address
+        // All should return the same result - same address
         expect(owner1.address).toBe(owner2.address);
         expect(owner2.address).toBe(owner3.address);
         expect(owner1.address).toBeDefined();
+      });
+
+      it('should handle concurrent calls with ownerAccount', async () => {
+        const expectedAccount = privateKeyToAccount(
+          '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+        );
+        const delegated = new EtherspotProvider({
+          chainId: 1,
+          walletMode: 'delegatedEoa',
+          ownerAccount: expectedAccount,
+        } as EtherspotTransactionKitConfig);
+
+        const promise1 = delegated.getOwnerAccount();
+        const promise2 = delegated.getOwnerAccount();
+        const promise3 = delegated.getOwnerAccount();
+
+        const [owner1, owner2, owner3] = await Promise.all([
+          promise1,
+          promise2,
+          promise3,
+        ]);
+
+        // All should return the same account object
+        expect(owner1).toBe(expectedAccount);
+        expect(owner2).toBe(expectedAccount);
+        expect(owner3).toBe(expectedAccount);
       });
     });
 
@@ -957,6 +1171,22 @@ describe('EtherspotProvider', () => {
         } as EtherspotTransactionKitConfig);
         const account = await delegated.getDelegatedEoaAccount(1);
         expect(account).toBeDefined();
+      });
+
+      it('should create smart account using ownerAccount directly', async () => {
+        const ownerAccount = privateKeyToAccount(
+          '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+        );
+        const delegated = new EtherspotProvider({
+          chainId: 1,
+          walletMode: 'delegatedEoa',
+          ownerAccount,
+        } as EtherspotTransactionKitConfig);
+
+        const account = await delegated.getDelegatedEoaAccount(1);
+        expect(account).toBeDefined();
+        const owner = await delegated.getOwnerAccount();
+        expect(owner).toBe(ownerAccount);
       });
     });
 
@@ -1177,11 +1407,29 @@ describe('EtherspotProvider', () => {
       it('should clear cache when wallet mode changes', async () => {
         await etherspotProvider.getSdk();
 
-        // Change wallet mode
+        // Change wallet mode (using privateKey)
         etherspotProvider.updateConfig({
           walletMode: 'delegatedEoa',
           privateKey:
             '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+        });
+
+        // Next call should throw because getSdk is not available in delegatedEoa mode
+        await expect(etherspotProvider.getSdk()).rejects.toThrow(
+          "getSdk() is only available in 'modular' wallet mode. Current mode: 'delegatedEoa'"
+        );
+      });
+
+      it('should clear cache when switching to delegatedEoa mode with ownerAccount', async () => {
+        await etherspotProvider.getSdk();
+
+        // Change wallet mode (using ownerAccount)
+        const ownerAccount = privateKeyToAccount(
+          '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+        );
+        etherspotProvider.updateConfig({
+          walletMode: 'delegatedEoa',
+          ownerAccount,
         });
 
         // Next call should throw because getSdk is not available in delegatedEoa mode
@@ -1227,10 +1475,10 @@ describe('EtherspotProvider', () => {
             new EtherspotProvider({
               chainId: 1,
               walletMode: 'delegatedEoa',
-              // No privateKey provided
+              // No privateKey or ownerAccount provided
             } as EtherspotTransactionKitConfig)
         ).toThrow(
-          'privateKey is required when walletMode is "delegatedEoa". Please provide a private key in the configuration.'
+          'Either privateKey or ownerAccount is required when walletMode is "delegatedEoa"'
         );
       });
     });
