@@ -28,7 +28,7 @@ export type WalletMode = 'modular' | 'delegatedEoa';
 // Security: Private config interface for sensitive data
 export interface PrivateConfig {
   privateKey?: string;
-  viemLocalAcocunt?: LocalAccount;
+  viemLocalAccount?: LocalAccount;
   bundlerApiKey?: string;
   bundlerApiKeyFormat?: string;
 }
@@ -51,7 +51,7 @@ export interface ModularModeConfig {
   walletMode?: 'modular';
 }
 
-// delegatedEoa mode specific config - requires either a private key or viemLocalAcocunt (LocalAccount) for EIP-7702 operations
+// delegatedEoa mode specific config - requires either a private key or viemLocalAccount (LocalAccount) for EIP-7702 operations
 export interface DelegatedEoaModeConfig {
   chainId: number;
   bundlerApiKey?: string;
@@ -59,9 +59,9 @@ export interface DelegatedEoaModeConfig {
   bundlerApiKeyFormat?: string;
   debugMode?: boolean;
   walletMode: 'delegatedEoa';
-  // Either privateKey or viemLocalAcocunt must be provided (but not both)
+  // Either privateKey or viemLocalAccount must be provided (but not both)
   privateKey?: string;
-  viemLocalAcocunt?: LocalAccount;
+  viemLocalAccount?: LocalAccount;
 }
 
 // EtherspotTransactionKitConfig

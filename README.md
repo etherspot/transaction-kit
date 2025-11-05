@@ -114,7 +114,7 @@ import { TransactionKit } from '@etherspot/transaction-kit';
 // Initialize TransactionKit
 const kit = TransactionKit({
   chainId: 137, // Polygon mainnet
-  privateKey: '0x...your-private-key...', // Required for EIP-7702 (either privateKey or viemLocalAcocunt)
+  privateKey: '0x...your-private-key...', // Required for EIP-7702 (either privateKey or viemLocalAccount)
   bundlerApiKey: 'your-bundler-api-key', // Optional but recommended
   walletMode: 'delegatedEoa', // Required for EIP-7702
 });
@@ -240,7 +240,7 @@ For EIP-7702 specific functionalities:
 // Initialize with delegated EOA mode
 const kit = TransactionKit({
   chainId: 137, // Polygon
-  privateKey: '0x...your-private-key...', // Required for EIP-7702 (either privateKey or viemLocalAcocunt)
+  privateKey: '0x...your-private-key...', // Required for EIP-7702 (either privateKey or viemLocalAccount)
   bundlerApiKey: 'your-bundler-api-key',
   walletMode: 'delegatedEoa',
 });
@@ -437,7 +437,7 @@ Advanced EIP-7702 functionality with delegated Externally Owned Accounts:
 ```typescript
 const kit = TransactionKit({
   chainId: 137, // Required: Default chain ID
-  privateKey: '0x...your-private-key...', // Required for EIP-7702 (either privateKey or viemLocalAcocunt)
+  privateKey: '0x...your-private-key...', // Required for EIP-7702 (either privateKey or viemLocalAccount)
   bundlerApiKey: 'your-api-key', // Optional: For better performance
   bundlerUrl: 'https://your-bundler-url.com', // Optional: Custom bundler URL
   bundlerApiKeyFormat: '?api-key=', // Optional: API key format (default: '?api-key=')
@@ -446,15 +446,15 @@ const kit = TransactionKit({
 });
 ```
 
-**Note**: In delegated EOA mode, you don't need to provide a `provider`. You can provide either a `privateKey` or an `viemLocalAcocunt` (a `LocalAccount` from viem) directly, but not both. The `viemLocalAcocunt` option is useful when you already have a `LocalAccount` object and want to bypass the `privateKey` conversion.
+**Note**: In delegated EOA mode, you don't need to provide a `provider`. You can provide either a `privateKey` or a `viemLocalAccount` (a `LocalAccount` from viem) directly, but not both. The `viemLocalAccount` option is useful when you already have a `LocalAccount` object and want to bypass the `privateKey` conversion.
 
 ### Wallet Mode Comparison
 
 | Feature                                | Modular Mode             | Delegated EOA Mode                             |
 | -------------------------------------- | ------------------------ | ---------------------------------------------- |
 | **Account Type**                       | Etherspot Smart Account  | EIP-7702 Delegated EOA                         |
-| **Provider Required**                  | ✅ Yes (wallet provider) | ❌ No (uses privateKey or viemLocalAcocunt)    |
-| **Private Key/Owner Account Required** | ❌ No                    | ✅ Yes (either privateKey or viemLocalAcocunt) |
+| **Provider Required**                  | ✅ Yes (wallet provider) | ❌ No (uses privateKey or viemLocalAccount)    |
+| **Private Key/Owner Account Required** | ❌ No                    | ✅ Yes (either privateKey or viemLocalAccount) |
 | **Client-Side Safe**                   | ✅ Yes                   | ⚠️ Depends on private key/account handling     |
 | **Paymaster Support**                  | ✅ Full support          | ⚠️ Not yet supported                           |
 | **UserOp Overrides**                   | ✅ Supported             | ⚠️ Not yet supported                           |
@@ -513,7 +513,7 @@ if (kit.getEtherspotProvider().getWalletMode() === 'delegatedEoa') {
 
   // Get account instances (delegatedEoa mode only)
   const delegatedEoaAccount = await kit.getDelegatedEoaAccount(137);
-  const viemLocalAcocunt = await kit.getOwnerAccount(137);
+  const viemLocalAccount = await kit.getOwnerAccount(137);
 }
 
 // Get transaction hash from userOp hash (available in both modes)
@@ -577,7 +577,7 @@ When calling `delegateSmartAccountToEoa({ delegateImmediately: false })`, the me
 
 ### Private Key and Owner Account Handling in Delegated EOA Mode
 
-When using `walletMode: 'delegatedEoa'`, you must provide either a `privateKey` or an `viemLocalAcocunt` (LocalAccount from viem). Here are important security considerations:
+When using `walletMode: 'delegatedEoa'`, you must provide either a `privateKey` or a `viemLocalAccount` (LocalAccount from viem). Here are important security considerations:
 
 **⚠️ Never expose private keys or owner accounts in client-side code or logs!**
 
@@ -594,7 +594,7 @@ const kit = TransactionKit({
   walletMode: 'delegatedEoa',
 });
 
-// ✅ GOOD: Use secure key management (works with both privateKey and viemLocalAcocunt)
+// ✅ GOOD: Use secure key management (works with both privateKey and viemLocalAccount)
 const kit = TransactionKit({
   privateKey: await getSecurePrivateKey(), // From secure storage
   walletMode: 'delegatedEoa',
@@ -609,7 +609,7 @@ const kit = TransactionKit({
 4. **Access Control**: Implement proper access controls around private key and owner account usage
 5. **Audit Logging**: Log all transactions for security auditing
 6. **Secure Storage**: Use hardware security modules (HSM) or secure key management services for production
-7. **Owner Account Usage**: When using `viemLocalAcocunt`, ensure the underlying private key is handled securely
+7. **Owner Account Usage**: When using `viemLocalAccount`, ensure the underlying private key is handled securely
 
 ### Important Limitations & Considerations
 

@@ -83,8 +83,8 @@ export class EtherspotProvider {
    * @param config - The provider configuration.
    * @throws {Error} If provider is not provided in modular mode.
    * @throws {Error} If chainId is invalid.
-   * @throws {Error} If neither privateKey nor viemLocalAcocunt is provided in delegatedEoa mode.
-   * @throws {Error} If both privateKey and viemLocalAcocunt are provided in delegatedEoa mode.
+   * @throws {Error} If neither privateKey nor viemLocalAccount is provided in delegatedEoa mode.
+   * @throws {Error} If both privateKey and viemLocalAccount are provided in delegatedEoa mode.
    */
   constructor(config: EtherspotTransactionKitConfig) {
     // Validate chainId (required for all modes)
@@ -97,8 +97,10 @@ export class EtherspotProvider {
     // Security: Separate sensitive and public data
     this.#privateConfig = {
       privateKey: 'privateKey' in config ? config.privateKey : undefined,
-      viemLocalAcocunt:
-        'viemLocalAcocunt' in config ? config.viemLocalAcocunt : undefined,
+      viemLocalAccount:
+        'viemLocalAccount' in config
+          ? (config as any).viemLocalAccount
+          : undefined,
       bundlerApiKey:
         'bundlerApiKey' in config ? config.bundlerApiKey : undefined,
       bundlerApiKeyFormat:
@@ -128,23 +130,24 @@ export class EtherspotProvider {
         );
       }
     } else if (config.walletMode === 'delegatedEoa') {
-      // DelegatedEoa mode requires either privateKey or viemLocalAcocunt (but not both)
+      // DelegatedEoa mode requires either privateKey or viemLocalAccount (but not both)
       const delegatedEoaConfig = config as Extract<
         EtherspotTransactionKitConfig,
         { walletMode: 'delegatedEoa' }
       >;
       const hasPrivateKey = !!delegatedEoaConfig.privateKey;
-      const hasViemLocalAcocunt = !!delegatedEoaConfig.viemLocalAcocunt;
+      const hasViemLocalAccount = !!(delegatedEoaConfig as any)
+        .viemLocalAccount;
 
-      if (!hasPrivateKey && !hasViemLocalAcocunt) {
+      if (!hasPrivateKey && !hasViemLocalAccount) {
         throw new Error(
-          'Either privateKey or viemLocalAcocunt is required when walletMode is "delegatedEoa". Please provide a private key or a LocalAccount (viemLocalAcocunt) in the configuration.'
+          'Either privateKey or viemLocalAccount is required when walletMode is "delegatedEoa". Please provide a private key or a LocalAccount (viemLocalAccount) in the configuration.'
         );
       }
 
-      if (hasPrivateKey && hasViemLocalAcocunt) {
+      if (hasPrivateKey && hasViemLocalAccount) {
         throw new Error(
-          'Cannot provide both privateKey and viemLocalAcocunt in delegatedEoa mode. Please provide either privateKey or viemLocalAcocunt, but not both.'
+          'Cannot provide both privateKey and viemLocalAccount in delegatedEoa mode. Please provide either privateKey or viemLocalAccount, but not both.'
         );
       }
     }
@@ -169,8 +172,9 @@ export class EtherspotProvider {
     return {
       chainId: delegatedEoaConfig.chainId,
       privateKey: delegatedEoaConfig.privateKey,
-      // Store viemLocalAcocunt address as string for comparison (not in DelegatedEoaModeConfig type)
-      viemLocalAcocuntAddress: delegatedEoaConfig.viemLocalAcocunt?.address,
+      // Store viemLocalAccount address as string for comparison (not in DelegatedEoaModeConfig type)
+      viemLocalAccountAddress: (delegatedEoaConfig as any).viemLocalAccount
+        ?.address,
       bundlerUrl: delegatedEoaConfig.bundlerUrl,
       bundlerApiKey: delegatedEoaConfig.bundlerApiKey,
       bundlerApiKeyFormat: delegatedEoaConfig.bundlerApiKeyFormat,
@@ -215,52 +219,52 @@ export class EtherspotProvider {
 
     if (finalWalletMode === 'delegatedEoa') {
       // Calculate what will exist after update (accounting for clearing logic):
-      // - If setting privateKey, viemLocalAcocunt will be cleared
-      // - If setting viemLocalAcocunt, privateKey will be cleared
+      // - If setting privateKey, viemLocalAccount will be cleared
+      // - If setting viemLocalAccount, privateKey will be cleared
       // - If setting neither, both keep their current values
       const willHavePrivateKey =
         'privateKey' in newConfig
           ? !!newConfig.privateKey
-          : 'viemLocalAcocunt' in newConfig
-            ? false // Will be cleared when viemLocalAcocunt is set
+          : 'viemLocalAccount' in (newConfig as any)
+            ? false // Will be cleared when viemLocalAccount is set
             : !!this.#privateConfig.privateKey;
 
-      const willHaveViemLocalAcocunt =
-        'viemLocalAcocunt' in newConfig
-          ? !!newConfig.viemLocalAcocunt
+      const willHaveViemLocalAccount =
+        'viemLocalAccount' in (newConfig as any)
+          ? !!(newConfig as any).viemLocalAccount
           : 'privateKey' in newConfig
             ? false // Will be cleared when privateKey is set
-            : !!this.#privateConfig.viemLocalAcocunt;
+            : !!this.#privateConfig.viemLocalAccount;
 
-      if (!willHavePrivateKey && !willHaveViemLocalAcocunt) {
+      if (!willHavePrivateKey && !willHaveViemLocalAccount) {
         throw new Error(
-          'Either privateKey or viemLocalAcocunt is required when walletMode is "delegatedEoa". Please provide a private key or a LocalAccount (viemLocalAcocunt) in the configuration.'
+          'Either privateKey or viemLocalAccount is required when walletMode is "delegatedEoa". Please provide a private key or a LocalAccount (viemLocalAccount) in the configuration.'
         );
       }
 
-      if (willHavePrivateKey && willHaveViemLocalAcocunt) {
+      if (willHavePrivateKey && willHaveViemLocalAccount) {
         throw new Error(
-          'Cannot provide both privateKey and viemLocalAcocunt in delegatedEoa mode. Please provide either privateKey or viemLocalAcocunt, but not both.'
+          'Cannot provide both privateKey and viemLocalAccount in delegatedEoa mode. Please provide either privateKey or viemLocalAccount, but not both.'
         );
       }
     }
 
     // Security: Update both private and public configs separately
-    // When switching between privateKey and viemLocalAcocunt, clear the opposite field
+    // When switching between privateKey and viemLocalAccount, clear the opposite field
     this.#privateConfig = {
       ...this.#privateConfig,
       privateKey:
         'privateKey' in newConfig
           ? newConfig.privateKey
-          : 'viemLocalAcocunt' in newConfig
-            ? undefined // Clear privateKey if viemLocalAcocunt is being set
+          : 'viemLocalAccount' in (newConfig as any)
+            ? undefined // Clear privateKey if viemLocalAccount is being set
             : this.#privateConfig.privateKey,
-      viemLocalAcocunt:
-        'viemLocalAcocunt' in newConfig
-          ? newConfig.viemLocalAcocunt
+      viemLocalAccount:
+        'viemLocalAccount' in (newConfig as any)
+          ? (newConfig as any).viemLocalAccount
           : 'privateKey' in newConfig
-            ? undefined // Clear viemLocalAcocunt if privateKey is being set
-            : this.#privateConfig.viemLocalAcocunt,
+            ? undefined // Clear viemLocalAccount if privateKey is being set
+            : this.#privateConfig.viemLocalAccount,
       bundlerApiKey:
         'bundlerApiKey' in newConfig
           ? newConfig.bundlerApiKey
@@ -543,15 +547,15 @@ export class EtherspotProvider {
 
   /**
    * Gets the owner account (EOA) from the config (delegatedEoa mode).
-   * Returns the viemLocalAcocunt directly if provided, otherwise creates it from privateKey.
+   * Returns the viemLocalAccount directly if provided, otherwise creates it from privateKey.
    *
    * @param chainId - (Optional) The chain ID.
    * @returns A promise that resolves to the owner account.
-   * @throws {Error} If wallet mode is not 'delegatedEoa' or neither viemLocalAcocunt nor privateKey is available.
+   * @throws {Error} If wallet mode is not 'delegatedEoa' or neither viemLocalAccount nor privateKey is available.
    *
    * @remarks
    * - Only available in delegatedEoa wallet mode.
-   * - Returns the viemLocalAcocunt directly if provided in config, otherwise creates from privateKey.
+   * - Returns the viemLocalAccount directly if provided in config, otherwise creates from privateKey.
    * - This is the same account used internally in getDelegatedEoaAccount().
    */
   async getOwnerAccount(
@@ -565,21 +569,21 @@ export class EtherspotProvider {
       );
     }
 
-    // If viemLocalAcocunt is provided directly, return it
-    if (this.#privateConfig.viemLocalAcocunt) {
+    // If viemLocalAccount is provided directly, return it
+    if (this.#privateConfig.viemLocalAccount) {
       log(
-        `[EtherspotProvider] getOwnerAccount(): Using provided owner account ${this.#privateConfig.viemLocalAcocunt.address} for chain ${chainId}`,
-        { ownerAddress: this.#privateConfig.viemLocalAcocunt.address },
+        `[EtherspotProvider] getOwnerAccount(): Using provided owner account ${this.#privateConfig.viemLocalAccount.address} for chain ${chainId}`,
+        { ownerAddress: this.#privateConfig.viemLocalAccount.address },
         this.#publicConfig.debugMode
       );
-      return this.#privateConfig.viemLocalAcocunt;
+      return this.#privateConfig.viemLocalAccount;
     }
 
     // Otherwise, create from private key
     if (!this.#privateConfig.privateKey) {
       throw new Error(
-        'getOwnerAccount(): Neither viemLocalAcocunt nor privateKey found in config. ' +
-          'Please ensure either viemLocalAcocunt or privateKey is set in config.'
+        'getOwnerAccount(): Neither viemLocalAccount nor privateKey found in config. ' +
+          'Please ensure either viemLocalAccount or privateKey is set in config.'
       );
     }
 
