@@ -4,7 +4,7 @@
 
 ### Added Changes
 
-- **OwnerAccount Support**: Added support for passing a `LocalAccount` (from viem) directly to the Transaction Kit via the `ownerAccount` parameter in `delegatedEoa` mode. This allows users to bypass `privateKeyToAccount` conversion when they already have a `LocalAccount` object. The `ownerAccount` parameter works equivalently to `privateKey` and provides the same functionality - users can provide either `privateKey` or `ownerAccount`, but not both.
+- **viemLocalAcocunt Support**: Added support for passing a `LocalAccount` (from viem) directly to the Transaction Kit via the `viemLocalAcocunt` parameter in `delegatedEoa` mode. This allows users to bypass `privateKeyToAccount` conversion when they already have a `LocalAccount` object. The `viemLocalAcocunt` parameter works equivalently to `privateKey` and provides the same functionality - users can provide either `privateKey` or `viemLocalAcocunt`, but not both.
 
 ## [2.1.1] - 2025-01-27
 

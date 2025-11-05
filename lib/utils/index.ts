@@ -80,7 +80,7 @@ export const log = (message: string, data?: any, debugMode?: boolean): void => {
  */
 const SENSITIVE_KEYS = [
   'privateKey',
-  'ownerAccount',
+  'viemLocalAcocunt',
   'bundlerApiKey',
   'bundlerApiKeyFormat',
 ];
