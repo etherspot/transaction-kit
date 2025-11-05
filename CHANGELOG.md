@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.1.2] - 2025-01-27
+
+### Added Changes
+
+- **viemLocalAccount Support**: Added support for passing a `LocalAccount` (from viem) directly to the Transaction Kit via the `viemLocalAccount` parameter in `delegatedEoa` mode. This allows users to bypass `privateKeyToAccount` conversion when they already have a `LocalAccount` object. The `viemLocalAccount` parameter works equivalently to `privateKey` and provides the same functionality - users can provide either `privateKey` or `viemLocalAccount`, but not both.
+
 ## [2.1.1] - 2025-01-27
 
 ### Added Changes

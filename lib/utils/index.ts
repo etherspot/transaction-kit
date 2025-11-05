@@ -78,7 +78,12 @@ export const log = (message: string, data?: any, debugMode?: boolean): void => {
  * Sensitive keys specific to TransactionKit configuration.
  * ONLY the critical security-sensitive keys that must never leak.
  */
-const SENSITIVE_KEYS = ['privateKey', 'bundlerApiKey', 'bundlerApiKeyFormat'];
+const SENSITIVE_KEYS = [
+  'privateKey',
+  'viemLocalAccount',
+  'bundlerApiKey',
+  'bundlerApiKeyFormat',
+];
 
 /**
  * Sanitizes any object by recursively sanitizing all properties and nested objects.

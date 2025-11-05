@@ -1,10 +1,7 @@
-import {
-  EtherspotBundler,
-  ModularSdk,
-  WalletProviderLike,
-} from '@etherspot/modular-sdk';
+import { EtherspotBundler, ModularSdk } from '@etherspot/modular-sdk';
 import { isEqual } from 'lodash';
 import { Chain } from 'viem';
+import { privateKeyToAccount } from 'viem/accounts';
 
 // EtherspotProvider
 import { EtherspotProvider } from '../lib/EtherspotProvider';
@@ -26,6 +23,8 @@ jest.mock('lodash', () => ({
   isEqual: jest.fn(),
 }));
 
+// Fallback type for tests (the actual type is not needed for runtime behavior here)
+type WalletProviderLike = any;
 // Get mocked constructors
 const MockedModularSdk = ModularSdk as jest.MockedClass<typeof ModularSdk>;
 const MockedEtherspotBundler = EtherspotBundler as jest.MockedClass<
@@ -189,25 +188,35 @@ describe('EtherspotProvider', () => {
         }
       );
 
-      const missingPrivateKeyCases = [
-        { privateKey: undefined },
-        { privateKey: null },
-        { privateKey: '' },
-      ];
+      it('should throw when neither privateKey nor viemLocalAccount is provided in delegatedEoa mode', () => {
+        expect(
+          () =>
+            new EtherspotProvider({
+              chainId: 1,
+              walletMode: 'delegatedEoa',
+            } as EtherspotTransactionKitConfig)
+        ).toThrow(
+          'Either privateKey or viemLocalAccount is required when walletMode is "delegatedEoa"'
+        );
+      });
 
-      test.each(missingPrivateKeyCases)(
-        'should throw for missing privateKey in delegatedEoa mode: $privateKey',
-        ({ privateKey }) => {
-          expect(
-            () =>
-              new EtherspotProvider({
-                chainId: 1,
-                walletMode: 'delegatedEoa',
-                privateKey: privateKey as any,
-              })
-          ).toThrow('privateKey is required when walletMode is "delegatedEoa"');
-        }
-      );
+      it('should throw when both privateKey and viemLocalAccount are provided in delegatedEoa mode', () => {
+        const viemLocalAccount = privateKeyToAccount(
+          '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+        );
+        expect(
+          () =>
+            new EtherspotProvider({
+              chainId: 1,
+              walletMode: 'delegatedEoa',
+              privateKey:
+                '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+              viemLocalAccount,
+            } as EtherspotTransactionKitConfig)
+        ).toThrow(
+          'Cannot provide both privateKey and viemLocalAccount in delegatedEoa mode'
+        );
+      });
 
       it('should accept valid privateKey formats in delegatedEoa mode', () => {
         const validPrivateKeys = [
@@ -223,9 +232,23 @@ describe('EtherspotProvider', () => {
                 chainId: 1,
                 walletMode: 'delegatedEoa',
                 privateKey,
-              })
+              } as EtherspotTransactionKitConfig)
           ).not.toThrow();
         });
+      });
+
+      it('should accept viemLocalAccount in delegatedEoa mode', () => {
+        const viemLocalAccount = privateKeyToAccount(
+          '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+        );
+        expect(
+          () =>
+            new EtherspotProvider({
+              chainId: 1,
+              walletMode: 'delegatedEoa',
+              viemLocalAccount,
+            } as EtherspotTransactionKitConfig)
+        ).not.toThrow();
       });
     });
   });
@@ -284,10 +307,12 @@ describe('EtherspotProvider', () => {
       });
 
       it('should handle wallet mode changes in updateConfig', () => {
-        // Test switching wallet mode (no validation in updateConfig)
+        // Test switching wallet mode (must provide privateKey or viemLocalAccount)
         expect(() => {
           etherspotProvider.updateConfig({
             walletMode: 'delegatedEoa',
+            privateKey:
+              '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
           });
         }).not.toThrow();
 
@@ -327,6 +352,130 @@ describe('EtherspotProvider', () => {
         etherspotProvider.updateConfig({ debugMode: true });
         expect(etherspotProvider.getConfig().debugMode).toBe(true);
         expect(etherspotProvider.getChainId()).toBe(137); // Should remain unchanged
+      });
+
+      describe('updateConfig with delegatedEoa mode and viemLocalAccount', () => {
+        it('should update config with viemLocalAccount in delegatedEoa mode', () => {
+          const delegated = new EtherspotProvider({
+            chainId: 1,
+            walletMode: 'delegatedEoa',
+            privateKey:
+              '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+          } as EtherspotTransactionKitConfig);
+
+          const newViemLocalAccount = privateKeyToAccount(
+            '0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'
+          );
+
+          delegated.updateConfig({
+            walletMode: 'delegatedEoa',
+            viemLocalAccount: newViemLocalAccount,
+          });
+
+          expect(delegated.getWalletMode()).toBe('delegatedEoa');
+        });
+
+        it('should clear privateKey when switching to viemLocalAccount', async () => {
+          const delegated = new EtherspotProvider({
+            chainId: 1,
+            walletMode: 'delegatedEoa',
+            privateKey:
+              '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+          } as EtherspotTransactionKitConfig);
+
+          const newViemLocalAccount = privateKeyToAccount(
+            '0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'
+          );
+
+          delegated.updateConfig({
+            walletMode: 'delegatedEoa',
+            viemLocalAccount: newViemLocalAccount,
+          });
+
+          // getOwnerAccount should return the new viemLocalAccount
+          const owner = await delegated.getOwnerAccount();
+          expect(owner.address).toBe(newViemLocalAccount.address);
+          expect(owner).toBe(newViemLocalAccount);
+        });
+
+        it('should clear viemLocalAccount when switching to privateKey', async () => {
+          const initialViemLocalAccount = privateKeyToAccount(
+            '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+          );
+          const delegated = new EtherspotProvider({
+            chainId: 1,
+            walletMode: 'delegatedEoa',
+            viemLocalAccount: initialViemLocalAccount,
+          } as EtherspotTransactionKitConfig);
+
+          const newPrivateKey =
+            '0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb';
+
+          delegated.updateConfig({
+            walletMode: 'delegatedEoa',
+            privateKey: newPrivateKey,
+          });
+
+          // getOwnerAccount should create from the new privateKey
+          const owner = await delegated.getOwnerAccount();
+          expect(owner.address).not.toBe(initialViemLocalAccount.address);
+          // Address from new privateKey should be different
+          const expectedAccount = privateKeyToAccount(newPrivateKey);
+          expect(owner.address).toBe(expectedAccount.address);
+        });
+
+        it('should throw when updating to delegatedEoa mode without privateKey or viemLocalAccount', () => {
+          expect(() => {
+            etherspotProvider.updateConfig({
+              walletMode: 'delegatedEoa',
+            });
+          }).toThrow(
+            'Either privateKey or viemLocalAccount is required when walletMode is "delegatedEoa"'
+          );
+        });
+
+        it('should throw when both privateKey and viemLocalAccount are provided in updateConfig', () => {
+          const delegated = new EtherspotProvider({
+            chainId: 1,
+            walletMode: 'delegatedEoa',
+            privateKey:
+              '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+          } as EtherspotTransactionKitConfig);
+
+          const viemLocalAccount = privateKeyToAccount(
+            '0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'
+          );
+
+          expect(() => {
+            delegated.updateConfig({
+              walletMode: 'delegatedEoa',
+              privateKey:
+                '0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc',
+              viemLocalAccount,
+            });
+          }).toThrow(
+            'Cannot provide both privateKey and viemLocalAccount in delegatedEoa mode'
+          );
+        });
+
+        it('should throw when clearing both privateKey and viemLocalAccount', () => {
+          const delegated = new EtherspotProvider({
+            chainId: 1,
+            walletMode: 'delegatedEoa',
+            privateKey:
+              '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+          } as EtherspotTransactionKitConfig);
+
+          expect(() => {
+            delegated.updateConfig({
+              walletMode: 'delegatedEoa',
+              privateKey: undefined,
+              viemLocalAccount: undefined,
+            });
+          }).toThrow(
+            'Either privateKey or viemLocalAccount is required when walletMode is "delegatedEoa"'
+          );
+        });
       });
 
       describe('Validation errors', () => {
@@ -737,7 +886,11 @@ describe('EtherspotProvider', () => {
       it('should return updated wallet mode after config update', () => {
         expect(etherspotProvider.getWalletMode()).toBe('modular');
 
-        etherspotProvider.updateConfig({ walletMode: 'delegatedEoa' });
+        etherspotProvider.updateConfig({
+          walletMode: 'delegatedEoa',
+          privateKey:
+            '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+        });
         expect(etherspotProvider.getWalletMode()).toBe('delegatedEoa');
       });
     });
@@ -884,6 +1037,20 @@ describe('EtherspotProvider', () => {
         expect(owner.address).toBeDefined();
       });
 
+      it('should return viemLocalAccount directly when provided', async () => {
+        const expectedAccount = privateKeyToAccount(
+          '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+        );
+        const delegated = new EtherspotProvider({
+          chainId: 1,
+          walletMode: 'delegatedEoa',
+          viemLocalAccount: expectedAccount,
+        } as EtherspotTransactionKitConfig);
+        const owner = await delegated.getOwnerAccount();
+        expect(owner.address).toBe(expectedAccount.address);
+        expect(owner).toBe(expectedAccount);
+      });
+
       it('should handle invalid private key format', async () => {
         const delegated = new EtherspotProvider({
           chainId: 1,
@@ -892,6 +1059,25 @@ describe('EtherspotProvider', () => {
         } as EtherspotTransactionKitConfig);
 
         await expect(delegated.getOwnerAccount()).rejects.toThrow();
+      });
+
+      it('should throw when neither viemLocalAccount nor privateKey is available', () => {
+        const delegated = new EtherspotProvider({
+          chainId: 1,
+          walletMode: 'delegatedEoa',
+          privateKey:
+            '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+        } as EtherspotTransactionKitConfig);
+
+        expect(() => {
+          delegated.updateConfig({
+            walletMode: 'delegatedEoa',
+            privateKey: undefined,
+            viemLocalAccount: undefined,
+          });
+        }).toThrow(
+          'Either privateKey or viemLocalAccount is required when walletMode is "delegatedEoa"'
+        );
       });
 
       it('should handle concurrent calls to same method', async () => {
@@ -913,10 +1099,36 @@ describe('EtherspotProvider', () => {
           promise3,
         ]);
 
-        // All should return the same result (cached) - same address
+        // All should return the same result - same address
         expect(owner1.address).toBe(owner2.address);
         expect(owner2.address).toBe(owner3.address);
         expect(owner1.address).toBeDefined();
+      });
+
+      it('should handle concurrent calls with viemLocalAccount', async () => {
+        const expectedAccount = privateKeyToAccount(
+          '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+        );
+        const delegated = new EtherspotProvider({
+          chainId: 1,
+          walletMode: 'delegatedEoa',
+          viemLocalAccount: expectedAccount,
+        } as EtherspotTransactionKitConfig);
+
+        const promise1 = delegated.getOwnerAccount();
+        const promise2 = delegated.getOwnerAccount();
+        const promise3 = delegated.getOwnerAccount();
+
+        const [owner1, owner2, owner3] = await Promise.all([
+          promise1,
+          promise2,
+          promise3,
+        ]);
+
+        // All should return the same account object
+        expect(owner1).toBe(expectedAccount);
+        expect(owner2).toBe(expectedAccount);
+        expect(owner3).toBe(expectedAccount);
       });
     });
 
@@ -957,6 +1169,22 @@ describe('EtherspotProvider', () => {
         } as EtherspotTransactionKitConfig);
         const account = await delegated.getDelegatedEoaAccount(1);
         expect(account).toBeDefined();
+      });
+
+      it('should create smart account using viemLocalAccount directly', async () => {
+        const viemLocalAccount = privateKeyToAccount(
+          '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+        );
+        const delegated = new EtherspotProvider({
+          chainId: 1,
+          walletMode: 'delegatedEoa',
+          viemLocalAccount,
+        } as EtherspotTransactionKitConfig);
+
+        const account = await delegated.getDelegatedEoaAccount(1);
+        expect(account).toBeDefined();
+        const owner = await delegated.getOwnerAccount();
+        expect(owner).toBe(viemLocalAccount);
       });
     });
 
@@ -1177,11 +1405,29 @@ describe('EtherspotProvider', () => {
       it('should clear cache when wallet mode changes', async () => {
         await etherspotProvider.getSdk();
 
-        // Change wallet mode
+        // Change wallet mode (using privateKey)
         etherspotProvider.updateConfig({
           walletMode: 'delegatedEoa',
           privateKey:
             '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+        });
+
+        // Next call should throw because getSdk is not available in delegatedEoa mode
+        await expect(etherspotProvider.getSdk()).rejects.toThrow(
+          "getSdk() is only available in 'modular' wallet mode. Current mode: 'delegatedEoa'"
+        );
+      });
+
+      it('should clear cache when switching to delegatedEoa mode with viemLocalAccount', async () => {
+        await etherspotProvider.getSdk();
+
+        // Change wallet mode (using viemLocalAccount)
+        const viemLocalAccount = privateKeyToAccount(
+          '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+        );
+        etherspotProvider.updateConfig({
+          walletMode: 'delegatedEoa',
+          viemLocalAccount,
         });
 
         // Next call should throw because getSdk is not available in delegatedEoa mode
@@ -1227,10 +1473,10 @@ describe('EtherspotProvider', () => {
             new EtherspotProvider({
               chainId: 1,
               walletMode: 'delegatedEoa',
-              // No privateKey provided
+              // No privateKey or viemLocalAccount provided
             } as EtherspotTransactionKitConfig)
         ).toThrow(
-          'privateKey is required when walletMode is "delegatedEoa". Please provide a private key in the configuration.'
+          'Either privateKey or viemLocalAccount is required when walletMode is "delegatedEoa"'
         );
       });
     });
