@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.1.3] - 2025-01-27
+
+### Fixes
+
+- Fixed `sendBatches()` and `estimateBatches()` return values to correctly return batch results with `chainGroups` and `userOpHash` data.
+
 ## [2.1.2] - 2025-01-27
 
 ### Added Changes

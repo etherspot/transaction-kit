@@ -963,7 +963,7 @@ describe('EtherspotTransactionKit', () => {
         const result = await transactionKit.estimateBatches();
         expect(result.isEstimatedSuccessfully).toBe(true);
         expect(result.batches['batch1']).toBeDefined();
-        expect(result.batches['batch1']).toHaveLength(2);
+        expect(result.batches['batch1'].transactions).toHaveLength(2);
       });
 
       it('should return error for estimating non-existent batch', async () => {
@@ -974,8 +974,12 @@ describe('EtherspotTransactionKit', () => {
           onlyBatchNames: ['doesnotexist'],
         });
         expect(result.isEstimatedSuccessfully).toBe(false);
-        // For non-existent batches, the result should be empty
-        expect(Object.keys(result.batches)).toHaveLength(0);
+        // For non-existent batches, the result should contain an error entry
+        expect(result.batches['doesnotexist']).toBeDefined();
+        expect(result.batches['doesnotexist'].errorMessage).toBeDefined();
+        expect(result.batches['doesnotexist'].isEstimatedSuccessfully).toBe(
+          false
+        );
       });
 
       it('should throw if no provider in estimateBatches', async () => {

@@ -2343,7 +2343,7 @@ export class EtherspotTransactionKit implements IInitial {
     if (batchesToEstimate.length === 0) {
       log('estimateBatches(): No batches to estimate', this.debugMode);
       this.isEstimating = false;
-      return { ...result, ...this };
+      return result;
     }
 
     // ========================================================================
@@ -2756,7 +2756,7 @@ export class EtherspotTransactionKit implements IInitial {
       this.containsEstimatingError = !result.isEstimatedSuccessfully;
       this.isEstimating = false;
 
-      return { ...result, ...this };
+      return result;
     } else {
       // ========================================================================
       // MODULAR MODE: Use Etherspot SDK for estimation
@@ -3062,7 +3062,7 @@ export class EtherspotTransactionKit implements IInitial {
       this.containsEstimatingError = !result.isEstimatedSuccessfully;
       this.isEstimating = false;
 
-      return { ...result, ...this };
+      return result;
     }
   }
 
@@ -4215,7 +4215,7 @@ export class EtherspotTransactionKit implements IInitial {
       this.containsSendingError = !result.isSentSuccessfully;
       this.isSending = false;
 
-      return { ...result, ...this };
+      return result;
     }
   }
 
