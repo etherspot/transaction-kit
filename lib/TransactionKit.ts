@@ -11,7 +11,7 @@ import {
   zeroAddress,
 } from 'viem';
 import { SignAuthorizationReturnType, type LocalAccount } from 'viem/accounts';
-import type { Address, Hex } from 'viem';
+import type { Address, Hex, SignableMessage } from 'viem';
 
 // interfaces
 import {
@@ -695,7 +695,7 @@ export class EtherspotTransactionKit implements IInitial {
     // 3. Viem delegates to the provider/transport if the owner account supports it
     const eip6492Account: LocalAccount<string, Address> = {
       ...owner,
-      async signMessage({ message }: { message: string | Hex }) {
+      async signMessage({ message }: { message: SignableMessage }) {
         // First, get the standard signature from the underlying account
         // This will delegate to WalletConnect/MetaMask/provider if the owner account is provider-based
         const standardSignature = await walletClient.signMessage({
@@ -745,14 +745,25 @@ export class EtherspotTransactionKit implements IInitial {
           address: owner.address,
         });
 
-        const authorizationData = authorization.data || '0x';
+        // Encode authorization for EIP-7702 deployment data
+        // Authorization structure: [chainId, address, nonce, r, s, v]
+        // For EIP-6492, we need RLP-encoded transaction: [chainId, nonce, to (zeroAddress), value (0), data (authorization), gasLimit, gasPrice]
+        // The authorization itself is RLP-encoded: [chainId, address, nonce, r, s, v]
+        const authorizationRlp = toRlp([
+          toHex(authorization.chainId),
+          authorization.address,
+          toHex(authorization.nonce),
+          authorization.r,
+          authorization.s,
+          toHex(authorization.v),
+        ]);
 
         const deploymentTx = [
           toHex(signChainId),
           toHex(nonce),
           zeroAddress,
           '0x0',
-          authorizationData,
+          authorizationRlp,
           '0x0',
           '0x0',
         ];
