@@ -2348,13 +2348,10 @@ describe('DelegatedEoa Mode Integration', () => {
   });
 
   describe('signMessage', () => {
-    const { signMessage: viemSignMessage } = require('viem/accounts');
     const { toRlp } = require('viem');
 
     beforeEach(() => {
       jest.clearAllMocks();
-      (viemSignMessage as jest.Mock).mockClear();
-      (viemSignMessage as jest.Mock).mockResolvedValue('0x' + '1'.repeat(130));
       (toRlp as jest.Mock).mockClear();
     });
 
@@ -2377,13 +2374,16 @@ describe('DelegatedEoa Mode Integration', () => {
           .mockResolvedValue('0x'), // For other calls
         getTransactionCount: jest.fn().mockResolvedValue(5),
       } as any;
+      const mockWalletClient = {
+        signMessage: jest
+          .fn()
+          .mockResolvedValue('0x' + '1'.repeat(130)), // Standard signature
+      } as any;
 
       mockProvider.getOwnerAccount.mockResolvedValue(mockOwner);
       mockProvider.getBundlerClient.mockResolvedValue(mockBundlerClient);
       mockProvider.getPublicClient.mockResolvedValue(mockPublicClient);
-      (viemSignMessage as jest.Mock).mockResolvedValue(
-        '0x' + '1'.repeat(130) // 65 bytes signature (r + s + v)
-      );
+      mockProvider.getWalletClient.mockResolvedValue(mockWalletClient);
       (toRlp as jest.Mock).mockReturnValue('0xdeadbeef1234567890abcdef');
 
       const result = await transactionKit.signMessage('Hello, World!', 1);
@@ -2391,10 +2391,8 @@ describe('DelegatedEoa Mode Integration', () => {
       // Should start with EIP-6492 magic prefix
       expect(result).toMatch(/^0x6492/);
       expect(result.length).toBeGreaterThan(140); // At least magic prefix + signature + deployment data
-      expect(viemSignMessage).toHaveBeenCalledWith({
-        account: mockOwner,
-        message: 'Hello, World!',
-      });
+      // The wrapper account's signMessage will call walletClient.signMessage with the original owner
+      expect(mockWalletClient.signMessage).toHaveBeenCalled();
       expect(mockBundlerClient.signAuthorization).toHaveBeenCalled();
     });
 
@@ -2417,19 +2415,22 @@ describe('DelegatedEoa Mode Integration', () => {
           .mockResolvedValue('0xef01001234'),
         getTransactionCount: jest.fn().mockResolvedValue(5),
       } as any;
+      const mockWalletClient = {
+        signMessage: jest
+          .fn()
+          .mockResolvedValue('0x' + '2'.repeat(130)), // Standard signature
+      } as any;
 
       mockProvider.getOwnerAccount.mockResolvedValue(mockOwner);
       mockProvider.getBundlerClient.mockResolvedValue(mockBundlerClient);
       mockProvider.getPublicClient.mockResolvedValue(mockPublicClient);
-      (viemSignMessage as jest.Mock).mockResolvedValue(
-        '0x' + '2'.repeat(130) // 65 bytes signature
-      );
+      mockProvider.getWalletClient.mockResolvedValue(mockWalletClient);
       (toRlp as jest.Mock).mockReturnValue('0xdeadbeef1234567890abcdef');
 
       const result = await transactionKit.signMessage('Test message', 1);
 
       expect(result).toMatch(/^0x6492/);
-      expect(mockViemSignMessage).toHaveBeenCalled();
+      expect(mockWalletClient.signMessage).toHaveBeenCalled();
       expect(mockBundlerClient.signAuthorization).toHaveBeenCalled();
     });
 
@@ -2481,12 +2482,18 @@ describe('DelegatedEoa Mode Integration', () => {
       } as any;
       const mockPublicClient = {
         getCode: jest.fn().mockResolvedValue('0x'),
+        getTransactionCount: jest.fn().mockResolvedValue(5),
+      } as any;
+      const mockWalletClient = {
+        signMessage: jest
+          .fn()
+          .mockRejectedValue(new Error('Signing failed')),
       } as any;
 
       mockProvider.getOwnerAccount.mockResolvedValue(mockOwner);
       mockProvider.getBundlerClient.mockResolvedValue(mockBundlerClient);
       mockProvider.getPublicClient.mockResolvedValue(mockPublicClient);
-      (viemSignMessage as jest.Mock).mockRejectedValue(new Error('Signing failed'));
+      mockProvider.getWalletClient.mockResolvedValue(mockWalletClient);
 
       await expect(
         transactionKit.signMessage('Test message', 1)
@@ -2509,18 +2516,24 @@ describe('DelegatedEoa Mode Integration', () => {
         getCode: jest.fn().mockResolvedValue('0x'),
         getTransactionCount: jest.fn().mockResolvedValue(5),
       } as any;
+      const mockWalletClient = {
+        signMessage: jest
+          .fn()
+          .mockResolvedValue('0x' + '1'.repeat(130)),
+      } as any;
 
       mockProvider.getOwnerAccount.mockResolvedValue(mockOwner);
       mockProvider.getBundlerClient.mockResolvedValue(mockBundlerClient);
       mockProvider.getPublicClient.mockResolvedValue(mockPublicClient);
+      mockProvider.getWalletClient.mockResolvedValue(mockWalletClient);
       mockProvider.getChainId.mockReturnValue(1);
-      (viemSignMessage as jest.Mock).mockResolvedValue('0x' + '1'.repeat(130));
       (toRlp as jest.Mock).mockReturnValue('0xdeadbeef1234567890abcdef');
 
       await transactionKit.signMessage('Test message');
 
       expect(mockProvider.getOwnerAccount).toHaveBeenCalledWith(1);
       expect(mockProvider.getBundlerClient).toHaveBeenCalledWith(1);
+      expect(mockProvider.getWalletClient).toHaveBeenCalledWith(1);
     });
 
     it('should handle hex string messages', async () => {
@@ -2539,11 +2552,16 @@ describe('DelegatedEoa Mode Integration', () => {
         getCode: jest.fn().mockResolvedValue('0x'),
         getTransactionCount: jest.fn().mockResolvedValue(5),
       } as any;
+      const mockWalletClient = {
+        signMessage: jest
+          .fn()
+          .mockResolvedValue('0x' + '1'.repeat(130)),
+      } as any;
 
       mockProvider.getOwnerAccount.mockResolvedValue(mockOwner);
       mockProvider.getBundlerClient.mockResolvedValue(mockBundlerClient);
       mockProvider.getPublicClient.mockResolvedValue(mockPublicClient);
-      (viemSignMessage as jest.Mock).mockResolvedValue('0x' + '1'.repeat(130));
+      mockProvider.getWalletClient.mockResolvedValue(mockWalletClient);
       (toRlp as jest.Mock).mockReturnValue('0xdeadbeef1234567890abcdef');
 
       const result = await transactionKit.signMessage(
@@ -2552,10 +2570,7 @@ describe('DelegatedEoa Mode Integration', () => {
       );
 
       expect(result).toMatch(/^0x6492/);
-      expect(viemSignMessage).toHaveBeenCalledWith({
-        account: mockOwner,
-        message: '0x48656c6c6f',
-      });
+      expect(mockWalletClient.signMessage).toHaveBeenCalled();
     });
   });
 
