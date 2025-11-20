@@ -4,8 +4,14 @@ import {
   KERNEL_V3_3,
   KernelVersionToAddressesMap,
 } from '@zerodev/sdk/constants';
-import { isAddress, zeroAddress } from 'viem';
-import { SignAuthorizationReturnType } from 'viem/accounts';
+import {
+  isAddress,
+  toHex,
+  toRlp,
+  zeroAddress,
+} from 'viem';
+import { SignAuthorizationReturnType, type LocalAccount } from 'viem/accounts';
+import type { Address, Hex, SignableMessage } from 'viem';
 
 // interfaces
 import {
@@ -652,6 +658,206 @@ export class EtherspotTransactionKit implements IInitial {
       };
     } catch (error) {
       log('undelegateSmartAccountToEoa(): Failed', error, this.debugMode);
+      throw error;
+    }
+  }
+
+  /**
+   * Creates an EIP-6492 enabled account wrapper that intercepts signMessage calls.
+   * When signMessage is called on this account, it automatically wraps the signature with EIP-6492 format.
+   *
+   * @private
+   */
+  /**
+   * Creates an EIP-6492 enabled account wrapper that intercepts signMessage calls.
+   * When signMessage is called on this account, it automatically wraps the signature with EIP-6492 format.
+   *
+   * @private
+   */
+  private async createEIP6492Account(
+    owner: LocalAccount<string, Address>,
+    signChainId: number
+  ): Promise<LocalAccount<string, Address>> {
+    const bundlerClient =
+      await this.#etherspotProvider.getBundlerClient(signChainId);
+    const walletClient =
+      await this.#etherspotProvider.getWalletClient(signChainId);
+
+    // Capture 'this' context for use in the wrapper
+    const self = this;
+
+    // Create a wrapper account that intercepts signMessage calls
+    // When walletClient.signMessage() is called with this account, viem will detect
+    // that the account has a signMessage method and call it directly.
+    // This works with ANY provider (WalletConnect, MetaMask, private keys, etc.) because:
+    // 1. Our wrapper's signMessage is called first
+    // 2. We then call walletClient.signMessage() with the original owner account
+    // 3. Viem delegates to the provider/transport if the owner account supports it
+    const eip6492Account: LocalAccount<string, Address> = {
+      ...owner,
+      async signMessage({ message }: { message: SignableMessage }) {
+        // First, get the standard signature from the underlying account
+        // This will delegate to WalletConnect/MetaMask/provider if the owner account is provider-based
+        const standardSignature = await walletClient.signMessage({
+          account: owner,
+          message: message as string,
+        });
+
+        // Get or create the authorization
+        const isAlreadyInstalled =
+          await self.isDelegateSmartAccountToEoa(signChainId);
+
+        let authorization: SignAuthorizationReturnType | undefined;
+
+        if (isAlreadyInstalled) {
+          const delegateAddress = KernelVersionToAddressesMap[KERNEL_V3_3]
+            .accountImplementationAddress as `0x${string}`;
+
+          authorization = await bundlerClient.signAuthorization({
+            account: owner,
+            contractAddress: delegateAddress,
+          });
+        } else {
+          const delegateResult = await self.delegateSmartAccountToEoa({
+            chainId: signChainId,
+            delegateImmediately: false,
+          });
+
+          if (!delegateResult.authorization) {
+            throw new Error(
+              'Failed to create authorization for EIP-6492 signature'
+            );
+          }
+
+          authorization = delegateResult.authorization;
+        }
+
+        if (!authorization) {
+          throw new Error(
+            'Authorization is required but was not created'
+          );
+        }
+
+        // Encode the authorization as deployment data
+        const publicClient =
+          await self.#etherspotProvider.getPublicClient(signChainId);
+        const nonce = await publicClient.getTransactionCount({
+          address: owner.address,
+        });
+
+        // Encode authorization for EIP-7702 deployment data
+        // Authorization structure: [chainId, address, nonce, r, s, v]
+        // For EIP-6492, we need RLP-encoded transaction: [chainId, nonce, to (zeroAddress), value (0), data (authorization), gasLimit, gasPrice]
+        // The authorization itself is RLP-encoded: [chainId, address, nonce, r, s, v]
+        const authorizationRlp = toRlp([
+          toHex(authorization.chainId),
+          authorization.address,
+          toHex(authorization.nonce),
+          authorization.r,
+          authorization.s,
+          toHex(authorization.v),
+        ]);
+
+        const deploymentTx = [
+          toHex(signChainId),
+          toHex(nonce),
+          zeroAddress,
+          '0x0',
+          authorizationRlp,
+          '0x0',
+          '0x0',
+        ];
+
+        const deploymentData = toRlp(deploymentTx);
+
+        // Create EIP-6492 format: 0x6492 + signature + deployment_data
+        const signatureBytes = standardSignature.slice(2);
+        const deploymentBytes = deploymentData.slice(2);
+
+        return `0x6492${signatureBytes}${deploymentBytes}` as `0x${string}`;
+      },
+    };
+
+    return eip6492Account;
+  }
+
+  /**
+   * Signs a message using EIP-6492 format for EIP-7702 wallets.
+   * This creates a signature that can be validated before the smart account is deployed/activated.
+   *
+   * @param message - The message to sign (string or hex string).
+   * @param chainId - (Optional) The chain ID to use. If not provided, uses the provider's current chain ID.
+   * @returns A promise that resolves to the EIP-6492 formatted signature as a hex string.
+   * @throws {Error} If called in 'modular' wallet mode (only available in 'delegatedEoa' mode).
+   * @throws {Error} If signing fails or authorization cannot be created.
+   *
+   * @remarks
+   * - Only available in 'delegatedEoa' wallet mode.
+   * - Creates an EIP-6492 compatible signature that wraps the standard signature with deployment data.
+   * - The signature format is: `0x6492<signature><deployment_data>`
+   * - If the EOA is not yet designated, this will create the authorization automatically.
+   * - The signature can be validated by contracts that support EIP-6492, even before the smart account is activated.
+   * - Uses WalletClient.signMessage() which delegates to the underlying provider/transport if the account supports it.
+   *   This allows signing with provider-based accounts (e.g., WalletConnect, MetaMask, hardware wallets) when using
+   *   viemLocalAccount that wraps the provider, not just direct private key accounts.
+   * - The implementation creates an EIP-6492 enabled account wrapper that intercepts signMessage calls,
+   *   allowing walletClient.signMessage() to directly return EIP-6492 formatted signatures.
+   * - Works with WalletConnect and other providers: The wrapper's signMessage is called first, then it delegates
+   *   to the provider for actual signing, ensuring the signature is wrapped in EIP-6492 format regardless of provider.
+   */
+  async signMessage(
+    message: string | `0x${string}`,
+    chainId?: number
+  ): Promise<`0x${string}`> {
+    const walletMode = this.#etherspotProvider.getWalletMode();
+    const signChainId = chainId || this.#etherspotProvider.getChainId();
+
+    log(
+      'signMessage(): Called',
+      { message, signChainId },
+      this.debugMode
+    );
+
+    if (walletMode !== 'delegatedEoa') {
+      this.throwError(
+        "signMessage() is only available in 'delegatedEoa' wallet mode. " +
+          `Current mode: '${walletMode}'. ` +
+          'This method creates EIP-6492 compatible signatures for EIP-7702 wallets.'
+      );
+    }
+
+    try {
+      // Get the owner account (EOA)
+      const owner = await this.#etherspotProvider.getOwnerAccount(signChainId);
+      
+      // Create EIP-6492 enabled account wrapper
+      const eip6492Account = await this.createEIP6492Account(owner, signChainId);
+      
+      // Get wallet client
+      const walletClient =
+        await this.#etherspotProvider.getWalletClient(signChainId);
+
+      // Sign the message using the EIP-6492 enabled account wrapper
+      // The wrapper account's signMessage method automatically wraps the signature with EIP-6492 format
+      // This allows walletClient.signMessage() to directly return EIP-6492 formatted signatures
+      const signature = await walletClient.signMessage({
+        account: eip6492Account,
+        message: message as string,
+      });
+
+      log(
+        'signMessage(): EIP-6492 signature created',
+        { 
+          signatureLength: signature.length, 
+          signaturePrefix: signature.substring(0, 6),
+          startsWith6492: signature.startsWith('0x6492')
+        },
+        this.debugMode
+      );
+
+      return signature;
+    } catch (error) {
+      log('signMessage(): Failed', error, this.debugMode);
       throw error;
     }
   }

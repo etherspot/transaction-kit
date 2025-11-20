@@ -107,6 +107,10 @@ export interface IInitial {
     eoaAddress: string;
     userOpHash?: string;
   }>;
+  signMessage(
+    message: string | `0x${string}`,
+    chainId?: number
+  ): Promise<`0x${string}`>;
   getState(): IInstance;
   setDebugMode(enabled: boolean): void;
   getProvider(): WalletProviderLike;

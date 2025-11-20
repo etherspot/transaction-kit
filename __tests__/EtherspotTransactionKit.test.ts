@@ -33,6 +33,18 @@ jest.mock('viem', () => {
     ...actual,
     isAddress: jest.fn(),
     parseEther: jest.fn(),
+    toHex: jest.fn((val) => `0x${val.toString(16)}`),
+    toRlp: jest.fn((val) => `0x${Buffer.from(JSON.stringify(val)).toString('hex')}`),
+    zeroAddress: '0x0000000000000000000000000000000000000000',
+  };
+});
+
+jest.mock('viem/accounts', () => {
+  const actual = jest.requireActual('viem/accounts');
+  const mockSignMessage = jest.fn().mockResolvedValue('0x' + '1'.repeat(130));
+  return {
+    ...actual,
+    signMessage: mockSignMessage,
   };
 });
 
@@ -2332,6 +2344,233 @@ describe('DelegatedEoa Mode Integration', () => {
       ).rejects.toThrow(
         "undelegateSmartAccountToEoa() is only available in 'delegatedEoa' wallet mode"
       );
+    });
+  });
+
+  describe('signMessage', () => {
+    const { toRlp } = require('viem');
+
+    beforeEach(() => {
+      jest.clearAllMocks();
+      (toRlp as jest.Mock).mockClear();
+    });
+
+    it('should create EIP-6492 signature when EOA is not yet installed', async () => {
+      const mockOwner = {
+        address: '0xowner123456789012345678901234567890',
+      } as any;
+      const mockBundlerClient = {
+        signAuthorization: jest
+          .fn()
+          .mockResolvedValue({
+            address: '0xdelegate123456789012345678901234567890',
+            data: '0xabcdef1234567890abcdef1234567890abcdef12',
+          }),
+      } as any;
+      const mockPublicClient = {
+        getCode: jest
+          .fn()
+          .mockResolvedValueOnce('0x') // For isDelegateSmartAccountToEoa check
+          .mockResolvedValue('0x'), // For other calls
+        getTransactionCount: jest.fn().mockResolvedValue(5),
+      } as any;
+      const mockWalletClient = {
+        signMessage: jest
+          .fn()
+          .mockResolvedValue('0x' + '1'.repeat(130)), // Standard signature
+      } as any;
+
+      mockProvider.getOwnerAccount.mockResolvedValue(mockOwner);
+      mockProvider.getBundlerClient.mockResolvedValue(mockBundlerClient);
+      mockProvider.getPublicClient.mockResolvedValue(mockPublicClient);
+      mockProvider.getWalletClient.mockResolvedValue(mockWalletClient);
+      (toRlp as jest.Mock).mockReturnValue('0xdeadbeef1234567890abcdef');
+
+      const result = await transactionKit.signMessage('Hello, World!', 1);
+
+      // Should start with EIP-6492 magic prefix
+      expect(result).toMatch(/^0x6492/);
+      expect(result.length).toBeGreaterThan(140); // At least magic prefix + signature + deployment data
+      // The wrapper account's signMessage will call walletClient.signMessage with the original owner
+      expect(mockWalletClient.signMessage).toHaveBeenCalled();
+      expect(mockBundlerClient.signAuthorization).toHaveBeenCalled();
+    });
+
+    it('should create EIP-6492 signature when EOA is already installed', async () => {
+      const mockOwner = {
+        address: '0xowner123456789012345678901234567890',
+      } as any;
+      const mockBundlerClient = {
+        signAuthorization: jest
+          .fn()
+          .mockResolvedValue({
+            address: '0xdelegate123456789012345678901234567890',
+            data: '0xabcdef1234567890abcdef1234567890abcdef12',
+          }),
+      } as any;
+      const mockPublicClient = {
+        getCode: jest
+          .fn()
+          .mockResolvedValueOnce('0xef01001234') // Already installed
+          .mockResolvedValue('0xef01001234'),
+        getTransactionCount: jest.fn().mockResolvedValue(5),
+      } as any;
+      const mockWalletClient = {
+        signMessage: jest
+          .fn()
+          .mockResolvedValue('0x' + '2'.repeat(130)), // Standard signature
+      } as any;
+
+      mockProvider.getOwnerAccount.mockResolvedValue(mockOwner);
+      mockProvider.getBundlerClient.mockResolvedValue(mockBundlerClient);
+      mockProvider.getPublicClient.mockResolvedValue(mockPublicClient);
+      mockProvider.getWalletClient.mockResolvedValue(mockWalletClient);
+      (toRlp as jest.Mock).mockReturnValue('0xdeadbeef1234567890abcdef');
+
+      const result = await transactionKit.signMessage('Test message', 1);
+
+      expect(result).toMatch(/^0x6492/);
+      expect(mockWalletClient.signMessage).toHaveBeenCalled();
+      expect(mockBundlerClient.signAuthorization).toHaveBeenCalled();
+    });
+
+    it('should throw error for non-delegatedEoa wallet mode', async () => {
+      mockProvider.getWalletMode.mockReturnValue('modular');
+
+      await expect(
+        transactionKit.signMessage('Test message', 1)
+      ).rejects.toThrow(
+        "signMessage() is only available in 'delegatedEoa' wallet mode"
+      );
+    });
+
+    it('should handle authorization creation failure', async () => {
+      const mockOwner = {
+        address: '0xowner123456789012345678901234567890',
+      } as any;
+      const mockBundlerClient = {
+        signAuthorization: jest
+          .fn()
+          .mockRejectedValue(new Error('Authorization failed')),
+      } as any;
+      const mockPublicClient = {
+        getCode: jest.fn().mockResolvedValue('0x'), // Not installed
+      } as any;
+
+      mockProvider.getOwnerAccount.mockResolvedValue(mockOwner);
+      mockProvider.getBundlerClient.mockResolvedValue(mockBundlerClient);
+      mockProvider.getPublicClient.mockResolvedValue(mockPublicClient);
+      (viemSignMessage as jest.Mock).mockResolvedValue('0x' + '1'.repeat(130));
+
+      // This will fail when trying to delegate
+      await expect(
+        transactionKit.signMessage('Test message', 1)
+      ).rejects.toThrow();
+    });
+
+    it('should handle message signing failure', async () => {
+      const mockOwner = {
+        address: '0xowner123456789012345678901234567890',
+      } as any;
+      const mockBundlerClient = {
+        signAuthorization: jest
+          .fn()
+          .mockResolvedValue({
+            address: '0xdelegate123456789012345678901234567890',
+            data: '0xabcdef1234567890abcdef1234567890abcdef12',
+          }),
+      } as any;
+      const mockPublicClient = {
+        getCode: jest.fn().mockResolvedValue('0x'),
+        getTransactionCount: jest.fn().mockResolvedValue(5),
+      } as any;
+      const mockWalletClient = {
+        signMessage: jest
+          .fn()
+          .mockRejectedValue(new Error('Signing failed')),
+      } as any;
+
+      mockProvider.getOwnerAccount.mockResolvedValue(mockOwner);
+      mockProvider.getBundlerClient.mockResolvedValue(mockBundlerClient);
+      mockProvider.getPublicClient.mockResolvedValue(mockPublicClient);
+      mockProvider.getWalletClient.mockResolvedValue(mockWalletClient);
+
+      await expect(
+        transactionKit.signMessage('Test message', 1)
+      ).rejects.toThrow('Signing failed');
+    });
+
+    it('should use default chainId when not provided', async () => {
+      const mockOwner = {
+        address: '0xowner123456789012345678901234567890',
+      } as any;
+      const mockBundlerClient = {
+        signAuthorization: jest
+          .fn()
+          .mockResolvedValue({
+            address: '0xdelegate123456789012345678901234567890',
+            data: '0xabcdef1234567890abcdef1234567890abcdef12',
+          }),
+      } as any;
+      const mockPublicClient = {
+        getCode: jest.fn().mockResolvedValue('0x'),
+        getTransactionCount: jest.fn().mockResolvedValue(5),
+      } as any;
+      const mockWalletClient = {
+        signMessage: jest
+          .fn()
+          .mockResolvedValue('0x' + '1'.repeat(130)),
+      } as any;
+
+      mockProvider.getOwnerAccount.mockResolvedValue(mockOwner);
+      mockProvider.getBundlerClient.mockResolvedValue(mockBundlerClient);
+      mockProvider.getPublicClient.mockResolvedValue(mockPublicClient);
+      mockProvider.getWalletClient.mockResolvedValue(mockWalletClient);
+      mockProvider.getChainId.mockReturnValue(1);
+      (toRlp as jest.Mock).mockReturnValue('0xdeadbeef1234567890abcdef');
+
+      await transactionKit.signMessage('Test message');
+
+      expect(mockProvider.getOwnerAccount).toHaveBeenCalledWith(1);
+      expect(mockProvider.getBundlerClient).toHaveBeenCalledWith(1);
+      expect(mockProvider.getWalletClient).toHaveBeenCalledWith(1);
+    });
+
+    it('should handle hex string messages', async () => {
+      const mockOwner = {
+        address: '0xowner123456789012345678901234567890',
+      } as any;
+      const mockBundlerClient = {
+        signAuthorization: jest
+          .fn()
+          .mockResolvedValue({
+            address: '0xdelegate123456789012345678901234567890',
+            data: '0xabcdef1234567890abcdef1234567890abcdef12',
+          }),
+      } as any;
+      const mockPublicClient = {
+        getCode: jest.fn().mockResolvedValue('0x'),
+        getTransactionCount: jest.fn().mockResolvedValue(5),
+      } as any;
+      const mockWalletClient = {
+        signMessage: jest
+          .fn()
+          .mockResolvedValue('0x' + '1'.repeat(130)),
+      } as any;
+
+      mockProvider.getOwnerAccount.mockResolvedValue(mockOwner);
+      mockProvider.getBundlerClient.mockResolvedValue(mockBundlerClient);
+      mockProvider.getPublicClient.mockResolvedValue(mockPublicClient);
+      mockProvider.getWalletClient.mockResolvedValue(mockWalletClient);
+      (toRlp as jest.Mock).mockReturnValue('0xdeadbeef1234567890abcdef');
+
+      const result = await transactionKit.signMessage(
+        '0x48656c6c6f' as `0x${string}`,
+        1
+      );
+
+      expect(result).toMatch(/^0x6492/);
+      expect(mockWalletClient.signMessage).toHaveBeenCalled();
     });
   });
 
