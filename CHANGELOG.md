@@ -1,5 +1,18 @@
 # Changelog
 
+## [2.2.0] - 2025-11-20
+
+### Added Changes
+
+- **EIP-6492 signMessage Support**: Added `signMessage()` method for creating EIP-6492 compatible signatures for EIP-7702 wallets. This allows signing messages before and after smart account delegation, with signatures that can be validated by EIP-6492 compatible validators. The method wraps standard EIP-191 personal_sign signatures with deployment data in EIP-6492 format (`0x6492<signature><deployment_data>`).
+- **Example Program**: Added comprehensive example program (`example/src/signMessage-example.ts`) demonstrating signMessage usage with both delegated and non-delegated EOAs.
+
+### Notes
+
+- `signMessage()` is only available in `delegatedEoa` wallet mode
+- Automatically creates EIP-7702 authorization if EOA is not yet delegated
+- Signatures are compatible with EIP-6492 validators
+
 ## [2.1.3] - 2025-01-27
 
 ### Fixes
