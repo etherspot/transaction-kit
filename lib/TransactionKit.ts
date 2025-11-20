@@ -10,7 +10,7 @@ import {
   toRlp,
   zeroAddress,
 } from 'viem';
-import { SignAuthorizationReturnType, signMessage as viemSignMessage } from 'viem/accounts';
+import { SignAuthorizationReturnType } from 'viem/accounts';
 
 // interfaces
 import {
@@ -677,6 +677,9 @@ export class EtherspotTransactionKit implements IInitial {
    * - The signature format is: `0x6492<signature><deployment_data>`
    * - If the EOA is not yet designated, this will create the authorization automatically.
    * - The signature can be validated by contracts that support EIP-6492, even before the smart account is activated.
+   * - Uses WalletClient.signMessage() which delegates to the underlying provider/transport if the account supports it.
+   *   This allows signing with provider-based accounts (e.g., MetaMask, hardware wallets) when using viemLocalAccount
+   *   that wraps the provider, not just direct private key accounts.
    */
   async signMessage(
     message: string | `0x${string}`,
@@ -700,13 +703,16 @@ export class EtherspotTransactionKit implements IInitial {
     }
 
     try {
-      // Get the owner account (EOA)
+      // Get the owner account (EOA) and wallet client
       const owner = await this.#etherspotProvider.getOwnerAccount(signChainId);
       const bundlerClient =
         await this.#etherspotProvider.getBundlerClient(signChainId);
+      const walletClient =
+        await this.#etherspotProvider.getWalletClient(signChainId);
 
-      // Sign the message using standard personal_sign (EIP-191)
-      const signature = await viemSignMessage({
+      // Sign the message using wallet client (delegates to provider if account supports it)
+      // This works with both direct private key accounts and provider-based accounts
+      const signature = await walletClient.signMessage({
         account: owner,
         message: message as string,
       });
