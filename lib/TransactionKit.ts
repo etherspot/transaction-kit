@@ -4,8 +4,13 @@ import {
   KERNEL_V3_3,
   KernelVersionToAddressesMap,
 } from '@zerodev/sdk/constants';
-import { isAddress, zeroAddress } from 'viem';
-import { SignAuthorizationReturnType } from 'viem/accounts';
+import {
+  isAddress,
+  toHex,
+  toRlp,
+  zeroAddress,
+} from 'viem';
+import { SignAuthorizationReturnType, signMessage as viemSignMessage } from 'viem/accounts';
 
 // interfaces
 import {
@@ -652,6 +657,169 @@ export class EtherspotTransactionKit implements IInitial {
       };
     } catch (error) {
       log('undelegateSmartAccountToEoa(): Failed', error, this.debugMode);
+      throw error;
+    }
+  }
+
+  /**
+   * Signs a message using EIP-6492 format for EIP-7702 wallets.
+   * This creates a signature that can be validated before the smart account is deployed/activated.
+   *
+   * @param message - The message to sign (string or hex string).
+   * @param chainId - (Optional) The chain ID to use. If not provided, uses the provider's current chain ID.
+   * @returns A promise that resolves to the EIP-6492 formatted signature as a hex string.
+   * @throws {Error} If called in 'modular' wallet mode (only available in 'delegatedEoa' mode).
+   * @throws {Error} If signing fails or authorization cannot be created.
+   *
+   * @remarks
+   * - Only available in 'delegatedEoa' wallet mode.
+   * - Creates an EIP-6492 compatible signature that wraps the standard signature with deployment data.
+   * - The signature format is: `0x6492<signature><deployment_data>`
+   * - If the EOA is not yet designated, this will create the authorization automatically.
+   * - The signature can be validated by contracts that support EIP-6492, even before the smart account is activated.
+   */
+  async signMessage(
+    message: string | `0x${string}`,
+    chainId?: number
+  ): Promise<`0x${string}`> {
+    const walletMode = this.#etherspotProvider.getWalletMode();
+    const signChainId = chainId || this.#etherspotProvider.getChainId();
+
+    log(
+      'signMessage(): Called',
+      { message, signChainId },
+      this.debugMode
+    );
+
+    if (walletMode !== 'delegatedEoa') {
+      this.throwError(
+        "signMessage() is only available in 'delegatedEoa' wallet mode. " +
+          `Current mode: '${walletMode}'. ` +
+          'This method creates EIP-6492 compatible signatures for EIP-7702 wallets.'
+      );
+    }
+
+    try {
+      // Get the owner account (EOA)
+      const owner = await this.#etherspotProvider.getOwnerAccount(signChainId);
+      const bundlerClient =
+        await this.#etherspotProvider.getBundlerClient(signChainId);
+
+      // Sign the message using standard personal_sign (EIP-191)
+      const signature = await viemSignMessage({
+        account: owner,
+        message: message as string,
+      });
+
+      log(
+        'signMessage(): Message signed',
+        { signature: signature.substring(0, 20) + '...' },
+        this.debugMode
+      );
+
+      // Get or create the authorization
+      // Check if already installed
+      const isAlreadyInstalled =
+        await this.isDelegateSmartAccountToEoa(signChainId);
+
+      let authorization: SignAuthorizationReturnType | undefined;
+
+      if (isAlreadyInstalled) {
+        // If already installed, we need to get the authorization
+        // We'll create a new one for the same contract address
+        const delegateAddress = KernelVersionToAddressesMap[KERNEL_V3_3]
+          .accountImplementationAddress as `0x${string}`;
+
+        authorization = await bundlerClient.signAuthorization({
+          account: owner,
+          contractAddress: delegateAddress,
+        });
+
+        log(
+          'signMessage(): Authorization retrieved for installed account',
+          { delegateAddress },
+          this.debugMode
+        );
+      } else {
+        // Not installed yet, delegate to get authorization
+        const delegateResult = await this.delegateSmartAccountToEoa({
+          chainId: signChainId,
+          delegateImmediately: false,
+        });
+
+        if (!delegateResult.authorization) {
+          this.throwError(
+            'signMessage(): Failed to create authorization for EIP-6492 signature'
+          );
+        }
+
+        authorization = delegateResult.authorization;
+
+        log(
+          'signMessage(): Authorization created',
+          { eoaAddress: delegateResult.eoaAddress },
+          this.debugMode
+        );
+      }
+
+      if (!authorization) {
+        this.throwError(
+          'signMessage(): Authorization is required but was not created'
+        );
+      }
+
+      // Encode the authorization as deployment data for EIP-6492
+      // For EIP-7702, the deployment data is the RLP-encoded transaction that would set the authorization
+      // Format: RLP([chainId, nonce, to (zeroAddress), value (0), data (authorization), gasLimit, gasPrice])
+      const publicClient =
+        await this.#etherspotProvider.getPublicClient(signChainId);
+      const nonce = await publicClient.getTransactionCount({
+        address: owner.address,
+      });
+
+      // Get the authorization data
+      // The authorization.data field contains the encoded authorization
+      const authorizationData = authorization.data || '0x';
+
+      // Create deployment transaction data
+      // EIP-7702 authorization transaction structure:
+      // [chainId, nonce, to (zeroAddress), value (0), data (authorization), gasLimit, gasPrice]
+      const deploymentTx = [
+        toHex(signChainId), // chainId
+        toHex(nonce), // nonce
+        zeroAddress, // to (zero address for EIP-7702 authorization)
+        '0x0', // value
+        authorizationData, // data (authorization bytes)
+        '0x0', // gasLimit (placeholder, not critical for EIP-6492)
+        '0x0', // gasPrice (placeholder, not critical for EIP-6492)
+      ];
+
+      // RLP encode the deployment transaction
+      const deploymentData = toRlp(deploymentTx);
+
+      log(
+        'signMessage(): Deployment data encoded',
+        { deploymentDataLength: deploymentData.length },
+        this.debugMode
+      );
+
+      // Create EIP-6492 format: 0x6492 + signature + deployment_data
+      // Remove '0x' prefix from signature and deployment data for concatenation
+      const signatureBytes = signature.slice(2); // Remove '0x'
+      const deploymentBytes = deploymentData.slice(2); // Remove '0x'
+
+      // EIP-6492 format: magic prefix (0x6492) + signature (65 bytes) + deployment_data
+      const eip6492Signature = `0x6492${signatureBytes}${deploymentBytes}` as `0x${string}`;
+
+      log(
+        'signMessage(): EIP-6492 signature created',
+        { signatureLength: eip6492Signature.length },
+        this.debugMode
+      );
+
+      return eip6492Signature;
+    } catch (error) {
+      log('signMessage(): Failed', error, this.debugMode);
       throw error;
     }
   }
