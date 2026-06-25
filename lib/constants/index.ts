@@ -5,10 +5,12 @@ import { bsc, gnosis } from 'viem/chains';
 export const SupportedNetworks = [
   1, 10, 14, 30, 31, 50, 51, 56, 97, 100, 114, 122, 123, 137, 2357, 5000, 5003,
   8453, 10200, 42161, 42220, 43113, 43114, 44787, 59140, 59144, 80002, 84532,
-  421614, 534351, 534352, 11155111, 11155420, 28122024, 79479957, 888888888,
+  421614, 534351, 534352, 5042002, 11155111, 11155420, 28122024, 79479957,
+  888888888,
 ];
 
 export enum NetworkNames {
+  ArcTestnet = 'arcTestnet',
   BaseSepolia = 'baseSepolia',
   Sepolia = 'sepolia',
   Optimism = 'optimism',
@@ -69,6 +71,7 @@ export interface NetworkConfig {
 export const NETWORK_NAME_TO_CHAIN_ID: {
   [key: string]: number;
 } = {
+  [NetworkNames.ArcTestnet]: 5042002,
   [NetworkNames.BaseSepolia]: 84532,
   [NetworkNames.Sepolia]: 11155111,
   [NetworkNames.Optimism]: 10,
@@ -556,6 +559,39 @@ export const Networks: {
     chainId: 42220,
     chain: Chain.celo,
     bundler: 'https://rpc.etherspot.io/v2/42220',
+    contracts: {
+      entryPoint: '0x0000000071727De22E5E9d8BAf0edAc6f37da032',
+      walletFactory: '0x38CC0EDdD3a944CA17981e0A19470d2298B8d43a',
+      bootstrap: '0xCF2808eA7d131d96E5C73Eb0eCD8Dc84D33905C7',
+      multipleOwnerECDSAValidator: '0x0eA25BF9F313344d422B513e1af679484338518E',
+      erc20SessionKeyValidator: '',
+      hookMultiPlexer: '0xDcA918dd23456d321282DF9507F6C09A50522136',
+    },
+  },
+  [5042002]: {
+    chainId: 5042002,
+    chain: defineChain({
+      id: 5042002,
+      name: 'Arc Testnet',
+      nativeCurrency: {
+        decimals: 18,
+        name: 'USDC',
+        symbol: 'USDC',
+      },
+      rpcUrls: {
+        default: {
+          http: ['https://rpc.testnet.arc.network'],
+        },
+      },
+      blockExplorers: {
+        default: {
+          name: 'Arcscan',
+          url: 'https://testnet.arcscan.app',
+        },
+      },
+      testnet: true,
+    }),
+    bundler: 'https://testnet-rpc.etherspot.io/v2/5042002',
     contracts: {
       entryPoint: '0x0000000071727De22E5E9d8BAf0edAc6f37da032',
       walletFactory: '0x38CC0EDdD3a944CA17981e0A19470d2298B8d43a',
