@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.1.5] - 2026-06-25
+### Added Changes
+
+- Added support for Arc Testnet
+- Upgraded Modular SDK to 6.1.2
+
 ## [2.1.4] - 2025-12-09
 
 ### Added Changes
